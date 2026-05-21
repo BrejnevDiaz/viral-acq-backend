@@ -21,7 +21,7 @@ try {
 const app = express();
 const PORT = 3001;
 
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"] }));
+app.use(cors()); // Autorise toutes les origines
 app.use(express.json({ limit: "2mb" }));
 
 // ─── Platform → site domain ───────────────────────────────────────────────────
