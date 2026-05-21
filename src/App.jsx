@@ -308,6 +308,7 @@ export default function ProspectionAgent() {
   const [authMode, setAuthMode]           = useState("login"); // login | signup
   const [emailInput, setEmailInput]       = useState("");
   const [passInput, setPassInput]         = useState("");
+  const [showPass, setShowPass]           = useState(false);
   const [authError, setAuthError]         = useState("");
   const [registeredUsers, setRegisteredUsers] = useState(() => {
     try { return JSON.parse(localStorage.getItem("va_users") || '{"admin@viralacquisition.it":"admin"}'); } catch { return {}; }
@@ -474,6 +475,14 @@ export default function ProspectionAgent() {
     URL.revokeObjectURL(u);
   };
 
+  const clearLeads = async () => {
+    if (!window.confirm(uiLang === "fr" ? "Vider tous les résultats ?" : "Clear all results?")) return;
+    try {
+      await fetch(`${API_URL}/api/leads`, { method: 'DELETE' });
+      setResults([]);
+    } catch {}
+  };
+
   const filtered = results
     .filter(r => (fPlatform === "all" || r.platformId === fPlatform) && (fNiche === "all" || r.niche === fNiche))
     .sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -530,9 +539,12 @@ export default function ProspectionAgent() {
               <label style={{ display: "block", fontSize: 11, fontFamily: mono, color: c.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Email</label>
               <input type="email" required value={emailInput} onChange={e=>setEmailInput(e.target.value)} placeholder="you@company.com" style={{ width: "100%", padding: "14px 16px", borderRadius: 11, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", boxSizing: "border-box", fontSize: 14, transition: "border-color 0.2s" }} onFocus={e=>e.target.style.borderColor=c.accent} onBlur={e=>e.target.style.borderColor=c.border} />
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: 12, position: "relative" }}>
               <label style={{ display: "block", fontSize: 11, fontFamily: mono, color: c.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Password</label>
-              <input type="password" required value={passInput} onChange={e=>setPassInput(e.target.value)} placeholder="••••••••" style={{ width: "100%", padding: "14px 16px", borderRadius: 11, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", boxSizing: "border-box", fontSize: 14, transition: "border-color 0.2s" }} onFocus={e=>e.target.style.borderColor=c.accent} onBlur={e=>e.target.style.borderColor=c.border} />
+              <input type={showPass ? "text" : "password"} required value={passInput} onChange={e=>setPassInput(e.target.value)} placeholder="••••••••" style={{ width: "100%", padding: "14px 40px 14px 16px", borderRadius: 11, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", boxSizing: "border-box", fontSize: 14, transition: "border-color 0.2s" }} onFocus={e=>e.target.style.borderColor=c.accent} onBlur={e=>e.target.style.borderColor=c.border} />
+              <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, bottom: 12, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 16 }}>
+                {showPass ? "🙈" : "👁️"}
+              </button>
             </div>
             {authError && <div style={{ color: c.error, fontSize: 12, marginBottom: 16, background: c.errorBg, padding: "8px 12px", borderRadius: 8 }}>{authError}</div>}
             <button type="submit" style={{ width: "100%", padding: "16px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ff9a5c)`, color: "#fff", fontSize: 15, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 6px 20px ${c.accentGlow}`, transition: "transform 0.1s", marginTop: 8 }} onMouseDown={e=>e.target.style.transform="scale(0.98)"} onMouseUp={e=>e.target.style.transform="scale(1)"} onMouseLeave={e=>e.target.style.transform="scale(1)"}>
@@ -681,9 +693,14 @@ export default function ProspectionAgent() {
               {searching ? t.stop : t.launch(selPlatforms.length)}
             </button>
             {results.length > 0 && (
-              <button onClick={exportCSV} style={{ padding: "13px 18px", borderRadius: 11, border: `1.5px solid ${c.success}`, background: c.successSoft, color: c.success, fontSize: 13, fontWeight: 600, fontFamily: mono, cursor: "pointer" }}>
-                {t.csvBtn(filtered.length)}
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={clearLeads} style={{ padding: "13px 18px", borderRadius: 11, border: `1.5px solid ${c.error}`, background: c.errorBg, color: c.error, fontSize: 13, fontWeight: 600, fontFamily: mono, cursor: "pointer" }}>
+                  🗑️ {uiLang === "fr" ? "Vider" : "Clear"}
+                </button>
+                <button onClick={exportCSV} style={{ padding: "13px 18px", borderRadius: 11, border: `1.5px solid ${c.success}`, background: c.successSoft, color: c.success, fontSize: 13, fontWeight: 600, fontFamily: mono, cursor: "pointer" }}>
+                  {t.csvBtn(filtered.length)}
+                </button>
+              </div>
             )}
           </div>
         </div>

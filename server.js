@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { readFileSync, appendFileSync } from "fs";
+import { readFileSync, writeFileSync, appendFileSync } from "fs";
 import nodemailer from "nodemailer";
 import cron from "node-cron";
 import { saveLead, getLeadsToFollowUp } from "./db.js";
@@ -339,12 +339,21 @@ Reply ONLY with valid JSON:
     res.json({ ...emailData, generatedBy: "claude-haiku" });
   } catch (err) {
     console.warn(`⚠️  Haiku fallback [${emailLang}]: ${err.message}`);
-    res.json({ ...tmpl, generatedBy: "template" });
+    res.json({ ...templates[emailLang], generatedBy: "template" });
   }
 });
 
 
 // ─── STEP 4 : Nodemailer — Envoi email via Gmail SMTP ────────────────────────
+app.delete("/api/leads", (req, res) => {
+  try {
+    writeFileSync("db.json", JSON.stringify({ leads: [] }));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: "Failed to clear DB" });
+  }
+});
+
 app.post("/api/send-email", async (req, res) => {
   const { to, subject, body, brandName } = req.body;
 
