@@ -385,21 +385,59 @@ app.post("/api/vetting", async (req, res) => {
 
     const profile = items[0];
     
-    // Todo: Appel Anthropic avec les captions/comments du profil pour le Trust Score
-    // Pour l'instant, score mathématique simple
     const followers = profile.followersCount || 1;
     const avgLikes = profile.latestPosts ? profile.latestPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0) / profile.latestPosts.length : 0;
     const engRate = ((avgLikes / followers) * 100).toFixed(2);
     
+    let trustScore = engRate > 2 ? 85 : 40;
+    let aiSummary = `Le taux d'engagement moyen est de ${engRate}%. Activez la clé Anthropic pour une analyse approfondie des faux abonnés.`;
+
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (anthropicKey && !anthropicKey.includes("XXXX")) {
+      const postsInfo = (profile.latestPosts || []).slice(0, 5).map(p => `Légende: ${p.caption || ""}\nLikes: ${p.likesCount || 0}\nCommentaires: ${p.commentsCount || 0}`).join("\n\n");
+      const prompt = `Voici les statistiques d'un profil ${platform}:
+Pseudo: ${profile.username}
+Abonnés: ${followers}
+Taux d'engagement: ${engRate}%
+Posts récents:
+${postsInfo}
+
+En tant qu'expert en influence marketing, analyse ces données. Ce profil a-t-il une audience authentique ou de potentiels faux abonnés ? Le ratio likes/commentaires est-il cohérent avec l'engagement ?
+Réponds UNIQUEMENT avec un objet JSON contenant :
+"trustScore": un nombre de 1 à 100 (100 = excellent, authentique. 1 = faux abonnés évidents).
+"summary": un court résumé (max 3 phrases) de ton analyse.`;
+
+      try {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": anthropicKey, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307",
+            max_tokens: 300,
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        const data = await r.json();
+        if (r.ok) {
+          const text = data.content?.[0]?.text || "{}";
+          const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || "{}");
+          if (parsed.trustScore) trustScore = parsed.trustScore;
+          if (parsed.summary) aiSummary = parsed.summary;
+        }
+      } catch (err) {
+        console.error("Anthropic vetting error:", err);
+      }
+    }
+
     res.json({
       platform,
       username: profile.username,
       profilePic: profile.profilePicUrl,
-      followersCount: profile.followersCount,
+      followersCount: followers,
       engagementRate: `${engRate}%`,
-      trustScore: engRate > 2 ? 85 : 40,
-      aiSummary: "Analyse réelle effectuée via Apify.",
-      latestPosts: (profile.latestPosts || []).slice(0, 3)
+      trustScore,
+      aiSummary,
+      latestPosts: (profile.latestPosts || []).slice(0, 3).map(p => ({ url: p.url, likes: p.likesCount, comments: p.commentsCount }))
     });
 
   } catch (err) {
