@@ -1,5 +1,19 @@
 import React, { useState } from 'react';
 
+const InstaIcon = () => (
+  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#E1306C" }}>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#69C9D0" }}>
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+  </svg>
+);
+
 export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
   const [username, setUsername] = useState("");
   const [platform, setPlatform] = useState("instagram");
@@ -60,8 +74,8 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
             onChange={e => setPlatform(e.target.value)}
             style={{ padding: "14px 16px", borderRadius: 11, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 14, fontFamily: mono, cursor: "pointer" }}
           >
-            <option value="instagram">📸 Instagram</option>
-            <option value="tiktok">🎵 TikTok</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
           </select>
 
           <input 
@@ -93,7 +107,10 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
           <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24, flexWrap: "wrap" }}>
             <img src={data.profilePic} alt="Profile" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", border: `2px solid ${c.border}` }} />
             <div>
-              <h3 style={{ margin: "0 0 6px 0", fontSize: 20, color: c.text }}>@{data.username}</h3>
+              <h3 style={{ margin: "0 0 6px 0", fontSize: 20, color: c.text, display: "flex", alignItems: "center", gap: 8 }}>
+                {data.platform === "instagram" ? <InstaIcon /> : <TikTokIcon />}
+                @{data.username}
+              </h3>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, color: c.textMuted, fontFamily: mono }}>👥 {data.followersCount.toLocaleString()} abonnés</span>
                 <span style={{ fontSize: 13, color: c.textMuted, fontFamily: mono }}>📈 {data.engagementRate} d'engagement</span>

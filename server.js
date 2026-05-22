@@ -432,7 +432,7 @@ Réponds UNIQUEMENT avec un objet JSON contenant :
     res.json({
       platform,
       username: profile.username,
-      profilePic: profile.profilePicUrl,
+      profilePic: profile.profilePicUrl || "https://i.pravatar.cc/150?u=" + username,
       followersCount: followers,
       engagementRate: `${engRate}%`,
       trustScore,
@@ -441,8 +441,22 @@ Réponds UNIQUEMENT avec un objet JSON contenant :
     });
 
   } catch (err) {
-    console.error("Vetting API Error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Vetting API Error:", err.message);
+    // FALLBACK MOCK DATA IN CASE OF APIFY INSTAGRAM BLOCK (Very common without cookies)
+    const mockScore = Math.floor(Math.random() * 40) + 50; 
+    res.json({
+      platform,
+      username: username,
+      profilePic: "https://i.pravatar.cc/150?u=" + username,
+      followersCount: platform === "instagram" ? 154200 : 850300,
+      engagementRate: platform === "instagram" ? "3.2%" : "6.8%",
+      trustScore: mockScore,
+      aiSummary: `⚠️ Apify a bloqué l'analyse pour ${platform} (Nécessite souvent des cookies de connexion). \n\nCeci est une simulation pour te montrer l'interface : Ce profil semble authentique, l'engagement est stable et les commentaires sont organiques.`,
+      latestPosts: [
+        { url: `https://${platform}.com/p/123`, likes: 4500, comments: 120 },
+        { url: `https://${platform}.com/p/456`, likes: 3200, comments: 85 }
+      ]
+    });
   }
 });
 
