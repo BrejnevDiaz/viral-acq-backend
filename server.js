@@ -3,6 +3,7 @@ import cors from "cors";
 import { readFileSync, writeFileSync, appendFileSync } from "fs";
 import nodemailer from "nodemailer";
 import cron from "node-cron";
+import { ApifyClient } from 'apify-client';
 import { saveLead, getLeadsToFollowUp } from "./db.js";
 import { startCampaign, campaignState } from "./campaignManager.js";
 
@@ -345,6 +346,68 @@ Reply ONLY with valid JSON:
 
 
 // ─── STEP 4 : Nodemailer — Envoi email via Gmail SMTP ────────────────────────
+// ─── STEP 3.5 : Route Vetting Agent (Instagram & TikTok) ──────────────────────
+
+app.post("/api/vetting", async (req, res) => {
+  const { username, platform } = req.body;
+  if (!username) return res.status(400).json({ error: "Username required" });
+
+  try {
+    if (!process.env.APIFY_API_TOKEN || process.env.APIFY_API_TOKEN === "colle_ton_jeton_ici") {
+      // Mock data pour le design (quand la clé n'est pas encore là)
+      await new Promise(r => setTimeout(r, 2000)); // Simulate delay
+      const mockScore = Math.floor(Math.random() * 40) + 50; // Score 50-90
+      return res.json({
+        platform,
+        username,
+        profilePic: "https://i.pravatar.cc/150?u=" + username,
+        followersCount: 154200,
+        engagementRate: "3.2%",
+        trustScore: mockScore,
+        aiSummary: "Profil analysé avec des données simulées car la clé API Apify est manquante. Une fois la clé insérée, l'IA lira les vrais commentaires pour détecter les faux abonnés et analyser la qualité de l'audience de " + username + ".",
+        latestPosts: [
+          { url: "https://instagram.com/p/123", likes: 4500, comments: 120 },
+          { url: "https://instagram.com/p/456", likes: 3200, comments: 85 }
+        ]
+      });
+    }
+
+    const client = new ApifyClient({ token: process.env.APIFY_API_TOKEN });
+    
+    // Logique réelle d'Apify (à affiner selon l'acteur exact choisi par la suite)
+    const actorId = platform === "instagram" ? "apify/instagram-profile-scraper" : "clockworks/tiktok-profile-scraper";
+    const run = await client.actor(actorId).call({ usernames: [username] });
+    const { items } = await client.dataset(run.defaultDatasetId).listItems();
+    
+    if (!items || items.length === 0) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    const profile = items[0];
+    
+    // Todo: Appel Anthropic avec les captions/comments du profil pour le Trust Score
+    // Pour l'instant, score mathématique simple
+    const followers = profile.followersCount || 1;
+    const avgLikes = profile.latestPosts ? profile.latestPosts.reduce((acc, p) => acc + (p.likesCount || 0), 0) / profile.latestPosts.length : 0;
+    const engRate = ((avgLikes / followers) * 100).toFixed(2);
+    
+    res.json({
+      platform,
+      username: profile.username,
+      profilePic: profile.profilePicUrl,
+      followersCount: profile.followersCount,
+      engagementRate: `${engRate}%`,
+      trustScore: engRate > 2 ? 85 : 40,
+      aiSummary: "Analyse réelle effectuée via Apify.",
+      latestPosts: (profile.latestPosts || []).slice(0, 3)
+    });
+
+  } catch (err) {
+    console.error("Vetting API Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete("/api/leads", (req, res) => {
   try {
     writeFileSync("db.json", JSON.stringify({ leads: [] }));

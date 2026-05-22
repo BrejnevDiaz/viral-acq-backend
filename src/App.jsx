@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import VettingTab from "./VettingTab";
 
 // ─── Niches ──────────────────────────────────────────────────────────────────
 const NICHES = [
@@ -305,6 +306,7 @@ export default function ProspectionAgent() {
   const [emailsSent, setEmailsSent]     = useState(0);
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [isLoggedIn, setIsLoggedIn]       = useState(false);
+  const [currentTab, setCurrentTab]       = useState("acquisition");
   const [authMode, setAuthMode]           = useState("login"); // login | signup
   const [emailInput, setEmailInput]       = useState("");
   const [passInput, setPassInput]         = useState("");
@@ -619,6 +621,18 @@ export default function ProspectionAgent() {
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "20px 16px" }}>
 
+        {/* ── Tabs ──────────────────────────────────────────────────── */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <button onClick={() => setCurrentTab("acquisition")} style={{ flex: 1, padding: "14px", borderRadius: 12, border: "none", background: currentTab === "acquisition" ? c.accent : c.card, color: currentTab === "acquisition" ? "#fff" : c.textMuted, fontSize: 14, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s" }}>
+            🔍 Acquisition
+          </button>
+          <button onClick={() => setCurrentTab("vetting")} style={{ flex: 1, padding: "14px", borderRadius: 12, border: "none", background: currentTab === "vetting" ? c.accent : c.card, color: currentTab === "vetting" ? "#fff" : c.textMuted, fontSize: 14, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s" }}>
+            🕵️‍♂️ Vetting (Audience Analysis)
+          </button>
+        </div>
+
+        {currentTab === "acquisition" ? (
+          <>
         {/* ── Config Panel ──────────────────────────────────────────────────── */}
         <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 20, marginBottom: 16, transition: "background 0.3s" }}>
 
@@ -898,6 +912,10 @@ export default function ProspectionAgent() {
               </div>
             )}
           </div>
+        )}
+          </>
+        ) : (
+          <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={t} />
         )}
       </div>
 
