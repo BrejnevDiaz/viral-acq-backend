@@ -958,8 +958,16 @@ export default function ProspectionAgent() {
             </select>
 
             {/* Theme toggle corner */}
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted, fontSize: 16, cursor: "pointer", transition: "all 0.2s" }}>
-              {theme === "dark" ? "☀️" : "🌙"}
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
+              display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
+              borderRadius: 10, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
+              cursor: "pointer", transition: "all 0.2s"
+            }} className="hover-lift">
+              {theme === "dark" ? 
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
+                : 
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              }
             </button>
           </div>
 
@@ -1421,12 +1429,44 @@ export default function ProspectionAgent() {
           </div>
 
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {userRole === "admin" && backendOk && (
-              <div className="desktop-only" style={{ display: "flex", gap: 8 }}>
-                <Badge color={backendOk.serper === "✅" ? c.success : c.error} bg={backendOk.serper === "✅" ? c.successSoft : c.errorBg}>🔍 Tavily {backendOk.serper}</Badge>
-                <Badge color={backendOk.anthropic?.includes("✅") ? c.success : c.warning} bg={c.accent2Soft}>🤖 {backendOk.anthropic?.includes("✅") ? "Haiku ✅" : "Auto"}</Badge>
-                <Badge color={backendOk.gmail === "✅" ? c.success : c.warning} bg={backendOk.gmail === "✅" ? c.successSoft : c.warningBg}>📧 Gmail {backendOk.gmail === "✅" ? "✅" : "⚠️"}</Badge>
+              <div className="desktop-only" style={{ display: "flex", gap: 10 }}>
+                {/* Tavily Badge */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8,
+                  background: backendOk.serper === "✅" ? c.successSoft : c.errorBg,
+                  border: `1px solid ${backendOk.serper === "✅" ? c.success : c.error}40`,
+                  color: backendOk.serper === "✅" ? c.success : c.error,
+                  fontSize: 11, fontWeight: 700, fontFamily: mono, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  Tavily
+                </div>
+
+                {/* Anthropic Badge */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8,
+                  background: c.accent2Soft,
+                  border: `1px solid ${c.accent2}40`,
+                  color: backendOk.anthropic?.includes("✅") ? c.success : c.warning,
+                  fontSize: 11, fontWeight: 700, fontFamily: mono, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                  {backendOk.anthropic?.includes("✅") ? "Haiku" : "Auto"}
+                </div>
+
+                {/* Gmail Badge */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 8,
+                  background: backendOk.gmail === "✅" ? c.successSoft : c.warningBg,
+                  border: `1px solid ${backendOk.gmail === "✅" ? c.success : c.warning}40`,
+                  color: backendOk.gmail === "✅" ? c.success : c.warning,
+                  fontSize: 11, fontWeight: 700, fontFamily: mono, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  Gmail {backendOk.gmail !== "✅" && "⚠️"}
+                </div>
               </div>
             )}
             {!backendOk && <Badge color={c.error} bg={c.errorBg}>⚠️ Backend offline</Badge>}
@@ -1447,7 +1487,7 @@ export default function ProspectionAgent() {
                 fontWeight: 600,
                 outline: "none",
                 cursor: "pointer",
-                marginLeft: 12
+                marginLeft: 4
               }}
             >
               <option value="fr">🇫🇷 FR</option>
@@ -1456,10 +1496,15 @@ export default function ProspectionAgent() {
             </select>
 
             <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
-              padding: "6px 12px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
-              fontSize: 15, cursor: "pointer", transition: "all 0.2s", fontFamily: mono, marginLeft: 6
-            }} title={theme === "dark" ? "Light mode" : "Dark mode"}>
-              {theme === "dark" ? "☀️" : "🌙"}
+              display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
+              borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
+              cursor: "pointer", transition: "all 0.2s", marginLeft: 2
+            }} title={theme === "dark" ? "Light mode" : "Dark mode"} className="hover-lift">
+              {theme === "dark" ? 
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
+                : 
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              }
             </button>
           </div>
         </div>
