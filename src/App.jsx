@@ -935,16 +935,26 @@ export default function ProspectionAgent() {
 
           {/* Controls Bar in Top Right */}
           <div style={{ position: "absolute", top: 24, right: 24, display: "flex", gap: 10, alignItems: "center", zIndex: 10 }}>
-            {/* Language switcher */}
-            <div style={{ display: "flex", gap: 3, background: "rgba(0,0,0,0.5)", borderRadius: 8, padding: 3, border: `1.5px solid rgba(255,255,255,0.06)` }}>
-              {["fr", "en", "it"].map(l => (
-                <button key={l} onClick={() => setUiLang(l)} style={{
-                  padding: "6px 12px", borderRadius: 6, border: "none", fontFamily: mono, fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.15s",
-                  background: uiLang === l ? c.accent : "transparent",
-                  color: uiLang === l ? "#fff" : c.textDim,
-                }}>{l.toUpperCase()}</button>
-              ))}
-            </div>
+            <select
+              value={uiLang}
+              onChange={(e) => setUiLang(e.target.value)}
+              style={{
+                background: "rgba(0,0,0,0.5)",
+                color: "#fff",
+                border: `1px solid rgba(255,255,255,0.1)`,
+                borderRadius: 8,
+                padding: "8px 12px",
+                fontFamily: mono,
+                fontSize: 12,
+                fontWeight: 700,
+                outline: "none",
+                cursor: "pointer"
+              }}
+            >
+              <option value="fr">🇫🇷 FR</option>
+              <option value="en">🇬🇧 EN</option>
+              <option value="it">🇮🇹 IT</option>
+            </select>
 
             {/* Theme toggle corner */}
             <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{ padding: "8px 12px", borderRadius: 10, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted, fontSize: 16, cursor: "pointer", transition: "all 0.2s" }}>
@@ -1354,27 +1364,39 @@ export default function ProspectionAgent() {
           </div>
 
 
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {userRole === "admin" && backendOk && (
-              <>
+              <div className="desktop-only" style={{ display: "flex", gap: 8 }}>
                 <Badge color={backendOk.serper === "✅" ? c.success : c.error} bg={backendOk.serper === "✅" ? c.successSoft : c.errorBg}>🔍 Tavily {backendOk.serper}</Badge>
                 <Badge color={backendOk.anthropic?.includes("✅") ? c.success : c.warning} bg={c.accent2Soft}>🤖 {backendOk.anthropic?.includes("✅") ? "Haiku ✅" : "Auto"}</Badge>
                 <Badge color={backendOk.gmail === "✅" ? c.success : c.warning} bg={backendOk.gmail === "✅" ? c.successSoft : c.warningBg}>📧 Gmail {backendOk.gmail === "✅" ? "✅" : "⚠️"}</Badge>
-              </>
+              </div>
             )}
             {!backendOk && <Badge color={c.error} bg={c.errorBg}>⚠️ Backend offline</Badge>}
-            {results.length > 0 && <Badge color={c.success} bg={c.successSoft}>Σ {stats.total}</Badge>}
-            {emailsSent > 0 && <Badge color={c.emailBlue} bg={c.emailBlueSoft}>{t.sentCount(emailsSent)}</Badge>}
+            {results.length > 0 && <div className="desktop-only"><Badge color={c.success} bg={c.successSoft}>Σ {stats.total}</Badge></div>}
+            {emailsSent > 0 && <div className="desktop-only"><Badge color={c.emailBlue} bg={c.emailBlueSoft}>{t.sentCount(emailsSent)}</Badge></div>}
 
-            <div style={{ display: "flex", gap: 3, background: c.bg, borderRadius: 8, padding: 3, border: `1px solid ${c.border}`, marginLeft: 12 }}>
-              {["fr", "en", "it"].map(l => (
-                <button key={l} onClick={() => setUiLang(l)} style={{
-                  padding: "4px 9px", borderRadius: 6, border: "none", fontFamily: mono, fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
-                  background: uiLang === l ? c.accent : "transparent",
-                  color: uiLang === l ? "#fff" : c.textDim,
-                }}>{l.toUpperCase()}</button>
-              ))}
-            </div>
+            <select
+              value={uiLang}
+              onChange={(e) => setUiLang(e.target.value)}
+              style={{
+                background: c.bg,
+                color: c.text,
+                border: `1px solid ${c.border}`,
+                borderRadius: 8,
+                padding: "6px 10px",
+                fontFamily: mono,
+                fontSize: 12,
+                fontWeight: 600,
+                outline: "none",
+                cursor: "pointer",
+                marginLeft: 12
+              }}
+            >
+              <option value="fr">🇫🇷 FR</option>
+              <option value="en">🇬🇧 EN</option>
+              <option value="it">🇮🇹 IT</option>
+            </select>
 
             <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
               padding: "6px 12px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
