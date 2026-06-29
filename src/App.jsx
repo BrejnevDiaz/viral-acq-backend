@@ -376,6 +376,7 @@ export default function ProspectionAgent() {
   const [shopAnalysisCount, setShopAnalysisCount]   = useState(0);
 
   const [currentTab, setCurrentTab]       = useState("adspy");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [redirectShop, setRedirectShop]   = useState(null);
   const [authMode, setAuthMode]           = useState("login");
   const [emailInput, setEmailInput]       = useState("");
@@ -1339,20 +1340,76 @@ export default function ProspectionAgent() {
               VIRAL<span style={{ color: c.accent }}>ACQ</span>
             </h1>
           </div>
-          <select 
-            value={currentTab} 
-            onChange={(e) => handleTabChange(e.target.value)}
-            style={{ padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
-          >
-            <option value="adspy">🔥 AdSpy</option>
-            <option value="productfinder">🎁 Product Finder</option>
-            <option value="shopanalyzer">🛍️ Shop Analyzer</option>
-            <option value="acquisition">🔍 Sourcing</option>
-            <option value="vetting">🕵️‍♂️ Vetting IA</option>
-            <option value="matchmaking">🤝 Matchmaking</option>
-            <option value="talentagency">💼 Talents & Gigs</option>
-            <option value="resources">📚 Ressources & FAQ</option>
-          </select>
+          {/* Premium Mobile Navigation Dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "8px 14px", borderRadius: 10,
+                border: `1px solid rgba(255,255,255,0.08)`,
+                background: "rgba(0,0,0,0.3)",
+                color: c.text, outline: "none", fontSize: 13, fontWeight: 700, fontFamily: mono,
+                cursor: "pointer", transition: "all 0.2s",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.2)"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 18, height: 18 }}>
+                {currentTab === "adspy" ? <AdSpyIcon color={c.accent} /> :
+                 currentTab === "productfinder" ? <ProductFinderIcon color={c.accent} /> :
+                 currentTab === "shopanalyzer" ? <ShopAnalyzerIcon color={c.accent} /> :
+                 currentTab === "acquisition" ? <SourcingCRMIcon color={c.accent} /> :
+                 currentTab === "vetting" ? <VettingIAIcon color={c.accent} /> :
+                 currentTab === "matchmaking" ? <MatchmakingIcon color={c.accent} /> :
+                 currentTab === "talentagency" ? <BriefcaseIcon color={c.accent} /> :
+                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                }
+              </div>
+              <span>
+                {currentTab === "adspy" ? "AdSpy" : currentTab === "productfinder" ? "Product Finder" : currentTab === "shopanalyzer" ? "Shop Analyzer" : currentTab === "acquisition" ? "Sourcing" : currentTab === "vetting" ? "Vetting IA" : currentTab === "matchmaking" ? "Matchmaking" : currentTab === "talentagency" ? "Talents & Gigs" : "Resources"}
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 4, transform: mobileMenuOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            
+            {mobileMenuOpen && (
+              <>
+                <div onClick={() => setMobileMenuOpen(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 98 }} />
+                <div style={{
+                  position: "absolute", top: "100%", right: 0, marginTop: 8,
+                  background: "rgba(15, 15, 22, 0.95)", backdropFilter: "blur(20px)", border: `1px solid rgba(255,255,255,0.1)`,
+                  borderRadius: 12, boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+                  width: 220, zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column", padding: 6
+                }}>
+                  {[
+                    { id: "adspy", label: "Creative AdSpy", icon: <AdSpyIcon color={currentTab === "adspy" ? c.accent : c.textDim} /> },
+                    { id: "productfinder", label: "Product Finder", icon: <ProductFinderIcon color={currentTab === "productfinder" ? c.accent : c.textDim} /> },
+                    { id: "shopanalyzer", label: "Shop Analyzer", icon: <ShopAnalyzerIcon color={currentTab === "shopanalyzer" ? c.accent : c.textDim} /> },
+                    { id: "acquisition", label: "Sourcing CRM", icon: <SourcingCRMIcon color={currentTab === "acquisition" ? c.accent : c.textDim} /> },
+                    { id: "vetting", label: "Vetting IA", icon: <VettingIAIcon color={currentTab === "vetting" ? c.accent : c.textDim} /> },
+                    { id: "matchmaking", label: "Matchmaking", icon: <MatchmakingIcon color={currentTab === "matchmaking" ? c.accent : c.textDim} /> },
+                    { id: "talentagency", label: "Talents & Gigs", icon: <BriefcaseIcon color={currentTab === "talentagency" ? c.accent : c.textDim} /> },
+                    { id: "resources", label: "Ressources & FAQ", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTab === "resources" ? c.accent : c.textDim} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> }
+                  ].map(item => (
+                    <button 
+                      key={item.id}
+                      onClick={() => { handleTabChange(item.id); setMobileMenuOpen(false); }}
+                      style={{
+                        width: "100%", padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 8,
+                        background: currentTab === item.id ? `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)` : "transparent",
+                        color: currentTab === item.id ? c.text : c.textDim,
+                        textAlign: "left", fontSize: 13, fontFamily: mono, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20 }}>
+                        {item.icon}
+                      </div>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Desktop Top Header */}
