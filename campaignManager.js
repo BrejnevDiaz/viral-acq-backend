@@ -1,64 +1,39 @@
 import { saveLead } from "./db.js";
+import { buildQueries, PLATFORMS } from "./src/utils/queryBuilder.js";
 
-// --- Données statiques recopiées depuis le frontend ---
-const NICHES = [
-  { id: "beauty", keywords: ["skincare italiano", "beauty brand Italia", "cosmetici artigianali italiani", "crema viso italiana", "siero viso brand italiano", "make up brand Italia"] },
-  { id: "food",   keywords: ["integratori italiani", "food brand italiano", "superfood Italia shop", "snack proteico italiano", "nutrition brand Italia", "organic food italiano"] },
-  { id: "fitness",keywords: ["activewear italiano", "sportswear brand Italia", "yoga brand italiano", "fitness brand Italia", "abbigliamento sportivo italiano", "wellness brand Italia"] },
-];
-const PLATFORMS = [
-  { id: "web",       label: "Web / Google",  siteFilter: "" },
-  { id: "instagram", label: "Instagram",     siteFilter: "site:instagram.com" },
-  { id: "tiktok",    label: "TikTok",        siteFilter: "site:tiktok.com" },
-  { id: "facebook",  label: "Facebook",      siteFilter: "site:facebook.com" },
-  { id: "pinterest", label: "Pinterest",     siteFilter: "site:pinterest.com" },
-  { id: "amazon",    label: "Amazon",        siteFilter: "site:amazon.it" },
-  { id: "etsy",      label: "Etsy",          siteFilter: "site:etsy.com" },
-  { id: "ebay",      label: "eBay",          siteFilter: "site:ebay.it" },
-];
-const REGIONS = [
-  { id: "it", term: "Italia italiano \"made in Italy\"", emailLang: "it" },
-  { id: "eu", term: "Europe European brand",             emailLang: "en" },
-  { id: "us", term: "US brand UK brand",                 emailLang: "en" },
-];
-
-function buildQueries(selPlatforms, selNiches, selRegions, customKw) {
-  const queries = [];
-  for (const pid of selPlatforms) {
-    const plat = PLATFORMS.find(p => p.id === pid);
-    const siteQ = plat?.siteFilter ? `${plat.siteFilter} ` : "";
-    for (const nid of selNiches) {
-      const niche = NICHES.find(n => n.id === nid);
-      const kw = niche.keywords[Math.floor(Math.random() * niche.keywords.length)];
-      for (const rid of selRegions) {
-        const region = REGIONS.find(r => r.id === rid);
-        queries.push({ query: `${siteQ}${kw} ${region.term} ecommerce brand`, niche: nid, platform: pid, region: rid, emailLang: region.emailLang });
-        if (pid === "web") {
-          queries.push({ query: `${kw} ${region.term} piccolo brand collaborazione influencer`, niche: nid, platform: pid, region: rid, emailLang: region.emailLang });
-        }
-      }
-    }
-  }
-  if (customKw && customKw.trim()) {
-    queries.unshift({ query: customKw.trim(), niche: "custom", platform: "web", region: "it", emailLang: "it" });
-  }
-  return queries.sort(() => Math.random() - 0.5).slice(0, 12);
-}
-
-function parseGoogleResult(item, niche, platform, region, emailLang) {
+function parseGoogleResult(item, niche, platform, region, emailLang, targetType) {
   const platLabel = PLATFORMS.find(p => p.id === platform)?.label || platform;
   const name = (item.title || "").split(" | ")[0].split(" - ")[0].split(" – ")[0].trim().slice(0, 50);
   const emailMatch = (item.snippet || "").match(/[\w.-]+@[\w.-]+\.\w{2,}/g);
   const email = emailMatch?.[0] || null;
-  const igMatch = ((item.snippet||"") + (item.title||"")).match(/@[\w_.]{3,30}/g);
+  
+  let score = 0;
+  let reason = [];
+  if (email) { score += 40; reason.push("Email trouvée"); }
+  
+  // Specific checks for influencers
+  if (targetType === "influencers") {
+    if (item.link?.includes("instagram.com") || item.link?.includes("tiktok.com")) { score += 30; reason.push("Profil Social Actif"); }
+    if ((item.snippet||"").toLowerCase().includes("collab") || (item.snippet||"").toLowerCase().includes("pr")) { score += 20; reason.push("Ouvert aux collabs"); }
+  } else {
+    if (item.link?.includes("myshopify") || (item.snippet||"").toLowerCase().includes("shop")) { score += 20; reason.push("E-commerce (Shopify/Store)"); }
+    if ((item.snippet||"").toLowerCase().includes("founder") || (item.snippet||"").toLowerCase().includes("ceo")) { score += 10; reason.push("Contact Décideur"); }
+  }
+
   return {
-    name, url: item.link, displayUrl: item.displayLink,
-    description: item.snippet || "", niche, platform: platLabel, platformId: platform,
-    region, emailLang: emailLang || "it",
-    contact: email || "À rechercher", instagram: igMatch?.[0] || null, socials: {},
-    score: 75, size: "Emerging", reasoning: "",
-    emailStatus: "idle", generatedEmail: null,
+    id: Date.now() + Math.random().toString(36).substr(2, 5),
+    name,
     emailTo: email || "",
+    url: item.url || item.link,
+    description: item.snippet || "",
+    niche,
+    platform: platLabel,
+    region,
+    emailLang: emailLang || "it",
+    score: Math.min(score, 99),
+    reason: (targetType === "influencers" ? "INFLUENCER | " : "") + reason.join(", "),
+    emailStatus: "none",
+    generatedEmail: null
   };
 }
 
@@ -82,14 +57,14 @@ export const startCampaign = async (params) => {
     return;
   }
   
-  const { selPlatforms = [], selNiches = [], selRegions = [], customKw = "", emailInput } = params;
+  const { selTarget = "brands", selPlatforms = [], selNiches = [], selRegions = [], customKw = "", emailInput } = params;
   
   campaignState.isRunning = true;
   campaignState.logs = [];
   campaignState.results = [];
   campaignState.stats = { total: 0, byPlatform: {}, byNiche: {} };
   
-  const queries = buildQueries(selPlatforms, selNiches, selRegions, customKw);
+  const queries = buildQueries(selTarget, selPlatforms, selNiches, selRegions, customKw);
   addLog(`🚀 Campagne démarrée — ${queries.length} requêtes planifiées`, "success");
   
   const seen = new Set();
@@ -116,10 +91,10 @@ export const startCampaign = async (params) => {
 
       // 2. Traitement des résultats
       for (const item of items.slice(0, 4)) {
-        let brand = parseGoogleResult(item, q.niche, q.platform, q.region, q.emailLang);
+        let brand = parseGoogleResult(item, q.niche, q.platform, q.region, q.emailLang, q.targetType);
         const key = brand.name.toLowerCase().replace(/[^a-z0-9]/g, "");
         if (key.length < 3 || seen.has(key)) continue;
-        if (brand.url.match(/wikipedia|youtube\.com\/watch|google\.|amazon\.com\/s\?|ebay\.(com|it)\/sch/)) continue;
+        if ((brand.url || "").match(/wikipedia|youtube\.com\/watch|google\.|amazon\.com\/s\?|ebay\.(com|it)\/sch/)) continue;
         
         try {
           // Score et enrichissement Apollo (déjà sur le serveur)

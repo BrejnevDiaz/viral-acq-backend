@@ -1,0 +1,55 @@
+﻿    // Anthropic Vetting
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (latestPosts.length > 0 && anthropicKey && !anthropicKey.includes("XXXX")) {
+      const postsInfo = latestPosts.map(p => `Likes: ${p.likes}\nComments: ${p.comments}`).join("\n\n");
+      const promptLang = lang === 'en' ? 'English' : (lang === 'it' ? 'Italian' : 'French');
+      const prompt = `Profile: ${username}\nFollowers: ${followers}\nEngagement: ${engRate}%\nRecent posts:\n${postsInfo}\n\nAs an influencer marketing expert, analyze this data. Does this profile have authentic audience or potential fake followers?\nRespond ONLY with a JSON object containing:\n"trustScore": a number from 1 to 100.\n"summary": a short summary (max 3 sentences) in ${promptLang}.`;
+
+      try {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": anthropicKey, "anthropic-version": "2023-06-01" },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307",
+            max_tokens: 300,
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        const data = await r.json();
+        if (r.ok) {
+          const text = data.content?.[0]?.text || "{}";
+          const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || "{}");
+          if (parsed.trustScore) trustScore = parsed.trustScore;
+          if (parsed.summary) aiSummary = parsed.summary;
+        }
+      } catch (err) {
+        console.error("Anthropic error:", err);
+      }
+    }
+
+    if (!aiSummary && trustScore === 0) {
+      trustScore = parseFloat(engRate) > 2 ? 85 : 45;
+      aiSummary = msgOrganic;
+    }
+
+    if (supabase) {
+      supabase.from("vetting_history").insert({
+        username: username,
+        platform: platform,
+        followers: followers,
+        engagement: engRate,
+        trust_score: trustScore,
+        ai_summary: aiSummary
+      }).then(({error}) => { if (error) console.error("Erreur save vetting_history:", error) });
+    }
+
+    res.json({
+      platform,
+      username: username,
+      profilePic,
+      followersCount: followers,
+      engagementRate: `${engRate}%`,
+      trustScore,
+      aiSummary,
+      latestPosts
+    });
