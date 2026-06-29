@@ -917,9 +917,9 @@ export default function ProspectionAgent() {
         {/* Right Side: Credentials Form Column */}
         <div style={{ flex: 1, padding: "80px 24px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 1, background: "rgba(6, 6, 12, 0.4)", backdropFilter: "blur(10px)", borderLeft: "1px solid rgba(255,255,255,0.02)" }}>
           {/* Mobile Header (Hidden on Desktop) */}
-          <div className="mobile-only" style={{ position: "absolute", top: 40, textAlign: "center", width: "100%" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <svg viewBox="0 0 24 24" width="28" height="28" stroke="url(#va-grad-mob)" strokeWidth="2.5" fill="none">
+          <div className="mobile-only" style={{ position: "absolute", top: 24, left: 24, zIndex: 10 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <svg viewBox="0 0 24 24" width="24" height="24" stroke="url(#va-grad-mob)" strokeWidth="2.5" fill="none">
                 <defs>
                   <linearGradient id="va-grad-mob" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#8B5CF6"/>
@@ -929,7 +929,7 @@ export default function ProspectionAgent() {
                 <polygon points="12 2 2 22 22 22"/>
                 <polyline points="2 12 12 12 12 22"/>
               </svg>
-              <span className="outfit" style={{ fontSize: 18, fontWeight: 900, color: "#fff" }}>VIRAL<span style={{ color: c.accent }}>ACQUISITION</span></span>
+              <span className="outfit" style={{ fontSize: 16, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>VIRAL<span style={{ color: c.accent }}>ACQ</span></span>
             </div>
           </div>
 
