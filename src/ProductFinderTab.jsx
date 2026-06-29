@@ -287,7 +287,7 @@ for (let i = 13; i <= 100; i++) {
   });
 }
 
-export default function ProductFinderTab({ c, mono, onImportLead, uiLang, userTier = "free" }) {
+export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLang, userTier = "free" }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [selectedSource, setSelectedSource] = useState("all");
@@ -417,7 +417,7 @@ export default function ProductFinderTab({ c, mono, onImportLead, uiLang, userTi
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/product-finder/search`, {
+      const response = await fetch(`${API_URL}/api/product-finder/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchTerm, category: selectedNiche, region: "eu" })

@@ -1513,9 +1513,9 @@ export default function ProspectionAgent() {
         <div className="main-content" style={{ padding: 24, width: "100%", boxSizing: "border-box", flexGrow: 1 }}>
 
         {currentTab === "adspy" ? (
-          <AdSpyTab c={c} mono={mono} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} />
+          <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} />
         ) : currentTab === "productfinder" ? (
-          <ProductFinderTab c={c} mono={mono} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} />
+          <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} />
         ) : currentTab === "acquisition" ? (
           <>
         {/* ── Config Panel ──────────────────────────────────────────────────── */}
@@ -1854,9 +1854,9 @@ export default function ProspectionAgent() {
         ) : currentTab === "vetting" ? (
           <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={(k) => t[k] || k} />
         ) : currentTab === "shopanalyzer" ? (
-          <ShopAnalyzerTab c={c} mono={mono} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
+          <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
         ) : currentTab === "talentagency" ? (
-          <TalentAgencyTab c={c} mono={mono} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
+          <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} userTier={userTier} onUpgradeTier={handleUpgradeSimulate} />
         ) : (

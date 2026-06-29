@@ -360,7 +360,7 @@ for (let i = 13; i <= 100; i++) {
   });
 }
 
-export default function AdSpyTab({ c, mono, onImportLead, uiLang, setCurrentTab, setRedirectShop, userTier = "free" }) {
+export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCurrentTab, setRedirectShop, userTier = "free" }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
@@ -484,7 +484,7 @@ export default function AdSpyTab({ c, mono, onImportLead, uiLang, setCurrentTab,
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/adspy/search`, {
+      const response = await fetch(`${API_URL}/api/adspy/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchTerm, niche: selectedNiche, platform: selectedPlatform })

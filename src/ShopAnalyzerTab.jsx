@@ -354,7 +354,7 @@ function generateProductsAndAds(niche, shopName) {
   return { topProducts, activeAds };
 }
 
-export default function ShopAnalyzerTab({ c, mono, onImportLead, uiLang, redirectShop, setRedirectShop, userTier, onAnalyzeStore }) {
+export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang, redirectShop, setRedirectShop, userTier, onAnalyzeStore }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [activeShop, setActiveShop] = useState(null);
@@ -481,7 +481,7 @@ export default function ShopAnalyzerTab({ c, mono, onImportLead, uiLang, redirec
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/shop-analyzer/analyze`, {
+      const response = await fetch(`${API_URL}/api/shop-analyzer/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain })

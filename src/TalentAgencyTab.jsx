@@ -129,7 +129,7 @@ const MOCK_GIGS = [
   }
 ];
 
-export default function TalentAgencyTab({ c, mono, uiLang, onImportLead, userPlan = "free", userId = null }) {
+export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead, userPlan = "free", userId = null }) {
   const isRestricted = ["free", "standard"].includes(userPlan);
   const [currentUserRole, setCurrentUserRole] = useState("admin"); // admin | brand | influencer
   const [talents, setTalents] = useState(MOCK_TALENTS);
@@ -330,7 +330,7 @@ export default function TalentAgencyTab({ c, mono, uiLang, onImportLead, userPla
 
     if (matchingTalents.length > 0) {
       console.log(`✉️ Envoi de notifications à ${matchingTalents.length} créateurs...`);
-      fetch(`http://localhost:3001/api/gigs/notify`, {
+      fetch(`${API_URL}/api/gigs/notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gig: item, influencers: matchingTalents })
