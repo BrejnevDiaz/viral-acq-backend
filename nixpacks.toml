@@ -1,0 +1,13 @@
+# Force Node 20 LTS — Vite 8 requires Node 18.7+ (CustomEvent API)
+[variables]
+NODE_VERSION = "20"
+
+# Override Nixpacks default npm ci → npm install
+[phases.install]
+cmds = ["npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node server.js"
