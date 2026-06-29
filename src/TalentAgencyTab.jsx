@@ -537,8 +537,8 @@ export default function TalentAgencyTab({ c, mono, uiLang, onImportLead, userPla
                   {/* Profile header */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                     <img src={displayAvatar} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", border: `2.5px solid ${talent.status === 'active' ? c.accent : c.warning}` }} />
-                    <div>
-                      <h3 style={{ fontSize: 15.5, fontWeight: 800, color: c.text, margin: 0 }}>{displayName}</h3>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ fontSize: 15.5, fontWeight: 800, color: c.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</h3>
                       <span style={{ fontSize: 11.5, color: c.textDim, fontFamily: mono, display: "flex", alignItems: "center", gap: 4 }}>
                         <img src={`https://cdn.simpleicons.org/${talent.platform}/888888`} width={10} height={10} alt="" />
                         {talent.platform.toUpperCase()}
