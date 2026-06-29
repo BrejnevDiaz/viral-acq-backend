@@ -1,3 +1,5 @@
+providers = ["node"]
+
 # Force Node 20 LTS — Vite 8 requires Node 18.7+ (CustomEvent API)
 [variables]
 NODE_VERSION = "20"
