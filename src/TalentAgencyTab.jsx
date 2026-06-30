@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 // Real influencer talents scoured from https://viralacquisition.it/talents
@@ -132,7 +132,20 @@ const MOCK_GIGS = [
 export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead, userPlan = "free", userId = null }) {
   const isRestricted = ["free", "standard"].includes(userPlan);
   const [currentUserRole, setCurrentUserRole] = useState("admin"); // admin | brand | influencer
-  const [talents, setTalents] = useState(MOCK_TALENTS);
+  const [talents, setTalents] = useState(() => {
+    const saved = localStorage.getItem("agency_talents");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return MOCK_TALENTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("agency_talents", JSON.stringify(talents));
+  }, [talents]);
   const [gigs, setGigs] = useState(MOCK_GIGS);
   const [contracts, setContracts] = useState([
     {

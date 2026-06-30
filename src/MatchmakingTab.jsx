@@ -31,6 +31,7 @@ const Input = ({ placeholder, value, onChange, c }) => (
 export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const [brands, setBrands] = useState([]);
   const [influencers, setInfluencers] = useState([]);
+  const [agencyTalents, setAgencyTalents] = useState([]);
 
   // Form states
   const [newBrand, setNewBrand] = useState({ name: '', website: '', niche: '', budget: '', description: '' });
@@ -49,10 +50,19 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
   const fetchData = async () => {
     try {
-      const b = await fetch(`${API_URL}/api/catalogue/brands`).then(r => r.json());
-      const i = await fetch(`${API_URL}/api/catalogue/influencers`).then(r => r.json());
-      setBrands(b);
-      setInfluencers(i);
+      const rBrand = await fetch(`${API_URL}/api/catalogue/brands`);
+      const rInf = await fetch(`${API_URL}/api/catalogue/influencers`);
+      setBrands((await rBrand.json()).brands || []);
+      setInfluencers((await rInf.json()).influencers || []);
+      
+      // Load agency roster
+      const saved = localStorage.getItem("agency_talents");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.length > 0) setAgencyTalents(parsed);
+        } catch (e) {}
+      }
     } catch (e) {
       console.error(e);
     }
@@ -224,6 +234,33 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
           
           <Card c={c}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: c.textMuted }}>➕ Ajouter un Influenceur</h4>
+            
+            {agencyTalents.length > 0 && (
+              <div style={{ marginBottom: 14 }}>
+                <select 
+                  onChange={e => {
+                    const selected = agencyTalents.find(t => t.id === e.target.value);
+                    if(selected) {
+                      setNewInfluencer({
+                        username: selected.username.replace('@',''),
+                        platform: selected.platform,
+                        niche: selected.niche,
+                        followers: selected.followers.toString(),
+                        engagement: selected.engagement.toString().replace('%',''),
+                        profileUrl: selected.profileUrl || ''
+                      });
+                    }
+                  }}
+                  style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${c.accent}`, background: `rgba(139, 92, 246, 0.05)`, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
+                >
+                  <option value="">Sélectionner depuis le Roster de l'Agence...</option>
+                  {agencyTalents.filter(t => t.status !== "pending").map(t => (
+                    <option key={t.id} value={t.id}>@{t.username.replace('@','')} ({t.platform}) - {t.followers} abonnés</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="@username" value={newInfluencer.username} onChange={e=>setNewInfluencer({...newInfluencer, username: e.target.value})} c={c} /></div>
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="Lien profil (URL)" value={newInfluencer.profileUrl} onChange={e=>setNewInfluencer({...newInfluencer, profileUrl: e.target.value})} c={c} /></div>
