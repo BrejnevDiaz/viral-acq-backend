@@ -150,6 +150,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   const [newGig, setNewGig] = useState({ brand: "", title: "", niche: "beauty", budget: "", requirements: "", description: "" });
   const [activeTab, setActiveTab] = useState("roster"); // roster | adecojobs | join
   const [matchingLoader, setMatchingLoader] = useState(false);
+  const [aiMatchesResult, setAiMatchesResult] = useState(null);
 
   // Campaign Placements & Tracking Modals States
   const [activeModal, setActiveModal] = useState(null); // { type: 'shipping' | 'review' | 'roi', contract: ... }
@@ -325,8 +326,8 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     };
     setGigs([item, ...gigs]);
 
-    // Trouver tous les talents actifs dans la même niche
-    const matchingTalents = talents.filter(t => t.status === "active" && t.niche === newGig.niche);
+    // Trouver tous les talents dans la même niche (qu'ils soient actifs ou pending)
+    const matchingTalents = talents.filter(t => t.niche === newGig.niche);
 
     if (matchingTalents.length > 0) {
       console.log(`✉️ Envoi de notifications à ${matchingTalents.length} créateurs...`);
@@ -384,7 +385,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       if (newContracts.length > 0) {
         setGigs(updatedGigs);
         setContracts([...newContracts, ...contracts]);
-        alert(t.successMatch);
+        setAiMatchesResult(newContracts);
       } else {
         alert(t.noPending);
       }
@@ -974,7 +975,63 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
             >
               {t.addBtn}
             </button>
-          </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI Staffing Matches Modal */}
+      {aiMatchesResult && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
+          <div style={{ background: c.card, border: `1.5px solid ${c.accent}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: `0 20px 40px ${c.accent}33` }}>
+            <button onClick={() => setAiMatchesResult(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
+            
+            <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text, display: "flex", alignItems: "center", gap: 8 }}>
+              ⚡ {t.successMatch || "Placement Réussi !"}
+            </h2>
+            <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 20 }}>
+              {uiLang === "fr" ? "L'IA a généré ces nouveaux contrats. Vous pouvez maintenant notifier les influenceurs assignés :" : "AI has generated these new contracts. You can now notify the assigned influencers:"}
+            </p>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {aiMatchesResult.map(contract => {
+                const talent = talents.find(t => t.username === contract.talentName);
+                return (
+                  <div key={contract.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: "bold", color: c.text }}>{contract.brandName}</div>
+                        <div style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>
+                          Mission : <span style={{ color: c.text }}>{contract.title}</span>
+                        </div>
+                        <div style={{ fontSize: 14, marginTop: 8 }}>
+                          Talent : <strong style={{ color: c.success }}>@{contract.talentName}</strong>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, color: c.accent, background: c.accentSoft, padding: "4px 8px", borderRadius: 6, fontWeight: "bold" }}>
+                        {contract.budget}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                      <a href={`mailto:${talent?.email || ''}?subject=${encodeURIComponent('Nouvelle mission: ' + contract.brandName)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", flex: 1 }}>
+                        <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: c.emailBlue || '#6366f1', color: "#fff", cursor: "pointer", fontWeight: "bold", fontSize: 12, transition: "opacity 0.2s" }} onMouseOver={e=>e.target.style.opacity=0.8} onMouseOut={e=>e.target.style.opacity=1}>
+                          ✉️ Envoyer Email
+                        </button>
+                      </a>
+                      <a href={`https://ig.me/m/${contract.talentName}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", flex: 1 }}>
+                        <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", color: "#fff", cursor: "pointer", fontWeight: "bold", fontSize: 12, transition: "opacity 0.2s" }} onMouseOver={e=>e.target.style.opacity=0.8} onMouseOut={e=>e.target.style.opacity=1}>
+                          📱 DM Instagram
+                        </button>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <button onClick={() => setAiMatchesResult(null)} style={{ marginTop: 24, width: "100%", padding: "12px", borderRadius: 8, border: "none", background: c.border, color: c.text, fontWeight: 700, cursor: "pointer" }}>
+              Terminer
+            </button>
+          </div>
         </div>
       )}
 
