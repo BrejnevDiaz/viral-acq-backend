@@ -28,6 +28,14 @@ const Input = ({ placeholder, value, onChange, c }) => (
   }} />
 );
 
+// Force dark text on native <option> elements (OS renders them with white bg)
+const selectStyle = (c) => ({
+  width: "100%", padding: "12px 14px", borderRadius: 8,
+  border: `1px solid ${c.border}`, background: c.bg, color: c.text,
+  outline: "none", fontSize: 14
+});
+const optionStyle = { color: "#111", background: "#fff" };
+
 export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const [brands, setBrands] = useState([]);
   const [influencers, setInfluencers] = useState([]);
@@ -43,6 +51,22 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   // Validated Matches state
   const [validatedMatches, setValidatedMatches] = useState([]);
 
+  // Contracts state
+  const [contracts, setContracts] = useState(() => {
+    const saved = localStorage.getItem("matchmaking_contracts");
+    if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+    return [];
+  });
+  const [contractModal, setContractModal] = useState({ isOpen: false, match: null, generating: false, contract: null });
+
+  // Brand contact form (merged from Brand Portal)
+  const [brandContact, setBrandContact] = useState({ brandName: '', website: '', niche: '', budget: '', message: '' });
+  const [brandContactStatus, setBrandContactStatus] = useState('idle');
+
+  useEffect(() => {
+    localStorage.setItem("matchmaking_contracts", JSON.stringify(contracts));
+  }, [contracts]);
+
   useEffect(() => {
     fetchData();
     fetchMatches();
@@ -55,7 +79,6 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       setBrands((await rBrand.json()).brands || []);
       setInfluencers((await rInf.json()).influencers || []);
       
-      // Load agency roster
       const saved = localStorage.getItem("agency_talents_v2");
       if (saved) {
         try {
@@ -98,7 +121,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       }).then(r => r.json());
       
       setValidatedMatches(prev => [...prev, res]);
-      alert(uiLang === "fr" ? "Accord validé et enregistré au catalogue !" : "Accordo validato e registrato nel catalogo!");
+      alert(uiLang === "fr" ? "Accord validé et enregistré !" : "Accordo validato e registrato!");
       setPitchModal({ ...pitchModal, isOpen: false });
     } catch (err) {
       alert(`Erreur: ${err.message}`);
@@ -188,15 +211,120 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   };
 
   const openMatchModal = (sourceItem, type) => {
-    // type: 'brand' (source is brand, need to select influencer) or 'influencer'
     setPitchModal({ isOpen: true, mode: type === 'brand' ? 'brand_to_influencer' : 'influencer_to_brand', source: sourceItem, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false });
+  };
+
+  // ── Contract Generation ──
+  const generateContract = (match) => {
+    setContractModal({ isOpen: true, match, generating: true, contract: null });
+    setTimeout(() => {
+      const today = new Date();
+      const endDate = new Date(today);
+      endDate.setMonth(endDate.getMonth() + 3);
+      const contractText = `CONTRAT DE COLLABORATION UGC
+═══════════════════════════════════════
+
+Entre : ${match.brand.name} (ci-après "la Marque")
+Et    : @${match.influencer.username} (ci-après "le Créateur")
+Via   : Viral Acquisition Agency (ci-après "l'Agence")
+
+Date d'effet : ${today.toLocaleDateString('fr-FR')}
+Date de fin  : ${endDate.toLocaleDateString('fr-FR')}
+
+─── ARTICLE 1 : OBJET ───
+La Marque confie au Créateur, par l'intermédiaire de l'Agence, 
+la création de contenu UGC pour promouvoir ses produits/services 
+dans la niche "${match.brand.niche}".
+
+─── ARTICLE 2 : LIVRABLES ───
+• 2x Vidéos UGC (Reels/TikTok) de 15-60 secondes
+• 1x Story Instagram avec lien swipe-up
+• Droits d'utilisation publicitaire pendant 90 jours
+
+─── ARTICLE 3 : RÉMUNÉRATION ───
+• Montant : À définir (selon barème agence)
+• Produit(s) offert(s) : Oui (expédition DHL)
+• Paiement : Sous 30 jours après validation du contenu
+
+─── ARTICLE 4 : EXCLUSIVITÉ ───
+Le Créateur s'engage à ne pas promouvoir de marque 
+directement concurrente pendant la durée du contrat.
+
+─── ARTICLE 5 : PROPRIÉTÉ INTELLECTUELLE ───
+Les contenus créés restent la propriété du Créateur.
+La Marque bénéficie d'une licence d'utilisation de 90 jours
+pour ses canaux publicitaires (Meta Ads, TikTok Ads).
+
+─── ARTICLE 6 : REPORTING ───
+L'Agence fournira un rapport de performance incluant :
+impressions, engagement, clics et ROI estimé.
+
+Signatures :
+_________________________          _________________________
+${match.brand.name}                @${match.influencer.username}
+La Marque                          Le Créateur
+
+_________________________
+Viral Acquisition Agency
+L'Agence (Brejnev Diaz)`;
+      setContractModal(prev => ({ ...prev, generating: false, contract: contractText }));
+    }, 1500);
+  };
+
+  const saveContract = () => {
+    if (!contractModal.contract || !contractModal.match) return;
+    const newContract = {
+      id: `contract_${Date.now()}`,
+      matchId: contractModal.match.id,
+      brandName: contractModal.match.brand.name,
+      influencerUsername: contractModal.match.influencer.username,
+      niche: contractModal.match.brand.niche,
+      content: contractModal.contract,
+      status: 'draft',
+      createdAt: new Date().toISOString()
+    };
+    setContracts(prev => [...prev, newContract]);
+    setContractModal({ isOpen: false, match: null, generating: false, contract: null });
+    alert(uiLang === "fr" ? "Contrat sauvegardé !" : "Contratto salvato!");
+  };
+
+  const deleteContract = (id) => {
+    if (!window.confirm("Supprimer ce contrat ?")) return;
+    setContracts(prev => prev.filter(ct => ct.id !== id));
+  };
+
+  const updateContractStatus = (id, status) => {
+    setContracts(prev => prev.map(ct => ct.id === id ? { ...ct, status } : ct));
+  };
+
+  // Brand contact form handler
+  const handleBrandContactSubmit = (e) => {
+    e.preventDefault();
+    if (!brandContact.brandName || !brandContact.message) return;
+    setBrandContactStatus('submitting');
+    setTimeout(() => {
+      setBrandContactStatus('success');
+      setBrandContact({ brandName: '', website: '', niche: '', budget: '', message: '' });
+      setTimeout(() => setBrandContactStatus('idle'), 5000);
+    }, 1500);
+  };
+
+  // Combine influencers + roster for dropdown rendering
+  const getCombinedInfluencers = () => {
+    const combined = [...influencers];
+    agencyTalents.forEach(at => {
+      if (at.status !== "pending" && !combined.some(i => i.username === at.username || i.username.replace('@','') === at.username.replace('@',''))) {
+        combined.push({ ...at, isRoster: true });
+      }
+    });
+    return combined;
   };
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out" }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, color: c.text, margin: "0 0 8px 0" }}>🤝 Catalogue & Matchmaking</h2>
-        <p style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>Gérez vos accords marques et vos influenceurs signés, et générez des pitchs parfaits avec l'IA.</p>
+        <h2 style={{ fontSize: 22, color: c.text, margin: "0 0 8px 0" }}>🤝 Matchmaking & Collaborations</h2>
+        <p style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>Gérez vos marques, influenceurs, et générez des pitchs et contrats via l'IA.</p>
       </div>
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -247,15 +375,17 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                         niche: selected.niche,
                         followers: selected.followers.toString(),
                         engagement: selected.engagement.toString().replace('%',''),
-                        profileUrl: selected.profileUrl || ''
+                        profileUrl: selected.profileUrl || `https://instagram.com/${selected.username.replace('@','')}`
                       });
                     }
                   }}
-                  style={{ width: "100%", padding: "10px", borderRadius: 8, border: `1px solid ${c.accent}`, background: `rgba(139, 92, 246, 0.05)`, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
+                  style={{ ...selectStyle(c), border: `1px solid ${c.accent}`, background: `rgba(139, 92, 246, 0.05)`, cursor: "pointer" }}
                 >
-                  <option value="">Sélectionner depuis le Roster de l'Agence...</option>
+                  <option value="" style={optionStyle}>Sélectionner depuis le Roster de l'Agence...</option>
                   {agencyTalents.filter(t => t.status !== "pending").map(t => (
-                    <option key={t.id} value={t.id}>@{t.username.replace('@','')} ({t.platform}) - {t.followers} abonnés</option>
+                    <option key={t.id} value={t.id} style={optionStyle}>
+                      @{t.username.replace('@','')} ({t.platform}) - {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
+                    </option>
                   ))}
                 </select>
               </div>
@@ -265,9 +395,9 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="@username" value={newInfluencer.username} onChange={e=>setNewInfluencer({...newInfluencer, username: e.target.value})} c={c} /></div>
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="Lien profil (URL)" value={newInfluencer.profileUrl} onChange={e=>setNewInfluencer({...newInfluencer, profileUrl: e.target.value})} c={c} /></div>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <select value={newInfluencer.platform} onChange={e=>setNewInfluencer({...newInfluencer, platform: e.target.value})} style={{ width: "100%", padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, marginBottom: 10 }}>
-                  <option value="instagram">Instagram</option>
-                  <option value="tiktok">TikTok</option>
+                <select value={newInfluencer.platform} onChange={e=>setNewInfluencer({...newInfluencer, platform: e.target.value})} style={{ ...selectStyle(c), marginBottom: 10, padding: "9px" }}>
+                  <option value="instagram" style={optionStyle}>Instagram</option>
+                  <option value="tiktok" style={optionStyle}>TikTok</option>
                 </select>
               </div>
             </div>
@@ -297,7 +427,168 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
         </div>
       </div>
 
-      {/* MATCHMAKING MODAL */}
+      {/* ══════ SECTION ACCORDS VALIDÉS & SIGNÉS ══════ */}
+      <div className="glass-panel" style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
+        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>🏆 Accords Validés & Signés ({validatedMatches.length})</h3>
+        
+        {validatedMatches.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
+            Aucun accord validé pour le moment. Générez un pitch IA depuis un profil de marque ou d'influenceur ci-dessus et cliquez sur "Valider & Enregistrer l'Accord" pour l'enregistrer ici.
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: c.text }}>
+              <thead>
+                <tr style={{ borderBottom: `1.5px solid ${c.border}`, textAlign: "left" }}>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Marque</th>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Talent</th>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Niche</th>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Statut</th>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Date</th>
+                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700, textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {validatedMatches.map(m => (
+                  <tr key={m.id} style={{ borderBottom: `1px solid ${c.border}`, transition: "background 0.2s" }} onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.01)"} onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+                    <td style={{ padding: "14px 10px", fontWeight: "bold" }}>{m.brand.name}</td>
+                    <td style={{ padding: "14px 10px", color: c.success, fontWeight: 600 }}>@{m.influencer.username}</td>
+                    <td style={{ padding: "14px 10px" }}><span style={{ background: c.accentSoft, color: c.accent, fontSize: 10.5, padding: "3px 8px", borderRadius: 6, fontWeight: "bold", textTransform: "uppercase" }}>{m.brand.niche}</span></td>
+                    <td style={{ padding: "14px 10px" }}><span style={{ fontSize: 11.5, color: m.relationship === "signed" ? c.success : c.warning, background: m.relationship === "signed" ? c.successSoft : c.warningBg, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{m.relationship === "signed" ? "Signed 📝" : "Outreach ✉️"}</span></td>
+                    <td style={{ padding: "14px 10px", color: c.textMuted, fontFamily: mono, fontSize: 11 }}>{new Date(m.validatedAt).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: "14px 10px", textAlign: "right" }}>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <Button onClick={() => {
+                          setPitchModal({
+                            isOpen: true, mode: "view_saved", source: m.brand, target: m.influencer,
+                            relationship: m.relationship, pitchLang: m.pitchLang, email: m.email, loading: false
+                          });
+                        }} bg={c.accent} color="#fff" small>🔍 Lire</Button>
+                        <Button onClick={() => generateContract(m)} bg={`linear-gradient(90deg, #f59e0b, #ef4444)`} color="#fff" small>📄 Contrat</Button>
+                        <Button onClick={() => deleteMatch(m.id)} bg={c.error} color="#fff" small>✖</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ══════ SECTION GESTION DES CONTRATS ══════ */}
+      <div className="glass-panel" style={{ marginTop: 24, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
+        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>📋 Gestion des Contrats ({contracts.length})</h3>
+        
+        {contracts.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
+            Aucun contrat généré. Validez un accord ci-dessus, puis cliquez sur "📄 Contrat" pour en créer un.
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+            {contracts.map(ct => {
+              const statusColors = {
+                draft: { bg: c.warningBg, color: c.warning, label: "Brouillon ✏️" },
+                sent: { bg: c.emailBlueSoft || "rgba(59,130,246,0.12)", color: c.emailBlue || "#3b82f6", label: "Envoyé 📤" },
+                signed: { bg: c.successSoft, color: c.success, label: "Signé ✅" },
+                expired: { bg: c.errorBg, color: c.error, label: "Expiré ❌" }
+              };
+              const st = statusColors[ct.status] || statusColors.draft;
+              return (
+                <div key={ct.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 700, background: st.bg, color: st.color, textTransform: "uppercase" }}>{st.label}</span>
+                    <span style={{ fontSize: 10, color: c.textDim, fontFamily: mono }}>{new Date(ct.createdAt).toLocaleDateString('fr-FR')}</span>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: c.text, marginBottom: 4 }}>{ct.brandName}</div>
+                  <div style={{ fontSize: 13, color: c.success, fontWeight: 600, marginBottom: 4 }}>↔ @{ct.influencerUsername}</div>
+                  <div style={{ fontSize: 11, color: c.textDim, marginBottom: 12 }}>Niche: {ct.niche}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <select
+                      value={ct.status}
+                      onChange={e => updateContractStatus(ct.id, e.target.value)}
+                      style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${c.border}`, background: c.card, color: c.text, fontSize: 11, cursor: "pointer" }}
+                    >
+                      <option value="draft" style={optionStyle}>Brouillon</option>
+                      <option value="sent" style={optionStyle}>Envoyé</option>
+                      <option value="signed" style={optionStyle}>Signé</option>
+                      <option value="expired" style={optionStyle}>Expiré</option>
+                    </select>
+                    <Button onClick={() => {
+                      setContractModal({ isOpen: true, match: null, generating: false, contract: ct.content });
+                    }} bg={c.accent} color="#fff" small>👁️ Voir</Button>
+                    <Button onClick={() => {
+                      navigator.clipboard.writeText(ct.content);
+                      alert("Contrat copié !");
+                    }} bg={c.success} color="#fff" small>📋 Copier</Button>
+                    <Button onClick={() => deleteContract(ct.id)} bg={c.error} color="#fff" small>✖</Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ══════ SECTION CONTACT MARQUE (ex Brand Portal) ══════ */}
+      <div className="glass-panel" style={{ marginTop: 24, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)`, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -80, right: -80, width: 200, height: 200, background: `radial-gradient(circle, ${c.accent}22 0%, transparent 70%)`, pointerEvents: "none" }}></div>
+        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 8, display: "flex", alignItems: "center", gap: 8, fontWeight: 800, position: "relative", zIndex: 1 }}>🏢 Portail Marques — Demander une Collaboration</h3>
+        <p style={{ color: c.textMuted, margin: "0 0 20px 0", fontSize: 13, lineHeight: 1.5, position: "relative", zIndex: 1 }}>
+          Vous êtes une marque et souhaitez confier votre campagne marketing à notre agence ? Remplissez ce formulaire.
+        </p>
+
+        {brandContactStatus === 'success' ? (
+          <div style={{ background: c.successSoft, border: `1.5px solid ${c.success}`, borderRadius: 12, padding: "20px", textAlign: "center", animation: "fadeIn 0.3s" }}>
+            <span style={{ fontSize: 36, display: "block", marginBottom: 8 }}>🎉</span>
+            <div style={{ color: c.success, fontWeight: 700, fontSize: 14 }}>
+              ✅ Demande envoyée ! Notre équipe (Brejnev Diaz) vous contactera sous 24h.
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleBrandContactSubmit} style={{ display: "flex", flexDirection: "column", gap: 12, position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 200px" }}>
+                <Input placeholder="Nom de la Marque *" value={brandContact.brandName} onChange={e => setBrandContact({...brandContact, brandName: e.target.value})} c={c} />
+              </div>
+              <div style={{ flex: "1 1 200px" }}>
+                <Input placeholder="Site Web (ex: bleame.com)" value={brandContact.website} onChange={e => setBrandContact({...brandContact, website: e.target.value})} c={c} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 200px" }}>
+                <Input placeholder="Niche (Beauté, Tech, Food...)" value={brandContact.niche} onChange={e => setBrandContact({...brandContact, niche: e.target.value})} c={c} />
+              </div>
+              <div style={{ flex: "1 1 200px" }}>
+                <select value={brandContact.budget} onChange={e => setBrandContact({...brandContact, budget: e.target.value})} style={{ ...selectStyle(c), marginBottom: 10, padding: "10px 14px" }}>
+                  <option value="" style={optionStyle}>Budget estimé...</option>
+                  <option value="<1000" style={optionStyle}>&lt; 1,000 €</option>
+                  <option value="1000-5000" style={optionStyle}>1,000 € - 5,000 €</option>
+                  <option value="5000-10000" style={optionStyle}>5,000 € - 10,000 €</option>
+                  <option value=">10000" style={optionStyle}>&gt; 10,000 €</option>
+                </select>
+              </div>
+            </div>
+            <textarea
+              placeholder="Décrivez vos objectifs (UGC, Notoriété, Conversion) *"
+              rows={4}
+              value={brandContact.message}
+              onChange={e => setBrandContact({...brandContact, message: e.target.value})}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, boxSizing: "border-box", resize: "vertical" }}
+            />
+            <Button
+              onClick={handleBrandContactSubmit}
+              disabled={brandContactStatus === 'submitting' || !brandContact.brandName || !brandContact.message}
+              bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`}
+              color="#fff"
+            >
+              {brandContactStatus === 'submitting' ? "⏳ Envoi..." : "🚀 Envoyer la demande à l'Agence"}
+            </Button>
+          </form>
+        )}
+      </div>
+
+      {/* ══════ MATCHMAKING MODAL ══════ */}
       {pitchModal.isOpen && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
           <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
@@ -308,31 +599,27 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
             {pitchModal.mode === "view_saved" ? (
               <div>
                 <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 24 }}>
-                  Accord validé entre la marque <strong>{pitchModal.source.name}</strong> et l'influenceur <strong>@{pitchModal.target.username}</strong>
+                  Accord entre <strong>{pitchModal.source.name}</strong> et <strong>@{pitchModal.target.username}</strong>
                 </p>
-                <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>📧 E-mail d'accord enregistré :</h4>
                 <div style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Modifiable</div>
+                  <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Cliquez pour modifier</div>
                   <textarea
                     value={pitchModal.email}
                     onChange={e => setPitchModal({...pitchModal, email: e.target.value})}
                     style={{
-                      width: "100%", minHeight: 260, maxHeight: "40vh", fontSize: 13.5, color: c.text,
+                      width: "100%", minHeight: 300, fontSize: 13.5, color: c.text,
                       background: c.bg, border: `1.5px solid ${c.emailBlue || '#6366f1'}55`, borderRadius: 8,
                       padding: "14px 16px", lineHeight: 1.7, resize: "vertical", outline: "none",
-                      fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.2s"
+                      fontFamily: "inherit", boxSizing: "border-box"
                     }}
-                    onFocus={e => e.target.style.borderColor = c.emailBlue || '#6366f1'}
-                    onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
                   />
                 </div>
-                <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                  {/* Recipient + Send row */}
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
                     <input
                       type="email"
-                      placeholder="📬 Email du destinataire (ex: contact@influencer.com)"
-                      value={pitchModal.recipientEmail}
+                      placeholder="📬 Email du destinataire"
+                      value={pitchModal.recipientEmail || ''}
                       onChange={e => setPitchModal({...pitchModal, recipientEmail: e.target.value})}
                       style={{
                         flex: 1, padding: "9px 14px", borderRadius: 8, fontSize: 13,
@@ -350,236 +637,205 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                       {pitchModal.emailSent ? '✅ Envoyé !' : pitchModal.sendingEmail ? '⏳ Envoi...' : '🚀 Envoyer'}
                     </Button>
                   </div>
-                  {/* Copy + Close row */}
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
-                    <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
-                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                  <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
                 </div>
               </div>
-            ) : (
-              (() => {
+            ) : (() => {
                 const isBrandToInf = pitchModal.mode === "brand_to_influencer";
-                let combinedInfs = [];
-                let matchInfs = [];
-                let otherInfs = [];
-
-                if (isBrandToInf && pitchModal.source) {
-                  combinedInfs = [...influencers];
-                  agencyTalents.forEach(at => {
-                    if (at.status !== "pending" && !combinedInfs.some(i => i.username === at.username || i.username.replace('@','') === at.username.replace('@',''))) {
-                      combinedInfs.push({ ...at, isRoster: true });
-                    }
-                  });
-                  const brandNiche = pitchModal.source.niche?.toLowerCase() || "";
-                  matchInfs = combinedInfs.filter(i => i.niche && (i.niche.toLowerCase().includes(brandNiche) || brandNiche.includes(i.niche.toLowerCase())));
-                  otherInfs = combinedInfs.filter(i => !matchInfs.includes(i));
-                }
+                const combinedInfs = isBrandToInf ? getCombinedInfluencers() : [];
+                const brandNiche = (isBrandToInf && pitchModal.source) ? (pitchModal.source.niche?.toLowerCase() || "") : "";
+                const matchInfs = combinedInfs.filter(i => i.niche && (i.niche.toLowerCase().includes(brandNiche) || brandNiche.includes(i.niche.toLowerCase())));
+                const otherInfs = combinedInfs.filter(i => !matchInfs.includes(i));
 
                 return (
                   <>
                     <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 24 }}>
-                  {pitchModal.mode === "brand_to_influencer" 
-                    ? `Trouver le meilleur influenceur pour la marque ${pitchModal.source.name}`
-                    : `Trouver la meilleure marque pour l'influenceur @${pitchModal.source.username}`}
-                </p>
+                      {isBrandToInf
+                        ? `Trouver le meilleur influenceur pour la marque ${pitchModal.source.name}`
+                        : `Trouver la meilleure marque pour l'influenceur @${pitchModal.source.username}`}
+                    </p>
 
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
-                    {pitchModal.mode === "brand_to_influencer" ? "Sélectionner un Influenceur cible :" : "Sélectionner une Marque cible :"}
-                  </label>
-                  
-                  {(isBrandToInf && combinedInfs.length === 0) || (!isBrandToInf && brands.length === 0) ? (
-                    <div style={{ background: "rgba(255, 100, 100, 0.1)", border: "1px solid rgba(255, 100, 100, 0.3)", padding: 16, borderRadius: 8, color: c.text, fontSize: 13, lineHeight: 1.5 }}>
-                      ⚠️ <strong>Attention :</strong> Aucun {isBrandToInf ? "influenceur n'est" : "accord marque n'est"} présent dans votre base.<br/>
-                      Veuillez d'abord en ajouter un depuis l'onglet principal avant de générer un pitch.
-                    </div>
-                  ) : (
-                    <select 
-                      onChange={(e) => {
-                        const targetList = isBrandToInf ? combinedInfs : brands;
-                        const target = targetList.find(item => item.id === e.target.value);
-                        setPitchModal({
-                          ...pitchModal, 
-                          target,
-                          relationship: target?.isRoster ? 'signed' : (pitchModal.relationship || 'cold')
-                        });
-                      }}
-                      style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 14 }}
-                    >
-                      <option value="">Sélectionnez...</option>
-                      {isBrandToInf ? (
-                        <>
-                          {matchInfs.length > 0 && (
-                            <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
-                              {matchInfs.map(i => <option key={i.id} value={i.id}>@{i.username} ({i.niche}) {i.isRoster ? '⭐ (Roster)' : ''}</option>)}
-                            </optgroup>
-                          )}
-                          {otherInfs.length > 0 && (
-                            <optgroup label="Autres Talents">
-                              {otherInfs.map(i => <option key={i.id} value={i.id}>@{i.username} ({i.niche}) {i.isRoster ? '⭐ (Roster)' : ''}</option>)}
-                            </optgroup>
-                          )}
-                        </>
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
+                        {isBrandToInf ? "Sélectionner un Influenceur cible :" : "Sélectionner une Marque cible :"}
+                      </label>
+                      
+                      {(isBrandToInf && combinedInfs.length === 0) || (!isBrandToInf && brands.length === 0) ? (
+                        <div style={{ background: "rgba(255, 100, 100, 0.1)", border: "1px solid rgba(255, 100, 100, 0.3)", padding: 16, borderRadius: 8, color: c.text, fontSize: 13, lineHeight: 1.5 }}>
+                          ⚠️ <strong>Attention :</strong> Aucun {isBrandToInf ? "influenceur n'est" : "accord marque n'est"} présent dans votre base.<br/>
+                          Veuillez d'abord en ajouter un depuis l'onglet principal avant de générer un pitch.
+                        </div>
                       ) : (
-                        brands.map(b => <option key={b.id} value={b.id}>{b.name} ({b.niche})</option>)
-                      )}
-                    </select>
-                  )}
-                </div>
-
-                {pitchModal.mode === "brand_to_influencer" && pitchModal.target && (
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
-                      Statut de l'influenceur :
-                    </label>
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, color: c.text, fontSize: 14, cursor: "pointer" }}>
-                        <input type="radio" name="relationship" checked={pitchModal.relationship === 'cold'} onChange={() => setPitchModal({...pitchModal, relationship: 'cold'})} />
-                        Nouveau (Prospection)
-                      </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 8, color: c.text, fontSize: 14, cursor: "pointer" }}>
-                        <input type="radio" name="relationship" checked={pitchModal.relationship === 'signed'} onChange={() => setPitchModal({...pitchModal, relationship: 'signed'})} />
-                        Déjà en agence (Proposer campagne)
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
-                    Langue de l'e-mail :
-                  </label>
-                  <select 
-                    value={pitchModal.pitchLang} 
-                    onChange={(e) => setPitchModal({...pitchModal, pitchLang: e.target.value})}
-                    style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 14 }}
-                  >
-                    <option value="it">🇮🇹 Italien (Recommandé)</option>
-                    <option value="en">🇬🇧 Anglais</option>
-                    <option value="fr">🇫🇷 Français</option>
-                  </select>
-                </div>
-
-                <Button 
-                  onClick={generatePitch} 
-                  disabled={!pitchModal.target || pitchModal.loading} 
-                  bg={c.accent} color="#fff"
-                >
-                  {pitchModal.loading ? "Génération par Claude..." : "✨ Générer le Pitch Magique"}
-                </Button>
-
-                {pitchModal.email && (
-                  <div style={{ marginTop: 24, animation: "fadeInUp 0.4s" }}>
-                    <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>📧 E-mail généré par l'IA :</h4>
-                    <div style={{ position: "relative" }}>
-                      <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Cliquez pour modifier</div>
-                      <textarea
-                        value={pitchModal.email}
-                        onChange={e => setPitchModal({...pitchModal, email: e.target.value})}
-                        style={{
-                          width: "100%", minHeight: 280, fontSize: 13.5, color: c.text,
-                          background: c.bg, border: `1.5px solid ${c.emailBlue || '#6366f1'}55`, borderRadius: 8,
-                          padding: "14px 16px", lineHeight: 1.7, resize: "vertical", outline: "none",
-                          fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.2s"
-                        }}
-                        onFocus={e => e.target.style.borderColor = c.emailBlue || '#6366f1'}
-                        onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
-                      />
-                    </div>
-                    <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                      {/* Recipient + Send row */}
-                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <input
-                          type="email"
-                          placeholder="📬 Email du destinataire (ex: contact@influencer.com)"
-                          value={pitchModal.recipientEmail}
-                          onChange={e => setPitchModal({...pitchModal, recipientEmail: e.target.value})}
-                          style={{
-                            flex: 1, padding: "9px 14px", borderRadius: 8, fontSize: 13,
-                            border: `1.5px solid ${pitchModal.recipientEmail ? (c.emailBlue || '#6366f1') : c.border}`,
-                            background: c.bg, color: c.text, outline: "none", fontFamily: "inherit"
+                        <select 
+                          onChange={(e) => {
+                            const targetList = isBrandToInf ? combinedInfs : brands;
+                            const target = targetList.find(item => item.id === e.target.value);
+                            setPitchModal({
+                              ...pitchModal, 
+                              target,
+                              relationship: target?.isRoster ? 'signed' : (pitchModal.relationship || 'cold')
+                            });
                           }}
-                        />
-                        <Button
-                          onClick={sendMatchEmail}
-                          disabled={!pitchModal.recipientEmail || pitchModal.sendingEmail || pitchModal.emailSent}
-                          bg={pitchModal.emailSent ? c.success : `linear-gradient(135deg, ${c.emailBlue || '#6366f1'}, #818cf8)`}
-                          color="#fff"
-                          small
+                          style={selectStyle(c)}
                         >
-                          {pitchModal.emailSent ? '✅ Envoyé !' : pitchModal.sendingEmail ? '⏳ Envoi...' : '🚀 Envoyer'}
-                        </Button>
-                      </div>
-                      {/* Copy + Validate row */}
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
-                        <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
-                      </div>
+                          <option value="" style={optionStyle}>Sélectionnez...</option>
+                          {isBrandToInf ? (
+                            <>
+                              {matchInfs.length > 0 && (
+                                <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
+                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                </optgroup>
+                              )}
+                              {otherInfs.length > 0 && (
+                                <optgroup label="Autres Talents">
+                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                </optgroup>
+                              )}
+                            </>
+                          ) : (
+                            brands.map(b => <option key={b.id} value={b.id} style={optionStyle}>{b.name} ({b.niche})</option>)
+                          )}
+                        </select>
+                      )}
                     </div>
-                  </div>
-                )}
-              </>
-              );
-            })()
-            )}
+
+                    {isBrandToInf && pitchModal.target && (
+                      <div style={{ marginBottom: 20 }}>
+                        <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
+                          Statut de l'influenceur :
+                        </label>
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, color: c.text, fontSize: 14, cursor: "pointer" }}>
+                            <input type="radio" name="relationship" checked={pitchModal.relationship === 'cold'} onChange={() => setPitchModal({...pitchModal, relationship: 'cold'})} />
+                            Nouveau (Prospection)
+                          </label>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, color: c.text, fontSize: 14, cursor: "pointer" }}>
+                            <input type="radio" name="relationship" checked={pitchModal.relationship === 'signed'} onChange={() => setPitchModal({...pitchModal, relationship: 'signed'})} />
+                            Déjà en agence (Proposer campagne)
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginBottom: 20 }}>
+                      <label style={{ display: "block", fontSize: 12, color: c.textMuted, marginBottom: 8, textTransform: "uppercase" }}>
+                        Langue de l'e-mail :
+                      </label>
+                      <select 
+                        value={pitchModal.pitchLang} 
+                        onChange={(e) => setPitchModal({...pitchModal, pitchLang: e.target.value})}
+                        style={selectStyle(c)}
+                      >
+                        <option value="it" style={optionStyle}>🇮🇹 Italien (Recommandé)</option>
+                        <option value="en" style={optionStyle}>🇬🇧 Anglais</option>
+                        <option value="fr" style={optionStyle}>🇫🇷 Français</option>
+                      </select>
+                    </div>
+
+                    <Button 
+                      onClick={generatePitch} 
+                      disabled={!pitchModal.target || pitchModal.loading} 
+                      bg={c.accent} color="#fff"
+                    >
+                      {pitchModal.loading ? "Génération par Claude..." : "✨ Générer le Pitch Magique"}
+                    </Button>
+
+                    {pitchModal.email && (
+                      <div style={{ marginTop: 24, animation: "fadeInUp 0.4s" }}>
+                        <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>📧 E-mail généré par l'IA :</h4>
+                        <div style={{ position: "relative" }}>
+                          <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Cliquez pour modifier</div>
+                          <textarea
+                            value={pitchModal.email}
+                            onChange={e => setPitchModal({...pitchModal, email: e.target.value})}
+                            style={{
+                              width: "100%", minHeight: 280, fontSize: 13.5, color: c.text,
+                              background: c.bg, border: `1.5px solid ${c.emailBlue || '#6366f1'}55`, borderRadius: 8,
+                              padding: "14px 16px", lineHeight: 1.7, resize: "vertical", outline: "none",
+                              fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.2s"
+                            }}
+                            onFocus={e => e.target.style.borderColor = c.emailBlue || '#6366f1'}
+                            onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
+                          />
+                        </div>
+                        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <input
+                              type="email"
+                              placeholder="📬 Email du destinataire (ex: contact@influencer.com)"
+                              value={pitchModal.recipientEmail}
+                              onChange={e => setPitchModal({...pitchModal, recipientEmail: e.target.value})}
+                              style={{
+                                flex: 1, padding: "9px 14px", borderRadius: 8, fontSize: 13,
+                                border: `1.5px solid ${pitchModal.recipientEmail ? (c.emailBlue || '#6366f1') : c.border}`,
+                                background: c.bg, color: c.text, outline: "none", fontFamily: "inherit"
+                              }}
+                            />
+                            <Button
+                              onClick={sendMatchEmail}
+                              disabled={!pitchModal.recipientEmail || pitchModal.sendingEmail || pitchModal.emailSent}
+                              bg={pitchModal.emailSent ? c.success : `linear-gradient(135deg, ${c.emailBlue || '#6366f1'}, #818cf8)`}
+                              color="#fff"
+                              small
+                            >
+                              {pitchModal.emailSent ? '✅ Envoyé !' : pitchModal.sendingEmail ? '⏳ Envoi...' : '🚀 Envoyer'}
+                            </Button>
+                          </div>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                            <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()
+            }
           </div>
         </div>
       )}
 
-      {/* SECTION ACCORDS VALIDES ET SIGNES */}
-      <div className="glass-panel" style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)`, backdropFilter: "blur(10px)" }}>
-        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>🏆 Accords Validés & Signés ({validatedMatches.length})</h3>
-        
-        {validatedMatches.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
-            Aucun accord validé pour le moment. Générez un pitch IA depuis un profil de marque ou d'influenceur ci-dessus et cliquez sur "Valider & Enregistrer l'Accord" pour l'enregistrer ici.
+      {/* ══════ CONTRACT MODAL ══════ */}
+      {contractModal.isOpen && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1001, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
+          <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+            <button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
+            
+            <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text }}>📄 Contrat de Collaboration</h2>
+            
+            {contractModal.generating ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <div style={{ fontSize: 48, marginBottom: 16, animation: "pulse 1.5s infinite" }}>⚙️</div>
+                <div style={{ color: c.textMuted, fontSize: 15 }}>Génération du contrat en cours...</div>
+              </div>
+            ) : contractModal.contract ? (
+              <div>
+                <textarea
+                  value={contractModal.contract}
+                  onChange={e => setContractModal({...contractModal, contract: e.target.value})}
+                  style={{
+                    width: "100%", minHeight: 450, fontSize: 12.5, color: c.text,
+                    background: c.bg, border: `1.5px solid ${c.border}`, borderRadius: 8,
+                    padding: "16px", lineHeight: 1.6, resize: "vertical", outline: "none",
+                    fontFamily: "'JetBrains Mono','Fira Code',monospace", boxSizing: "border-box"
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                  {contractModal.match && (
+                    <Button onClick={saveContract} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff">💾 Sauvegarder le Contrat</Button>
+                  )}
+                  <Button onClick={() => { navigator.clipboard.writeText(contractModal.contract); alert("Contrat copié !"); }} bg={c.success} color="#fff" small>📋 Copier</Button>
+                  <Button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} bg={c.border} color={c.text} small>Fermer</Button>
+                </div>
+              </div>
+            ) : null}
           </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: c.text }}>
-              <thead>
-                <tr style={{ borderBottom: `1.5px solid ${c.border}`, textAlign: "left" }}>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Marque</th>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Talent</th>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Nicchia</th>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Statuto</th>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700 }}>Data & Ora</th>
-                  <th style={{ padding: "12px 10px", color: c.textMuted, fontWeight: 700, textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {validatedMatches.map(m => (
-                  <tr key={m.id} style={{ borderBottom: `1px solid ${c.border}`, transition: "background 0.2s" }} onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.01)"} onMouseOut={e=>e.currentTarget.style.background="transparent"}>
-                    <td style={{ padding: "14px 10px", fontWeight: "bold" }}>{m.brand.name}</td>
-                    <td style={{ padding: "14px 10px", color: c.success, fontWeight: 600 }}>@{m.influencer.username}</td>
-                    <td style={{ padding: "14px 10px" }}><span style={{ background: c.accentSoft, color: c.accent, fontSize: 10.5, padding: "3px 8px", borderRadius: 6, fontWeight: "bold", textTransform: "uppercase" }}>{m.brand.niche}</span></td>
-                    <td style={{ padding: "14px 10px" }}><span style={{ fontSize: 11.5, color: m.relationship === "signed" ? c.success : c.warning, background: m.relationship === "signed" ? c.successSoft : c.warningBg, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{m.relationship === "signed" ? "Signed Talent 📝" : "Outreach ✉️"}</span></td>
-                    <td style={{ padding: "14px 10px", color: c.textMuted, fontFamily: mono }}>{new Date(m.validatedAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</td>
-                    <td style={{ padding: "14px 10px", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <Button onClick={() => {
-                          setPitchModal({
-                            isOpen: true,
-                            mode: "view_saved",
-                            source: m.brand,
-                            target: m.influencer,
-                            relationship: m.relationship,
-                            pitchLang: m.pitchLang,
-                            email: m.email,
-                            loading: false
-                          });
-                        }} bg={c.accent} color="#fff" small>🔍 Lire</Button>
-                        <Button onClick={() => deleteMatch(m.id)} bg={c.error} color="#fff" small>✖</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

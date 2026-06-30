@@ -5,7 +5,6 @@ import AdSpyTab from "./AdSpyTab";
 import ProductFinderTab from "./ProductFinderTab";
 import ShopAnalyzerTab from "./ShopAnalyzerTab";
 import TalentAgencyTab from "./TalentAgencyTab";
-import BrandPortalTab from "./BrandPortalTab";
 import ResourcesTab from "./ResourcesTab";
 import { supabase } from "./supabaseClient";
 
@@ -1268,21 +1267,6 @@ export default function ProspectionAgent() {
             Talents & Gigs
           </button>
 
-          <button onClick={() => handleTabChange("brandportal")} style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
-            background: currentTab === "brandportal" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-            borderLeft: `3px solid ${currentTab === "brandportal" ? c.accent : "transparent"}`,
-            color: currentTab === "brandportal" ? c.text : c.textMuted, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-            textAlign: "left", transition: "all 0.2s"
-          }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTab === "brandportal" ? c.accent : c.textDim} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
-            Brand Portal
-          </button>
-
           <button onClick={() => handleTabChange("resources")} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
             background: currentTab === "resources" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
@@ -1873,8 +1857,6 @@ export default function ProspectionAgent() {
           <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
         ) : currentTab === "talentagency" ? (
           <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
-        ) : currentTab === "brandportal" ? (
-          <BrandPortalTab c={c} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} userTier={userTier} onUpgradeTier={handleUpgradeSimulate} />
         ) : (
