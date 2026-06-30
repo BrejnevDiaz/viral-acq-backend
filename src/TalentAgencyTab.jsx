@@ -7,9 +7,10 @@ const MOCK_TALENTS = [
     id: "t_1",
     username: "diariatou__sow",
     niche: "beauty",
-    followers: 48500,
+    followers: 72000,
     engagement: "6.2%",
     platform: "instagram",
+    profileUrl: "https://instagram.com/diariatou__sow",
     avatar: "https://viralacquisition.it/assets/avatars/diarry_sow.jpg",
     status: "active", // active | pending
     email: "diariatou@talent.viralacquisition.it"
@@ -21,6 +22,7 @@ const MOCK_TALENTS = [
     followers: 82100,
     engagement: "5.8%",
     platform: "instagram",
+    profileUrl: "https://instagram.com/thatsnora",
     avatar: "https://viralacquisition.it/assets/avatars/nora_coppini.jpg",
     status: "active",
     email: "nora@talent.viralacquisition.it"
@@ -29,9 +31,10 @@ const MOCK_TALENTS = [
     id: "t_3",
     username: "baratta_jessica",
     niche: "food",
-    followers: 38200,
+    followers: 41000,
     engagement: "7.1%",
     platform: "instagram",
+    profileUrl: "https://instagram.com/baratta_jessica",
     avatar: "https://viralacquisition.it/assets/avatars/jessica_baratta.jpg",
     status: "active",
     email: "jessica@talent.viralacquisition.it"
@@ -40,9 +43,10 @@ const MOCK_TALENTS = [
     id: "t_4",
     username: "katerinmasi_",
     niche: "beauty",
-    followers: 65400,
+    followers: 49700,
     engagement: "6.5%",
     platform: "instagram",
+    profileUrl: "https://instagram.com/katerinmasi_",
     avatar: "https://viralacquisition.it/assets/avatars/catherine_masiello.jpg",
     status: "active",
     email: "katerina@talent.viralacquisition.it"
@@ -54,6 +58,7 @@ const MOCK_TALENTS = [
     followers: 28000,
     engagement: "4.2%",
     platform: "instagram",
+    profileUrl: "https://instagram.com/glamourousclaudia93",
     avatar: "https://viralacquisition.it/assets/avatars/claudia_daniela.jpg",
     status: "active",
     email: "claudia@talent.viralacquisition.it"
@@ -133,7 +138,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   const isRestricted = ["free", "standard"].includes(userPlan);
   const [currentUserRole, setCurrentUserRole] = useState("admin"); // admin | brand | influencer
   const [talents, setTalents] = useState(() => {
-    const saved = localStorage.getItem("agency_talents");
+    const saved = localStorage.getItem("agency_talents_v2");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -144,7 +149,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   });
 
   useEffect(() => {
-    localStorage.setItem("agency_talents", JSON.stringify(talents));
+    localStorage.setItem("agency_talents_v2", JSON.stringify(talents));
   }, [talents]);
   const [gigs, setGigs] = useState(MOCK_GIGS);
   const [contracts, setContracts] = useState([
@@ -663,7 +668,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                               ? "🔒 Contact direct bloqué (Sécurité Anti-Double). Ce talent exclusif a signé avec notre agence. Veuillez passer par l'Admin Brejnev Diaz pour vos projets." 
                               : "🔒 Direct contact locked (Anti-double protection). This exclusive talent is represented by the agency. Please consult Admin Brejnev Diaz to book.");
                           } else {
-                            window.open(`https://${talent.platform}.com/${talent.username}`, "_blank")
+                            window.open(talent.profileUrl || `https://${talent.platform}.com/${talent.username}`, "_blank")
                           }
                         }}
                         style={{ 

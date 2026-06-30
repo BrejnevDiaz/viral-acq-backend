@@ -56,7 +56,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       setInfluencers((await rInf.json()).influencers || []);
       
       // Load agency roster
-      const saved = localStorage.getItem("agency_talents");
+      const saved = localStorage.getItem("agency_talents_v2");
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
