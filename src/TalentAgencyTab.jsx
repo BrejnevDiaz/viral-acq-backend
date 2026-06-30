@@ -146,7 +146,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   ]);
 
   // Form states
-  const [newTalent, setNewTalent] = useState({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "" });
+  const [newTalent, setNewTalent] = useState({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "", profileUrl: "" });
   const [newGig, setNewGig] = useState({ brand: "", title: "", niche: "beauty", budget: "", requirements: "", description: "" });
   const [activeTab, setActiveTab] = useState("roster"); // roster | adecojobs | join
   const [matchingLoader, setMatchingLoader] = useState(false);
@@ -302,10 +302,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       platform: newTalent.platform,
       avatar: "https://ui-avatars.com/api/?name=" + cleanUsername + "&background=8B5CF6&color=fff&size=100&rounded=false",
       status: "pending",
-      email: newTalent.email || "info@" + cleanUsername + ".com"
+      email: newTalent.email || "info@" + cleanUsername + ".com",
+      profileUrl: newTalent.profileUrl || `https://${newTalent.platform}.com/${cleanUsername}`
     };
     setTalents([item, ...talents]);
-    setNewTalent({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "" });
+    setNewTalent({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "", profileUrl: "" });
     
     if (currentUserRole === "admin") {
       setActiveTab("roster");
@@ -915,6 +916,18 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                   <option value="tiktok">TikTok</option>
                 </select>
               </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Lien Profil (URL Instagram / TikTok)</label>
+              <input
+                type="url"
+                required
+                placeholder="ex: https://instagram.com/diariatou__sow"
+                value={newTalent.profileUrl}
+                onChange={e => setNewTalent({ ...newTalent, profileUrl: e.target.value })}
+                style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+              />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>

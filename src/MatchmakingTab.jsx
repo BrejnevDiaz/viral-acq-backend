@@ -8,8 +8,10 @@ const Card = ({ children, c }) => (
 
 const Button = ({ children, onClick, bg, color, disabled, small }) => (
   <button onClick={onClick} disabled={disabled} style={{
-    padding: small ? "8px 12px" : "12px 16px", borderRadius: 8, border: "none", background: disabled ? "#ccc" : bg, 
-    color, cursor: disabled ? "not-allowed" : "pointer", fontWeight: "bold", fontSize: small ? 12 : 14, fontFamily: "inherit",
+    padding: small ? "8px 12px" : "12px 16px", borderRadius: 8, border: "none", 
+    background: disabled ? "rgba(255, 255, 255, 0.05)" : bg, 
+    color: disabled ? "rgba(255, 255, 255, 0.3)" : color, 
+    cursor: disabled ? "not-allowed" : "pointer", fontWeight: "bold", fontSize: small ? 12 : 14, fontFamily: "inherit",
     transition: "transform 0.1s"
   }}
   onMouseDown={e=>!disabled && (e.target.style.transform="scale(0.96)")}
@@ -32,7 +34,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
   // Form states
   const [newBrand, setNewBrand] = useState({ name: '', website: '', niche: '', budget: '', description: '' });
-  const [newInfluencer, setNewInfluencer] = useState({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '' });
+  const [newInfluencer, setNewInfluencer] = useState({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '', profileUrl: '' });
 
   // Pitch state
   const [pitchModal, setPitchModal] = useState({ isOpen: false, mode: '', source: null, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false, recipientEmail: '', sendingEmail: false, emailSent: false });
@@ -145,7 +147,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     await fetch(`${API_URL}/api/catalogue/influencers`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newInfluencer)
     });
-    setNewInfluencer({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '' });
+    setNewInfluencer({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '', profileUrl: '' });
     fetchData();
   };
 
@@ -222,9 +224,10 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
           
           <Card c={c}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: c.textMuted }}>➕ Ajouter un Influenceur</h4>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ flex: 1 }}><Input placeholder="@username" value={newInfluencer.username} onChange={e=>setNewInfluencer({...newInfluencer, username: e.target.value})} c={c} /></div>
-              <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="@username" value={newInfluencer.username} onChange={e=>setNewInfluencer({...newInfluencer, username: e.target.value})} c={c} /></div>
+              <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="Lien profil (URL)" value={newInfluencer.profileUrl} onChange={e=>setNewInfluencer({...newInfluencer, profileUrl: e.target.value})} c={c} /></div>
+              <div style={{ flex: 1, minWidth: 120 }}>
                 <select value={newInfluencer.platform} onChange={e=>setNewInfluencer({...newInfluencer, platform: e.target.value})} style={{ width: "100%", padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, marginBottom: 10 }}>
                   <option value="instagram">Instagram</option>
                   <option value="tiktok">TikTok</option>
