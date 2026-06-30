@@ -35,7 +35,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const [newInfluencer, setNewInfluencer] = useState({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '' });
 
   // Pitch state
-  const [pitchModal, setPitchModal] = useState({ isOpen: false, mode: '', source: null, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false });
+  const [pitchModal, setPitchModal] = useState({ isOpen: false, mode: '', source: null, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false, recipientEmail: '', sendingEmail: false, emailSent: false });
 
   // Validated Matches state
   const [validatedMatches, setValidatedMatches] = useState([]);
@@ -90,6 +90,29 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       setPitchModal({ ...pitchModal, isOpen: false });
     } catch (err) {
       alert(`Erreur: ${err.message}`);
+    }
+  };
+
+  const sendMatchEmail = async () => {
+    if (!pitchModal.recipientEmail || !pitchModal.email) return;
+    setPitchModal(prev => ({ ...prev, sendingEmail: true }));
+    try {
+      const res = await fetch(`${API_URL}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: pitchModal.recipientEmail,
+          subject: pitchModal.email.split('\n')[0].replace(/^\[?Objet\]?:?\s*/i, '').trim() || 'Proposition de collaboration',
+          body: pitchModal.email
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setPitchModal(prev => ({ ...prev, sendingEmail: false, emailSent: true }));
+      setTimeout(() => setPitchModal(prev => ({ ...prev, emailSent: false })), 4000);
+    } catch (err) {
+      setPitchModal(prev => ({ ...prev, sendingEmail: false }));
+      alert(`Erreur d'envoi: ${err.message}`);
     }
   };
 
@@ -263,9 +286,35 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                     onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
                   />
                 </div>
-                <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
-                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
-                  <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
+                <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {/* Recipient + Send row */}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      type="email"
+                      placeholder="📬 Email du destinataire (ex: contact@influencer.com)"
+                      value={pitchModal.recipientEmail}
+                      onChange={e => setPitchModal({...pitchModal, recipientEmail: e.target.value})}
+                      style={{
+                        flex: 1, padding: "9px 14px", borderRadius: 8, fontSize: 13,
+                        border: `1.5px solid ${pitchModal.recipientEmail ? (c.emailBlue || '#6366f1') : c.border}`,
+                        background: c.bg, color: c.text, outline: "none", fontFamily: "inherit"
+                      }}
+                    />
+                    <Button
+                      onClick={sendMatchEmail}
+                      disabled={!pitchModal.recipientEmail || pitchModal.sendingEmail || pitchModal.emailSent}
+                      bg={pitchModal.emailSent ? c.success : `linear-gradient(135deg, ${c.emailBlue || '#6366f1'}, #818cf8)`}
+                      color="#fff"
+                      small
+                    >
+                      {pitchModal.emailSent ? '✅ Envoyé !' : pitchModal.sendingEmail ? '⏳ Envoi...' : '🚀 Envoyer'}
+                    </Button>
+                  </div>
+                  {/* Copy + Close row */}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                    <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -363,9 +412,35 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                         onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
                       />
                     </div>
-                    <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center" }}>
-                      <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
-                      <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
+                    <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                      {/* Recipient + Send row */}
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          type="email"
+                          placeholder="📬 Email du destinataire (ex: contact@influencer.com)"
+                          value={pitchModal.recipientEmail}
+                          onChange={e => setPitchModal({...pitchModal, recipientEmail: e.target.value})}
+                          style={{
+                            flex: 1, padding: "9px 14px", borderRadius: 8, fontSize: 13,
+                            border: `1.5px solid ${pitchModal.recipientEmail ? (c.emailBlue || '#6366f1') : c.border}`,
+                            background: c.bg, color: c.text, outline: "none", fontFamily: "inherit"
+                          }}
+                        />
+                        <Button
+                          onClick={sendMatchEmail}
+                          disabled={!pitchModal.recipientEmail || pitchModal.sendingEmail || pitchModal.emailSent}
+                          bg={pitchModal.emailSent ? c.success : `linear-gradient(135deg, ${c.emailBlue || '#6366f1'}, #818cf8)`}
+                          color="#fff"
+                          small
+                        >
+                          {pitchModal.emailSent ? '✅ Envoyé !' : pitchModal.sendingEmail ? '⏳ Envoi...' : '🚀 Envoyer'}
+                        </Button>
+                      </div>
+                      {/* Copy + Validate row */}
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                        <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
+                      </div>
                     </div>
                   </div>
                 )}
