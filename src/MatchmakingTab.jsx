@@ -358,8 +358,27 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                 </div>
               </div>
             ) : (
-              <>
-                <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 24 }}>
+              (() => {
+                const isBrandToInf = pitchModal.mode === "brand_to_influencer";
+                let combinedInfs = [];
+                let matchInfs = [];
+                let otherInfs = [];
+
+                if (isBrandToInf && pitchModal.source) {
+                  combinedInfs = [...influencers];
+                  agencyTalents.forEach(at => {
+                    if (at.status !== "pending" && !combinedInfs.some(i => i.username === at.username || i.username.replace('@','') === at.username.replace('@',''))) {
+                      combinedInfs.push({ ...at, isRoster: true });
+                    }
+                  });
+                  const brandNiche = pitchModal.source.niche?.toLowerCase() || "";
+                  matchInfs = combinedInfs.filter(i => i.niche && (i.niche.toLowerCase().includes(brandNiche) || brandNiche.includes(i.niche.toLowerCase())));
+                  otherInfs = combinedInfs.filter(i => !matchInfs.includes(i));
+                }
+
+                return (
+                  <>
+                    <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 24 }}>
                   {pitchModal.mode === "brand_to_influencer" 
                     ? `Trouver le meilleur influenceur pour la marque ${pitchModal.source.name}`
                     : `Trouver la meilleure marque pour l'influenceur @${pitchModal.source.username}`}
@@ -370,25 +389,41 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                     {pitchModal.mode === "brand_to_influencer" ? "Sélectionner un Influenceur cible :" : "Sélectionner une Marque cible :"}
                   </label>
                   
-                  {(pitchModal.mode === "brand_to_influencer" && influencers.length === 0) || (pitchModal.mode === "influencer_to_brand" && brands.length === 0) ? (
+                  {(isBrandToInf && combinedInfs.length === 0) || (!isBrandToInf && brands.length === 0) ? (
                     <div style={{ background: "rgba(255, 100, 100, 0.1)", border: "1px solid rgba(255, 100, 100, 0.3)", padding: 16, borderRadius: 8, color: c.text, fontSize: 13, lineHeight: 1.5 }}>
-                      ⚠️ <strong>Attention :</strong> Aucun {pitchModal.mode === "brand_to_influencer" ? "influenceur n'est" : "accord marque n'est"} présent dans votre catalogue.<br/>
+                      ⚠️ <strong>Attention :</strong> Aucun {isBrandToInf ? "influenceur n'est" : "accord marque n'est"} présent dans votre base.<br/>
                       Veuillez d'abord en ajouter un depuis l'onglet principal avant de générer un pitch.
                     </div>
                   ) : (
                     <select 
                       onChange={(e) => {
-                        const targetList = pitchModal.mode === "brand_to_influencer" ? influencers : brands;
+                        const targetList = isBrandToInf ? combinedInfs : brands;
                         const target = targetList.find(item => item.id === e.target.value);
-                        setPitchModal({...pitchModal, target});
+                        setPitchModal({
+                          ...pitchModal, 
+                          target,
+                          relationship: target?.isRoster ? 'signed' : (pitchModal.relationship || 'cold')
+                        });
                       }}
                       style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 14 }}
                     >
                       <option value="">Sélectionnez...</option>
-                      {pitchModal.mode === "brand_to_influencer" 
-                        ? influencers.map(i => <option key={i.id} value={i.id}>@{i.username} ({i.niche})</option>)
-                        : brands.map(b => <option key={b.id} value={b.id}>{b.name} ({b.niche})</option>)
-                      }
+                      {isBrandToInf ? (
+                        <>
+                          {matchInfs.length > 0 && (
+                            <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
+                              {matchInfs.map(i => <option key={i.id} value={i.id}>@{i.username} ({i.niche}) {i.isRoster ? '⭐ (Roster)' : ''}</option>)}
+                            </optgroup>
+                          )}
+                          {otherInfs.length > 0 && (
+                            <optgroup label="Autres Talents">
+                              {otherInfs.map(i => <option key={i.id} value={i.id}>@{i.username} ({i.niche}) {i.isRoster ? '⭐ (Roster)' : ''}</option>)}
+                            </optgroup>
+                          )}
+                        </>
+                      ) : (
+                        brands.map(b => <option key={b.id} value={b.id}>{b.name} ({b.niche})</option>)
+                      )}
                     </select>
                   )}
                 </div>
@@ -485,6 +520,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                   </div>
                 )}
               </>
+              )
             )}
           </div>
         </div>
