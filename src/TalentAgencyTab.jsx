@@ -151,6 +151,9 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   const [activeTab, setActiveTab] = useState("roster"); // roster | adecojobs | join
   const [matchingLoader, setMatchingLoader] = useState(false);
   const [aiMatchesResult, setAiMatchesResult] = useState(null);
+  
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [vettingData, setVettingData] = useState(null);
 
   // Campaign Placements & Tracking Modals States
   const [activeModal, setActiveModal] = useState(null); // { type: 'shipping' | 'review' | 'roi', contract: ... }
@@ -276,6 +279,41 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     niche: "Niche",
     budget: "Budget",
     req: "Critères"
+  };
+
+  const verifyProfile = async () => {
+    if (!newTalent.profileUrl) return;
+    setIsVerifying(true);
+    let cleanUsername = newTalent.profileUrl;
+    if (cleanUsername.includes("instagram.com/")) {
+      cleanUsername = cleanUsername.split("instagram.com/")[1].split("/")[0].split("?")[0];
+    } else if (cleanUsername.includes("tiktok.com/@")) {
+      cleanUsername = cleanUsername.split("tiktok.com/@")[1].split("/")[0].split("?")[0];
+    }
+    if (cleanUsername.startsWith("@")) cleanUsername = cleanUsername.substring(1);
+
+    try {
+      const res = await fetch(`${API_URL}/api/vetting`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanUsername, platform: newTalent.platform, lang: uiLang })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVettingData(data);
+        setNewTalent({ 
+          ...newTalent, 
+          username: "@" + data.username,
+          followers: data.followersCount, 
+          engagement: data.engagementRate.replace('%', '') 
+        });
+      } else {
+        alert("Erreur IA: " + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de l'analyse du profil.");
+    }
+    setIsVerifying(false);
   };
 
   const handleRegister = async (e) => {
@@ -930,6 +968,24 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
               />
             </div>
 
+            <div style={{ marginBottom: 14 }}>
+              <button 
+                type="button"
+                onClick={verifyProfile}
+                disabled={isVerifying || !newTalent.profileUrl}
+                style={{ width: "100%", padding: "12px", borderRadius: 8, border: `1px solid ${c.accent}`, background: "rgba(139, 92, 246, 0.1)", color: c.accent, fontWeight: 700, cursor: isVerifying ? "not-allowed" : "pointer", fontSize: 13, transition: "0.2s" }}
+              >
+                {isVerifying ? "⏳ Analyse IA du profil en cours..." : "🔍 Vérifier le Profil & Calculer ROI (Requis)"}
+              </button>
+            </div>
+            
+            {vettingData && (
+               <div style={{ marginBottom: 18, padding: 14, background: c.bg, border: `1px solid ${c.success}55`, borderRadius: 8, fontSize: 13, display: "flex", justifyContent: "space-between", animation: "fadeIn 0.3s" }}>
+                 <span style={{color: c.text}}>ROI Estimé par l'IA: <strong style={{color: c.success}}>{vettingData.estimatedROI}</strong></span>
+                 <span style={{color: c.text}}>Trust Score: <strong style={{color: vettingData.trustScore > 70 ? c.success : c.warning}}>{vettingData.trustScore}/100</strong></span>
+               </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div>
                 <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Niche Principale</label>
@@ -949,10 +1005,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                 <input
                   type="number"
                   required
-                  placeholder="ex: 45000"
+                  readOnly
+                  placeholder="Calculé via l'IA..."
                   value={newTalent.followers}
                   onChange={e => setNewTalent({ ...newTalent, followers: e.target.value })}
-                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "rgba(255,255,255,0.03)", color: c.text, outline: "none", fontSize: 13.5, cursor: "not-allowed" }}
                 />
               </div>
             </div>
@@ -963,10 +1020,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                 <input
                   type="text"
                   required
-                  placeholder="ex: 5.8"
+                  readOnly
+                  placeholder="Calculé via l'IA..."
                   value={newTalent.engagement}
                   onChange={e => setNewTalent({ ...newTalent, engagement: e.target.value })}
-                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "rgba(255,255,255,0.03)", color: c.text, outline: "none", fontSize: 13.5, cursor: "not-allowed" }}
                 />
               </div>
               <div>
