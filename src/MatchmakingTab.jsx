@@ -520,7 +520,6 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                   </div>
                 )}
               </>
-              )
             )}
           </div>
         </div>
