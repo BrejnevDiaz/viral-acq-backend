@@ -247,12 +247,24 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
                 <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 24 }}>
                   Accord validé entre la marque <strong>{pitchModal.source.name}</strong> et l'influenceur <strong>@{pitchModal.target.username}</strong>
                 </p>
-                <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>✉️ E-mail d'accord enregistré :</h4>
-                <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: 16, fontSize: 14, color: c.text, whiteSpace: "pre-wrap", lineHeight: 1.6, maxHeight: "40vh", overflowY: "auto" }}>
-                  {pitchModal.email}
+                <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>📧 E-mail d'accord enregistré :</h4>
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Modifiable</div>
+                  <textarea
+                    value={pitchModal.email}
+                    onChange={e => setPitchModal({...pitchModal, email: e.target.value})}
+                    style={{
+                      width: "100%", minHeight: 260, maxHeight: "40vh", fontSize: 13.5, color: c.text,
+                      background: c.bg, border: `1.5px solid ${c.emailBlue || '#6366f1'}55`, borderRadius: 8,
+                      padding: "14px 16px", lineHeight: 1.7, resize: "vertical", outline: "none",
+                      fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.2s"
+                    }}
+                    onFocus={e => e.target.style.borderColor = c.emailBlue || '#6366f1'}
+                    onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
+                  />
                 </div>
-                <div style={{ marginTop: 20, display: "flex", gap: 12 }}>
-                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>Copier l'e-mail</Button>
+                <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
+                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
                   <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
                 </div>
               </div>
@@ -335,12 +347,24 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
                 {pitchModal.email && (
                   <div style={{ marginTop: 24, animation: "fadeInUp 0.4s" }}>
-                    <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>✉️ E-mail généré par l'IA :</h4>
-                    <div style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: 16, fontSize: 14, color: c.text, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-                      {pitchModal.email}
+                    <h4 style={{ margin: "0 0 10px 0", fontSize: 13, color: c.text, textTransform: "uppercase" }}>📧 E-mail généré par l'IA :</h4>
+                    <div style={{ position: "relative" }}>
+                      <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, color: c.textDim, fontStyle: "italic", pointerEvents: "none" }}>✏️ Cliquez pour modifier</div>
+                      <textarea
+                        value={pitchModal.email}
+                        onChange={e => setPitchModal({...pitchModal, email: e.target.value})}
+                        style={{
+                          width: "100%", minHeight: 280, fontSize: 13.5, color: c.text,
+                          background: c.bg, border: `1.5px solid ${c.emailBlue || '#6366f1'}55`, borderRadius: 8,
+                          padding: "14px 16px", lineHeight: 1.7, resize: "vertical", outline: "none",
+                          fontFamily: "inherit", boxSizing: "border-box", transition: "border-color 0.2s"
+                        }}
+                        onFocus={e => e.target.style.borderColor = c.emailBlue || '#6366f1'}
+                        onBlur={e => e.target.style.borderColor = `${c.emailBlue || '#6366f1'}55`}
+                      />
                     </div>
                     <div style={{ marginTop: 16, display: "flex", gap: 12, alignItems: "center" }}>
-                      <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>Copier l'e-mail</Button>
+                      <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
                       <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
                     </div>
                   </div>
