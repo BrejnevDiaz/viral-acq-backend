@@ -975,7 +975,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
             >
               {t.addBtn}
             </button>
-          </div>
+          </form>
         </div>
       )}
 
