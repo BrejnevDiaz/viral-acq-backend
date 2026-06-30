@@ -306,7 +306,12 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     };
     setTalents([item, ...talents]);
     setNewTalent({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "" });
-    if (!isRestricted) setActiveTab("roster");
+    
+    if (currentUserRole === "admin") {
+      setActiveTab("roster");
+    } else {
+      alert(uiLang === "fr" ? "✅ Votre candidature a bien été envoyée et est sur liste d'attente. Nous l'analyserons très bientôt !" : "✅ Your application is on the waiting list. We will review it shortly!");
+    }
   };
 
   const handlePostGig = (e) => {
@@ -513,7 +518,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
 
           {/* Roster talents grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
-            {talents.map((talent, idx) => {
+            {talents.filter(t => t.status === "active" || currentUserRole === "admin").map((talent, idx) => {
               const isBrand = currentUserRole === "brand";
               const shouldMask = isRestricted || isBrand;
               const displayName = shouldMask ? `Talent ${talent.niche.toUpperCase()} #${idx + 1}` : `@${talent.username}`;
