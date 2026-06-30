@@ -1873,6 +1873,8 @@ export default function ProspectionAgent() {
           <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
         ) : currentTab === "talentagency" ? (
           <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
+        ) : currentTab === "brandportal" ? (
+          <BrandPortalTab c={c} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} userTier={userTier} onUpgradeTier={handleUpgradeSimulate} />
         ) : (
