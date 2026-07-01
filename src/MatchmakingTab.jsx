@@ -76,6 +76,32 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 ]);
 
   // Contracts state
+  
+  const syncToRoster = (inf) => {
+    try {
+      const saved = localStorage.getItem("agency_talents_v2");
+      let roster = saved ? JSON.parse(saved) : [];
+      const cleanUsername = (inf.username || inf.influencerHandle || "").replace("@", "").trim();
+      if (!cleanUsername) return;
+      if (roster.find(t => t.username === cleanUsername)) return;
+      
+      const newTalent = {
+        id: `t_user_${Date.now()}_auto`,
+        username: cleanUsername,
+        niche: inf.niche || "General",
+        followers: parseInt(inf.followers) || 15000,
+        engagement: inf.engagement || "5.0%",
+        platform: inf.platform || "instagram",
+        avatar: "https://ui-avatars.com/api/?name=" + cleanUsername + "&background=8B5CF6&color=fff",
+        status: "active",
+        email: inf.email || inf.influencerEmail || "contact@" + cleanUsername + ".com",
+        profileUrl: inf.profileUrl || `https://instagram.com/${cleanUsername}`
+      };
+      roster.unshift(newTalent);
+      localStorage.setItem("agency_talents_v2", JSON.stringify(roster));
+    } catch(e) {}
+  };
+
   const [contracts, setContracts] = useState(() => {
     const saved = localStorage.getItem("matchmaking_contracts");
     if (saved) { try { return JSON.parse(saved); } catch(e) {} }
@@ -156,6 +182,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       }).then(r => r.json());
       
       setValidatedMatches(prev => [...prev, res]);
+        syncToRoster(influencer);
       alert(uiLang === "fr" ? "Accord validé et enregistré !" : "Accordo validato e registrato!");
       setPitchModal({ ...pitchModal, isOpen: false });
     } catch (err) {
@@ -215,7 +242,8 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     await fetch(`${API_URL}/api/catalogue/influencers`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newInfluencer)
     });
-    setNewInfluencer({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '', profileUrl: '' });
+    syncToRoster(newInfluencer);
+      setNewInfluencer({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '', profileUrl: '' });
     fetchData();
   };
 

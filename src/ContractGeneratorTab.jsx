@@ -104,6 +104,7 @@ export const generateContractText = (formData) => {
     } finally {
       // Mock Success Logic (whether fetch failed or not)
       const ct = { ...previewContract, status: 'sent' };
+      syncToRoster({ username: previewContract.influencerHandle, influencerEmail: previewContract.influencerEmail, niche: previewContract.formData?.niche });
       setContracts(prev => [ct, ...prev]);
       setPreviewContract(null);
       setFormData({
