@@ -1929,7 +1929,7 @@ export default function ProspectionAgent() {
         ) : currentTab === "talentagency" ? (
           <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
         ) : currentTab === "brandportal" ? (
-          <BrandPortalTab c={c} uiLang={uiLang} />
+          <BrandPortalTab c={c} uiLang={uiLang} API_URL={API_URL} />
         ) : currentTab === "contractgenerator" ? (
           <ContractGeneratorTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         ) : currentTab === "resources" ? (

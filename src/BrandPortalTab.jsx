@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function BrandPortalTab({ c, uiLang }) {
+export default function BrandPortalTab({ c, uiLang, API_URL }) {
   const [formData, setFormData] = useState({
     brandName: '',
     website: '',
@@ -10,17 +10,27 @@ export default function BrandPortalTab({ c, uiLang }) {
   });
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.brandName || !formData.message) return;
     setStatus('submitting');
     
-    // Simulate API call for now (or integrate with a real backend endpoint if one existed)
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${API_URL}/api/contact-agency`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (!res.ok) throw new Error("Erreur réseau");
+      
       setStatus('success');
       setFormData({ brandName: '', website: '', niche: '', budget: '', message: '' });
       setTimeout(() => setStatus('idle'), 5000);
-    }, 1500);
+    } catch (err) {
+      console.error(err);
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
   };
 
   const t = {
