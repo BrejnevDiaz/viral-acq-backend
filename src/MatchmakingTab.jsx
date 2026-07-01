@@ -64,13 +64,34 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const [pitchModal, setPitchModal] = useState({ isOpen: false, mode: '', source: null, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false, recipientEmail: '', sendingEmail: false, emailSent: false });
 
   // Validated Matches state
-  const [validatedMatches, setValidatedMatches] = useState([]);
+  const [validatedMatches, setValidatedMatches] = useState([
+  {
+    id: "match_mock_1",
+    brand: { name: "Sephora", niche: "Beauté" },
+    influencer: { username: "diariatou_sow", followers: "72K", engagement: "6.2%", profileUrl: "https://instagram.com/diariatou_sow" },
+    pitch: "Bonjour ! Sephora souhaite vous proposer une collaboration exclusive pour notre nouvelle gamme de soins...",
+    relationship: "warm",
+    createdAt: new Date().toISOString()
+  }
+]);
 
   // Contracts state
   const [contracts, setContracts] = useState(() => {
     const saved = localStorage.getItem("matchmaking_contracts");
     if (saved) { try { return JSON.parse(saved); } catch(e) {} }
-    return [];
+    return [
+      {
+        id: "CG_MOCK_23910",
+        brandName: "Sephora",
+        influencerHandle: "diariatou_sow",
+        content: "CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)\n\nRéf: CG_MOCK_23910\n\n...",
+        status: "signed_both",
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        brandEmail: "contact@sephora.fr",
+        influencerEmail: "contact@diariatou.com",
+        formData: { contractLanguage: "fr" }
+      }
+    ];
   });
   const [contractModal, setContractModal] = useState({ isOpen: false, match: null, generating: false, contract: null });
 
@@ -363,7 +384,9 @@ Signature :
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
         {/* Colonne MARQUES */}
         <div style={{ flex: "1 1 400px", minWidth: 0 }}>
-          <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>💼 Accords Marques ({brands.length})</h3>
+          <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>{<div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: `0 4px 12px ${c.accentGlow}` }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>} Accords Marques ({brands.length})</h3>
           
           <Card c={c}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: c.textMuted }}>➕ Ajouter une Marque</h4>
@@ -410,7 +433,9 @@ Signature :
 
         {/* Colonne INFLUENCEURS */}
         <div style={{ flex: "1 1 400px", minWidth: 0 }}>
-          <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>⭐ Influenceurs Signés ({influencers.length})</h3>
+          <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>{<div style={{ width: 28, height: 28, borderRadius: 8, background: `linear-gradient(135deg, #eab308, #f59e0b)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 4px 12px rgba(234,179,8,0.3)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>} Influenceurs Signés ({influencers.length})</h3>
           
           <Card c={c}>
             <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: c.textMuted }}>➕ Ajouter un Influenceur</h4>
@@ -570,7 +595,9 @@ Signature :
 
       {/* ══════ SECTION ACCORDS VALIDÉS & SIGNÉS ══════ */}
       <div className="glass-panel" style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
-        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>🏆 Accords Validés & Signés ({validatedMatches.length})</h3>
+        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>{<div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, #10b981, #059669)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+          </div>} Accords Validés & Signés ({validatedMatches.length})</h3>
         
         {validatedMatches.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
