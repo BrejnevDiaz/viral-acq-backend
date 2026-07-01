@@ -6,6 +6,20 @@ const Card = ({ children, c }) => (
   </div>
 );
 
+const InstaIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, verticalAlign: "middle" }}>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, verticalAlign: "middle" }}>
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+  </svg>
+);
+
 const Button = ({ children, onClick, bg, color, disabled, small }) => (
   <button onClick={onClick} disabled={disabled} style={{
     padding: small ? "8px 12px" : "12px 16px", borderRadius: 8, border: "none", 
@@ -443,8 +457,12 @@ Signature :
                           />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700, color: c.text, fontSize: 13.5 }}>@{t.username.replace('@','')}</div>
-                            <div style={{ fontSize: 11.5, color: c.textMuted, marginTop: 2 }}>
-                              <span style={{ color: t.platform === "instagram" ? "#ec4899" : "#fff" }}>{t.platform === "instagram" ? "📸 Instagram" : "🎵 TikTok"}</span> • {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
+                            <div style={{ fontSize: 11.5, color: c.textMuted, marginTop: 2, display: "flex", alignItems: "center" }}>
+                              <span style={{ color: t.platform === "instagram" ? "#E1306C" : "#fff", display: "inline-flex", alignItems: "center" }}>
+                                {t.platform === "instagram" ? <InstaIcon /> : <TikTokIcon />}
+                                <span style={{ marginLeft: 4, marginRight: 6 }}>{t.platform === "instagram" ? "Instagram" : "TikTok"}</span>
+                              </span>
+                              • {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
                             </div>
                           </div>
                         </div>
@@ -480,7 +498,12 @@ Signature :
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                 <img src={i.avatar || `https://ui-avatars.com/api/?name=${i.username}&background=10B981&color=fff&size=50&rounded=true`} alt="Profile" style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${c.border}` }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: "bold", color: c.text }}>@{i.username} <span style={{ fontSize: 12, fontWeight: "normal", color: c.textMuted }}>({i.platform})</span></div>
+                  <div style={{ fontSize: 16, fontWeight: "bold", color: c.text, display: "flex", alignItems: "center", gap: 6 }}>
+                    @{i.username} 
+                    <span style={{ display: "inline-flex", alignItems: "center", color: i.platform === "instagram" ? "#E1306C" : "#fff" }} title={i.platform}>
+                      {i.platform === "instagram" ? <InstaIcon /> : <TikTokIcon />}
+                    </span>
+                  </div>
                   <div style={{ fontSize: 12, color: c.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Niche: <span style={{ color: c.success }}>{i.niche}</span></span>
                     {i.createdAt && <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>📅 {new Date(i.createdAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</span>}
