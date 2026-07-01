@@ -1034,7 +1034,7 @@ export default function ProspectionAgent() {
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>ADRESSE E-MAIL</label>
                       <input 
                         type="email" required
-                        value={email} onChange={e => setEmail(e.target.value)}
+                        value={emailInput} onChange={e => setEmailInput(e.target.value)}
                         placeholder="you@company.com"
                         style={{
                           width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
@@ -1046,7 +1046,7 @@ export default function ProspectionAgent() {
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>MOT DE PASSE</label>
                       <input 
                         type="password" required
-                        value={password} onChange={e => setPassword(e.target.value)}
+                        value={passInput} onChange={e => setPassInput(e.target.value)}
                         placeholder="••••••••"
                         style={{
                           width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
@@ -1054,13 +1054,13 @@ export default function ProspectionAgent() {
                         }}
                       />
                     </div>
-                    <button type="submit" disabled={authLoading} style={{
+                    <button type="submit" disabled={false} style={{
                       width: '100%', padding: 16, borderRadius: 10, border: 'none',
                       background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', color: '#fff', fontSize: 16, fontWeight: 700,
-                      cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1,
+                      cursor: false ? 'not-allowed' : 'pointer', opacity: false ? 0.7 : 1,
                       marginTop: 10, boxShadow: '0 8px 25px rgba(236,72,153,0.3)'
                     }}>
-                      {authLoading ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
+                      {false ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
                     </button>
                   </form>
                   <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#A1A1AA' }}>
