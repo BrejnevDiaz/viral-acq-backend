@@ -480,7 +480,29 @@ Signature :
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="@username" value={newInfluencer.username} onChange={e=>setNewInfluencer({...newInfluencer, username: e.target.value})} c={c} /></div>
               <div style={{ flex: 1, minWidth: 140 }}><Input placeholder="Lien profil (URL)" value={newInfluencer.profileUrl} onChange={e=>setNewInfluencer({...newInfluencer, profileUrl: e.target.value})} c={c} /></div>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <select value={newInfluencer.platform} onChange={e=>setNewInfluencer({...newInfluencer, platform: e.target.value})} style={{ ...selectStyle(c), marginBottom: 10, padding: "9px" }}>
+                <select 
+                  value={newInfluencer.platform} 
+                  onChange={e => {
+                    const newPlat = e.target.value;
+                    const t = agencyTalents.find(x => x.username.replace('@','') === newInfluencer.username.replace('@',''));
+                    if (t) {
+                      setNewInfluencer({
+                        ...newInfluencer,
+                        platform: newPlat,
+                        profileUrl: newPlat === "tiktok" ? (t.tiktokProfileUrl || `https://tiktok.com/@${t.username.replace('@','')}`) : (t.profileUrl || `https://instagram.com/${t.username.replace('@','')}`),
+                        followers: (newPlat === "tiktok" ? (t.tiktokFollowers || Math.floor(t.followers * 1.5)) : t.followers).toString(),
+                        engagement: (newPlat === "tiktok" ? (t.tiktokEngagement || (parseFloat(t.engagement.replace('%','')) * 1.2).toFixed(1) + '%') : t.engagement).toString().replace('%','')
+                      });
+                    } else {
+                      setNewInfluencer({
+                        ...newInfluencer,
+                        platform: newPlat,
+                        profileUrl: newInfluencer.username ? `https://${newPlat}.com/${newPlat === "tiktok" ? "@" : ""}${newInfluencer.username.replace('@','')}` : ''
+                      });
+                    }
+                  }} 
+                  style={{ ...selectStyle(c), marginBottom: 10, padding: "9px" }}
+                >
                   <option value="instagram" style={optionStyle}>Instagram</option>
                   <option value="tiktok" style={optionStyle}>TikTok</option>
                 </select>
