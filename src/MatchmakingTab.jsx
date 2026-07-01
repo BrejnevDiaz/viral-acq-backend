@@ -375,8 +375,16 @@ Signature :
             <Button onClick={addBrand} bg={c.accent} color="#fff" disabled={!newBrand.name || !newBrand.niche} small>Ajouter au catalogue</Button>
           </Card>
 
+          {brands.length === 0 && (
+            <div style={{ padding: "32px 20px", textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 14, background: `linear-gradient(to bottom, transparent, ${c.accentSoft})`, color: c.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+              <div style={{ fontSize: 28, marginBottom: 12 }}>🏢</div>
+              <strong style={{ color: c.text }}>Aucune marque ajoutée.</strong>
+              <div style={{ marginTop: 8, fontSize: 13 }}>Ajoutez une marque ci-dessus. L'IA analysera ensuite ses besoins pour matcher avec vos influenceurs.</div>
+            </div>
+          )}
+
           {brands.map(b => (
-            <div key={b.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
+            <div key={b.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
               <button onClick={() => deleteBrand(b.id)} style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: c.error, cursor: "pointer" }}>✖</button>
               
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -391,7 +399,11 @@ Signature :
               </div>
               
               <p style={{ fontSize: 13, color: c.text, margin: "0 0 16px 0", lineHeight: 1.4 }}>{b.description}</p>
-              <Button onClick={() => openMatchModal(b, 'brand')} bg={`linear-gradient(90deg, ${c.accent}, #ff9a5c)`} color="#fff" small style={{ width: "100%" }}>🎯 Trouver un Influenceur pour {b.name}</Button>
+              
+              <div style={{ background: c.bg, padding: "12px", borderRadius: 10, border: `1px solid ${c.border}` }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: c.accent, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>👉 Prochaine Étape :</div>
+                <Button onClick={() => openMatchModal(b, 'brand')} bg={`linear-gradient(90deg, ${c.accent}, #ff9a5c)`} color="#fff" small style={{ width: "100%", padding: "12px", boxShadow: `0 4px 15px ${c.accent}40`, fontSize: 14 }}>🪄 Générer un Match IA pour {b.name}</Button>
+              </div>
             </div>
           ))}
         </div>
@@ -516,8 +528,16 @@ Signature :
             <Button onClick={addInfluencer} bg={c.success} color="#fff" disabled={!newInfluencer.username || !newInfluencer.niche} small>Ajouter au catalogue</Button>
           </Card>
 
+          {influencers.length === 0 && (
+            <div style={{ padding: "32px 20px", textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 14, background: `linear-gradient(to bottom, transparent, ${c.successSoft})`, color: c.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
+              <div style={{ fontSize: 28, marginBottom: 12 }}>⭐</div>
+              <strong style={{ color: c.text }}>Aucun influenceur ajouté.</strong>
+              <div style={{ marginTop: 8, fontSize: 13 }}>Ajoutez un influenceur depuis votre Roster. L'IA pourra ensuite scanner les marques pour lui trouver un contrat.</div>
+            </div>
+          )}
+
           {influencers.map(i => (
-            <div key={i.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
+            <div key={i.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
               <button onClick={() => deleteInfluencer(i.id)} style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: c.error, cursor: "pointer" }}>✖</button>
               
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -538,7 +558,11 @@ Signature :
                 <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff" }}><TikTokIcon /> {i.tiktokFollowers ? (i.tiktokFollowers >= 1000 ? `${(i.tiktokFollowers/1000).toFixed(1)}k` : i.tiktokFollowers) : `${(i.followers * 1.5 / 1000).toFixed(1)}k`}</div>
                 <div style={{ marginLeft: 8 }}>🔥 {i.engagement}% eng</div>
               </div>
-              <Button onClick={() => openMatchModal(i, 'influencer')} bg={`linear-gradient(90deg, ${c.success}, #69C9D0)`} color="#fff" small>🎯 Proposer à une Marque</Button>
+              
+              <div style={{ background: c.bg, padding: "12px", borderRadius: 10, border: `1px solid ${c.border}` }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: c.success, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>👉 Prochaine Étape :</div>
+                <Button onClick={() => openMatchModal(i, 'influencer')} bg={`linear-gradient(90deg, ${c.success}, #69C9D0)`} color="#fff" small style={{ width: "100%", padding: "12px", boxShadow: `0 4px 15px rgba(16,185,129,0.3)`, fontSize: 14 }}>🪄 Trouver une Marque avec l'IA</Button>
+              </div>
             </div>
           ))}
         </div>
