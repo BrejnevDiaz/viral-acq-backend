@@ -354,12 +354,6 @@ Signature : Brejnev Diaz (Signé)
       doc.setFont("helvetica", "bold");
       doc.setFontSize(20);
       doc.text("VIRAL ACQUISITION", 38, 20);
-      
-      // "PRO SUITE" badge
-      doc.setFillColor(...accentColor);
-      doc.rect(125, 14, 28, 8, 'F');
-      doc.setFontSize(8);
-      doc.text("PRO SUITE", 128, 20);
 
       // Document Type
       doc.setTextColor(200, 200, 200);
