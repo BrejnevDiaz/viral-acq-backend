@@ -44,6 +44,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   // Form states
   const [newBrand, setNewBrand] = useState({ name: '', website: '', niche: '', budget: '', description: '' });
   const [newInfluencer, setNewInfluencer] = useState({ username: '', platform: 'instagram', niche: '', followers: '', engagement: '', profileUrl: '' });
+  const [showRosterDropdown, setShowRosterDropdown] = useState(false);
 
   // Pitch state
   const [pitchModal, setPitchModal] = useState({ isOpen: false, mode: '', source: null, target: null, relationship: 'cold', pitchLang: 'it', email: '', loading: false, recipientEmail: '', sendingEmail: false, emailSent: false });
@@ -389,30 +390,68 @@ Signature :
             <h4 style={{ margin: "0 0 12px 0", fontSize: 13, color: c.textMuted }}>➕ Ajouter un Influenceur</h4>
             
             {agencyTalents.length > 0 && (
-              <div style={{ marginBottom: 14 }}>
-                <select 
-                  onChange={e => {
-                    const selected = agencyTalents.find(t => t.id === e.target.value);
-                    if(selected) {
-                      setNewInfluencer({
-                        username: selected.username.replace('@',''),
-                        platform: selected.platform,
-                        niche: selected.niche,
-                        followers: selected.followers.toString(),
-                        engagement: selected.engagement.toString().replace('%',''),
-                        profileUrl: selected.profileUrl || `https://instagram.com/${selected.username.replace('@','')}`
-                      });
-                    }
+              <div style={{ marginBottom: 14, position: "relative" }}>
+                <button 
+                  onClick={() => setShowRosterDropdown(!showRosterDropdown)}
+                  style={{
+                    width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.accent}`,
+                    background: `rgba(139, 92, 246, 0.08)`, color: c.text, outline: "none", fontSize: 13.5,
+                    display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer",
+                    fontWeight: 600, fontFamily: mono, transition: "background 0.2s"
                   }}
-                  style={{ ...selectStyle(c), border: `1px solid ${c.accent}`, background: `rgba(139, 92, 246, 0.05)`, cursor: "pointer" }}
+                  onMouseOver={e=>e.currentTarget.style.background="rgba(139, 92, 246, 0.15)"}
+                  onMouseOut={e=>e.currentTarget.style.background="rgba(139, 92, 246, 0.08)"}
                 >
-                  <option value="" style={optionStyle}>Sélectionner depuis le Roster de l'Agence...</option>
-                  {agencyTalents.filter(t => t.status !== "pending").map(t => (
-                    <option key={t.id} value={t.id} style={optionStyle}>
-                      @{t.username.replace('@','')} ({t.platform}) - {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
-                    </option>
-                  ))}
-                </select>
+                  <span>👥 Sélectionner depuis le Roster de l'Agence...</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: showRosterDropdown ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                
+                {showRosterDropdown && (
+                  <>
+                    <div onClick={() => setShowRosterDropdown(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 98 }} />
+                    <div style={{ 
+                      position: "absolute", top: "100%", left: 0, right: 0, marginTop: 6, 
+                      background: c.card, border: `1px solid ${c.border}`, borderRadius: 12, 
+                      boxShadow: "0 12px 30px rgba(0,0,0,0.6)", zIndex: 100,
+                      maxHeight: 280, overflowY: "auto", padding: 8, display: "flex", flexDirection: "column", gap: 4
+                    }}>
+                      {agencyTalents.filter(t => t.status !== "pending").map(t => (
+                        <div 
+                          key={t.id} 
+                          onClick={() => {
+                            setNewInfluencer({
+                              username: t.username.replace('@',''),
+                              platform: t.platform,
+                              niche: t.niche,
+                              followers: t.followers.toString(),
+                              engagement: t.engagement.toString().replace('%',''),
+                              profileUrl: t.profileUrl || `https://instagram.com/${t.username.replace('@','')}`
+                            });
+                            setShowRosterDropdown(false);
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", 
+                            borderRadius: 8, cursor: "pointer", transition: "background 0.2s"
+                          }}
+                          onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                          onMouseOut={e=>e.currentTarget.style.background="transparent"}
+                        >
+                          <img 
+                            src={t.avatar || `https://ui-avatars.com/api/?name=${t.username.replace('@','')}&background=333&color=fff&rounded=true`} 
+                            alt={t.username}
+                            style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", border: `1px solid ${c.border}` }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, color: c.text, fontSize: 13.5 }}>@{t.username.replace('@','')}</div>
+                            <div style={{ fontSize: 11.5, color: c.textMuted, marginTop: 2 }}>
+                              <span style={{ color: t.platform === "instagram" ? "#ec4899" : "#fff" }}>{t.platform === "instagram" ? "📸 Instagram" : "🎵 TikTok"}</span> • {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
             
