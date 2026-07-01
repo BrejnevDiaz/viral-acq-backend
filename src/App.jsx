@@ -794,400 +794,327 @@ export default function ProspectionAgent() {
   };
 
   if (!isLoggedIn) {
-    const loginT = {
-      fr: {
-        brand: "VIRALACQUISITION",
-        titlePre: "L'ère de",
-        titleMain: "l'Acquisition Virale & Spy",
-        subtitle: "Découvrez les produits gagnants, analysez les boutiques e-commerce concurrentes, espionnez les meilleures créatives publicitaires et recrutez des influenceurs à fort impact sur Meta, TikTok, Pinterest et plus encore.",
-        statStores: "Boutiques Analysées",
-        statAds: "Créatifs AdSpy",
-        quote: "J'ai conçu cette suite pour vous offrir en direct la détection de tendances virales et la prospection automatique de vos cibles idéales dans une interface unique.",
-        quoteTitle: "Fondateur & CEO"
-      },
-      en: {
-        brand: "VIRALACQUISITION",
-        titlePre: "The Era of",
-        titleMain: "Viral Acquisition & Spy",
-        subtitle: "Discover winning products, analyze competing e-commerce stores, spy on top ad creatives, and recruit high-impact influencers on Meta, TikTok, Pinterest, and more.",
-        statStores: "Stores Analyzed",
-        statAds: "AdSpy Creatives",
-        quote: "I designed this suite to give you live viral trend detection and automatic ideal-target prospecting in a single interface.",
-        quoteTitle: "Founder & CEO"
-      },
-      it: {
-        brand: "VIRALACQUISITION",
-        titlePre: "L'era di",
-        titleMain: "Acquisizione Virale & Spy",
-        subtitle: "Scopri prodotti vincenti, analizza negozi e-commerce della concorrenza, spia le migliori creatività pubblicitarie e recluta influencer ad alto impatto su Meta, TikTok, Pinterest e altro ancora.",
-        statStores: "Negozi Analizzati",
-        statAds: "Creatività AdSpy",
-        quote: "Ho progettato questa suite per offrirti il rilevamento dal vivo delle tendenze virali e la prospezione automatica dei tuoi target ideali in un'unica interfaccia.",
-        quoteTitle: "Fondatore & CEO"
-      }
-    }[uiLang];
-
-    const handleAuth = async (e) => {
-      e.preventDefault();
-      setAuthError("");
-      if (!emailInput || !passInput) {
-        setAuthError(uiLang === "fr" ? "Veuillez remplir tous les champs." : "Please fill all fields.");
-        return;
-      }
-      try {
-        if (authMode === "signup") {
-          const { data, error } = await supabase.auth.signUp({
-            email: emailInput,
-            password: passInput,
-            options: {
-              data: {
-                tier: selectedSignupTier,
-                role: "user"
-              }
-            }
-          });
-          if (error) throw error;
-          if (data?.user?.identities?.length === 0) {
-            throw new Error(uiLang === "fr" ? "Cet utilisateur existe déjà." : "This user already exists.");
-          }
-          setAuthMode("login");
-          setAuthError(uiLang === "fr" ? "Inscription réussie ! Vous pouvez vous connecter." : "Sign up successful! You can now log in.");
-        } else {
-          const { error } = await supabase.auth.signInWithPassword({
-            email: emailInput,
-            password: passInput
-          });
-          if (error) throw error;
-          // onAuthStateChange handles isLoggedIn
-        }
-      } catch (err) {
-        setAuthError(err.message || (uiLang === "fr" ? "Erreur d'authentification" : "Authentication error"));
-      }
-    };
-
     return (
-      <div style={{
-        minHeight: "100vh",
-        background: "#fff",
-        color: "#111827",
-        fontFamily: "'Inter', sans-serif",
-        overflowX: "hidden",
-        position: "relative"
-      }}>
-        {/* Minea-style Header */}
-        <header style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "20px 40px", position: "absolute", top: 0, left: 0, right: 0, zIndex: 50
+        <div style={{
+          minHeight: '100vh', 
+          backgroundColor: '#000000', 
+          color: '#ffffff', 
+          fontFamily: "'Inter', sans-serif",
+          overflowX: 'hidden',
+          position: 'relative'
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>VA</div>
-            <h1 className="outfit" style={{ fontSize: 20, fontWeight: 900, margin: 0, letterSpacing: "-0.5px", color: "#111827" }}>
-              ViralAcquisition
-            </h1>
-          </div>
+          
+          {/* Background Ambient Glow */}
+          <div style={{ position: 'fixed', top: '-20%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }}></div>
+          <div style={{ position: 'fixed', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(249,115,22,0.1) 0%, transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }}></div>
 
-          <div className="desktop-only" style={{ display: "flex", gap: 32, fontSize: 15, fontWeight: 600, color: "#374151" }}>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Adspy</span>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Produit gagnant</span>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Sourcing CRM</span>
-            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Matchmaking</span>
-          </div>
-
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <select
-              value={uiLang}
-              onChange={(e) => setUiLang(e.target.value)}
-              style={{
-                background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#374151", cursor: "pointer", outline: "none"
-              }}
-            >
-              <option value="fr">French</option>
-              <option value="en">English</option>
-              <option value="it">Italian</option>
-            </select>
-            <button onClick={() => { setAuthMode("login"); setShowLoginModal(true); }} style={{
-              padding: "10px 24px", borderRadius: 12, background: "#111827", color: "#fff", border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "transform 0.2s"
-            }} className="hover-lift">
-              Login
-            </button>
-          </div>
-        </header>
-
-        {/* Hero Section (Radial Gradient) */}
-        <section style={{
-          position: "relative",
-          paddingTop: 160,
-          paddingBottom: 80,
-          display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
-          overflow: "hidden"
-        }}>
-          {/* Background Radial Glow */}
-          <div style={{
-            position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)",
-            width: "100%", maxWidth: 1000, height: 800,
-            background: "radial-gradient(ellipse at top, rgba(139,92,246,0.3) 0%, rgba(236,72,153,0.15) 40%, transparent 70%)",
-            zIndex: 0, pointerEvents: "none"
-          }}></div>
-
-          <div style={{ position: "relative", zIndex: 10, maxWidth: 900, padding: "0 20px" }}>
-            <h2 style={{
-              fontSize: "clamp(48px, 6vw, 76px)", fontWeight: 900, lineHeight: 1.1, margin: "0 0 24px 0", letterSpacing: "-2px", color: "#111827"
-            }}>
-              <span style={{ display: "block" }}>{loginT.titlePre}</span>
-              <span style={{ background: `linear-gradient(90deg, ${c.accent}, #ec4899)`, WebkitBackgroundClip: "text", color: "transparent" }}>
-                {loginT.titleMain}
-              </span>
-            </h2>
-            <p style={{
-              fontSize: 18, color: "#4B5563", lineHeight: 1.6, maxWidth: 700, margin: "0 auto 40px auto", fontWeight: 500
-            }}>
-              {loginT.subtitle}
-            </p>
-
-            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-              <button onClick={() => { setAuthMode("signup"); setShowLoginModal(true); }} style={{
-                padding: "16px 36px", borderRadius: 14, background: `linear-gradient(90deg, ${c.accent}, #ec4899)`, color: "#fff", border: "none", fontSize: 18, fontWeight: 800, cursor: "pointer",
-                boxShadow: `0 10px 30px ${c.accentGlow}`, transition: "all 0.3s"
-              }} className="hover-lift">
-                {uiLang === "fr" ? "Essayez gratuitement" : "Try for free"}
-              </button>
-              <button style={{
-                padding: "16px 36px", borderRadius: 14, background: "#fff", color: "#111827", border: "1px solid #E5E7EB", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.05)", transition: "all 0.3s"
-              }} className="hover-lift">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
-                {uiLang === "fr" ? "Installer l'extension" : "Install extension"}
+          {/* NavBar */}
+          <nav style={{
+            position: 'fixed', top: 0, left: 0, right: 0, height: 72,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0 48px', zIndex: 100,
+            background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #8B5CF6, #F97316)',
+                width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: '0 0 20px rgba(139,92,246,0.4)'
+              }}>VA</div>
+              <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>ViralAcquisition</span>
+            </div>
+            <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
+              <span style={{ cursor: 'pointer', color: '#fff' }}>Adspy</span>
+              <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Produit gagnant</span>
+              <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Sourcing CRM</span>
+              <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Matchmaking</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <span style={{ fontSize: 14, color: '#A1A1AA', cursor: 'pointer' }}>French ▾</span>
+              <button 
+                onClick={() => { setAuthMode('login'); setShowLoginModal(true); }}
+                style={{
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#fff', padding: '8px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}
+                className="hover-bg-white-10"
+              >
+                Login
               </button>
             </div>
-          </div>
+          </nav>
 
-          {/* Dashboard Mockup Image */}
-          <div style={{
-            position: "relative", zIndex: 10, marginTop: 60, width: "90%", maxWidth: 1100,
-            background: "#09090E", borderRadius: "24px 24px 0 0", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none",
-            boxShadow: "0 -20px 60px rgba(139,92,246,0.15)", overflow: "hidden", height: 400
-          }}>
-             <div style={{ display: "flex", padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.05)", alignItems: "center", gap: 12 }}>
-                <div style={{ display: "flex", gap: 6 }}>
-                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ef4444" }}></div>
-                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#eab308" }}></div>
-                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#22c55e" }}></div>
-                </div>
-                <div style={{ background: "rgba(255,255,255,0.05)", padding: "6px 24px", borderRadius: 6, color: "#9ca3af", fontSize: 12, fontFamily: mono, marginLeft: 20 }}>
-                  viralacq.app/dashboard
-                </div>
-             </div>
-             {/* Fake Content Area */}
-             <div style={{ display: "flex", height: "100%" }}>
-                <div style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.05)", padding: 20 }}>
-                   <div style={{ height: 16, width: "80%", background: "rgba(255,255,255,0.1)", borderRadius: 4, marginBottom: 20 }}></div>
-                   <div style={{ height: 16, width: "60%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
-                   <div style={{ height: 16, width: "70%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
-                   <div style={{ height: 16, width: "50%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
-                </div>
-                <div style={{ flex: 1, padding: 30 }}>
-                    <div style={{ height: 32, width: 200, background: "rgba(255,255,255,0.1)", borderRadius: 8, marginBottom: 30 }}></div>
-                    <div style={{ display: "flex", gap: 20 }}>
-                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid rgba(139,92,246,0.2)" }}></div>
-                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12 }}></div>
-                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12 }}></div>
-                    </div>
-                </div>
-             </div>
-          </div>
-        </section>
-
-        {/* Login/Signup Modal overlay */}
-        {showLoginModal && (
-          <div style={{
-            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000
-          }}>
-            <div className="glass-panel animate-border" style={{ 
-              width: "100%", 
-              maxWidth: authMode === "signup" ? 860 : 420, 
-              background: "#0f0f20", 
-              padding: "36px 32px", 
-              borderRadius: 24, 
-              border: `1.5px solid rgba(139, 92, 246, 0.2)`, 
-              boxShadow: "0 25px 50px rgba(0,0,0,0.6)", 
-              boxSizing: "border-box",
-              position: "relative",
-              color: "#fff"
+          {/* Hero Section */}
+          <main style={{ position: 'relative', zIndex: 10, paddingTop: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: 100 }}>
+            <h1 style={{
+              fontSize: 'clamp(48px, 6vw, 76px)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-2px',
+              maxWidth: 900, margin: '0 0 24px 0'
             }}>
-              {/* Close Button */}
-              <button onClick={() => setShowLoginModal(false)} style={{
-                position: "absolute", top: 16, right: 16, background: "transparent", border: "none", color: "#9ca3af", cursor: "pointer", padding: 8
-              }} className="hover-lift">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
+              L'ère de<br/>
+              <span style={{ 
+                background: 'linear-gradient(90deg, #a78bfa, #f472b6, #fb923c)', 
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                display: 'inline-block', filter: 'drop-shadow(0 0 30px rgba(167,139,250,0.3))'
+              }}>l'Acquisition Virale & Spy</span>
+            </h1>
+            <p style={{
+              fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
+            }}>
+              Découvrez les produits gagnants, analysez les boutiques e-commerce concurrentes, espionnez les meilleures créatives publicitaires et recrutez des influenceurs à fort impact sur Meta, TikTok, Pinterest et plus encore.
+            </p>
 
-              <div style={{ display: "flex", flexDirection: authMode === "signup" ? "row" : "column", gap: 40 }}>
-                
-                {/* Left Column: Auth Form */}
-                <div style={{ flex: "1 1 320px" }}>
-                  <div style={{ textAlign: "center", marginBottom: 32 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 12, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px auto", boxShadow: `0 8px 24px ${c.accentGlow}` }}>
-                      <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: mono }}>VA</span>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <button 
+                onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
+                style={{
+                  background: 'linear-gradient(90deg, #8B5CF6, #EC4899, #F97316)',
+                  color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12,
+                  fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 10px 30px rgba(236,72,153,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                  transition: 'transform 0.2s, box-shadow 0.2s'
+                }}
+                className="hover-lift hover-glow-intense"
+              >
+                Essayer gratuitement
+              </button>
+              <button style={{
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff', padding: '16px 32px', borderRadius: 12,
+                fontSize: 16, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(10px)',
+                transition: 'background 0.2s'
+              }} className="hover-bg-white-10">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Installer l'extension
+              </button>
+            </div>
+
+            {/* Massive Hero Mockup */}
+            <div style={{
+              marginTop: 80, width: '90%', maxWidth: 1100, height: 600,
+              background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24,
+              boxShadow: '0 30px 100px -20px rgba(0,0,0,1), 0 0 40px rgba(139,92,246,0.15)',
+              overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column'
+            }}>
+              <div style={{ height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, background: '#111' }}>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444' }}></div>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B' }}></div>
+                <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10B981' }}></div>
+                <div style={{ marginLeft: 'auto', background: '#27272A', color: '#71717A', fontSize: 12, padding: '4px 12px', borderRadius: 4 }}>viralacq.app/dashboard</div>
+                <div style={{ marginLeft: 'auto', width: 44 }}></div>
+              </div>
+              <div style={{ flex: 1, padding: 32, display: 'flex', gap: 32 }}>
+                 <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.05)', paddingRight: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div style={{ width: '100%', height: 32, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}></div>
+                    <div style={{ width: '80%', height: 32, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}></div>
+                    <div style={{ width: '90%', height: 32, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}></div>
+                 </div>
+                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+                    <div style={{ display: 'flex', gap: 16 }}>
+                       <div style={{ flex: 1, height: 120, background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(249,115,22,0.05))', borderRadius: 12, border: '1px solid rgba(139,92,246,0.2)' }}></div>
+                       <div style={{ flex: 1, height: 120, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}></div>
+                       <div style={{ flex: 1, height: 120, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}></div>
                     </div>
-                    <h2 style={{ margin: "0 0 8px 0", fontSize: 24, fontWeight: 900, letterSpacing: "-1px" }}>
-                      {authMode === "login" ? (uiLang === "fr" ? "BON RETOUR." : (uiLang === "it" ? "BENTORNATO." : "WELCOME BACK.")) : (uiLang === "fr" ? "CRÉEZ VOTRE COMPTE." : (uiLang === "it" ? "CREA IL TUO ACCOUNT." : "CREATE ACCOUNT."))}
+                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.01)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', padding: 24, display: 'flex', gap: 16 }}>
+                        <div style={{ width: '30%', height: '100%', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}></div>
+                        <div style={{ flex: 1, height: '100%', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}></div>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </main>
+
+          {/* Features Sections (Alternating) */}
+          <section style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex', flexDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
+            
+            {/* Feature 1 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
+              <div style={{ flex: 1, maxWidth: 450 }}>
+                <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
+                  Repère les annonces <span style={{ color: '#F97316' }}>performantes</span>
+                </h2>
+                <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
+                  Identifie les tendances avant les autres. Filtre par réseau, engagement, activité et popularité pour trouver les créatives publicitaires qui génèrent des millions.
+                </p>
+                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
+                  background: 'linear-gradient(90deg, #F97316, #EA580C)', color: '#fff', border: 'none',
+                  padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 8px 25px rgba(249,115,22,0.3)', transition: 'transform 0.2s'
+                }} className="hover-lift">
+                  Essayer gratuitement
+                </button>
+              </div>
+              <div style={{ flex: 1, height: 450, background: '#111', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+                 {/* Faux Card Mockup */}
+                 <div style={{ position: 'absolute', top: 30, left: 30, right: 30, bottom: -30, background: '#18181B', borderRadius: '16px 16px 0 0', border: '1px solid rgba(255,255,255,0.1)', padding: 20 }}>
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                       <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 100, fontSize: 10, color: '#fff' }}>🔥 Facebook</div>
+                       <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 100, fontSize: 10, color: '#fff' }}>♪ TikTok</div>
+                    </div>
+                    <div style={{ width: '100%', height: 200, background: 'rgba(255,255,255,0.02)', borderRadius: 12, marginBottom: 16 }}></div>
+                    <div style={{ width: '70%', height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 6, marginBottom: 10 }}></div>
+                    <div style={{ width: '40%', height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}></div>
+                 </div>
+              </div>
+            </div>
+
+            {/* Feature 2 (Reversed) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
+              <div style={{ flex: 1, maxWidth: 450 }}>
+                <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
+                  Analyse les annonces avec des <span style={{ color: '#8B5CF6' }}>données clés</span>
+                </h2>
+                <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
+                  Suis l'activité et les budgets, explore la page de l'annonce et accède aux infos essentielles de la boutique pour valider ton produit gagnant.
+                </p>
+                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
+                  background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
+                  padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
+                }} className="hover-lift">
+                  Essayer gratuitement
+                </button>
+              </div>
+              <div style={{ flex: 1, height: 450, background: '#111', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+                 <div style={{ position: 'absolute', top: 40, right: -40, width: 300, height: 350, background: '#18181B', borderRadius: 16, border: '1px solid rgba(139,92,246,0.3)', padding: 20, boxShadow: '-10px 10px 40px rgba(0,0,0,0.8)' }}>
+                    <div style={{ width: '100%', height: 100, background: 'rgba(139,92,246,0.1)', borderRadius: 8, marginBottom: 16 }}></div>
+                    <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 10 }}></div>
+                    <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 10 }}></div>
+                    <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}></div>
+                 </div>
+              </div>
+            </div>
+
+          </section>
+
+          {/* Auth Modal overlay (Glassmorphism) */}
+          {showLoginModal && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(20px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <div style={{
+                background: 'rgba(24,24,27,0.8)', border: '1px solid rgba(255,255,255,0.1)',
+                width: 900, maxWidth: '95vw', borderRadius: 24, display: 'flex', overflow: 'hidden',
+                boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)',
+                position: 'relative'
+              }}>
+                <div style={{ position: 'absolute', top: '-20%', left: '-20%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)', filter: 'blur(60px)', pointerEvents: 'none' }}></div>
+                
+                {/* Auth Form Side */}
+                <div style={{ flex: 1, padding: 60, position: 'relative', zIndex: 10 }}>
+                  <button onClick={() => setShowLoginModal(false)} style={{
+                    position: 'absolute', top: 20, left: 20, background: 'transparent', border: 'none',
+                    color: '#A1A1AA', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13
+                  }} className="hover-white">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Retour
+                  </button>
+                  
+                  <div style={{ textAlign: 'center', marginBottom: 40, marginTop: 20 }}>
+                    <div style={{
+                      background: 'linear-gradient(135deg, #8B5CF6, #F97316)', width: 48, height: 48, borderRadius: 12,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 20,
+                      margin: '0 auto 20px auto', boxShadow: '0 0 20px rgba(139,92,246,0.5)'
+                    }}>VA</div>
+                    <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 8px 0', color: '#fff' }}>
+                      {authMode === "signup" ? "CRÉEZ VOTRE COMPTE." : "BON RETOUR."}
                     </h2>
-                    <p style={{ margin: 0, fontSize: 13, color: c.textMuted }}>
-                      {authMode === "login" 
-                        ? (uiLang === "fr" ? "Saisissez vos identifiants pour entrer." : (uiLang === "it" ? "Inserisci le tue credenziali per entrare." : "Enter your credentials to enter."))
-                        : (uiLang === "fr" ? "Rejoignez l'élite de l'Acquisition Virale." : (uiLang === "it" ? "Unisciti all'élite dell'Acquisizione Virale." : "Join the elite of Viral Acquisition."))}
+                    <p style={{ color: '#A1A1AA', fontSize: 14 }}>
+                      Rejoignez l'élite de l'Acquisition Virale.
                     </p>
                   </div>
 
-                  {authError && <div style={{ background: `${c.error}22`, color: c.error, padding: "10px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, marginBottom: 16, border: `1px solid ${c.error}44`, display: "flex", alignItems: "center", gap: 8 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-                    {authError}
-                  </div>}
-
-                  <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div>
-                      <label style={{ display: "block", marginBottom: 6, fontSize: 10, fontWeight: 700, color: c.textMuted, fontFamily: mono, letterSpacing: 1, textTransform: "uppercase" }}>{uiLang === "fr" ? "Adresse e-mail" : (uiLang === "it" ? "Indirizzo email" : "Email address")}</label>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>ADRESSE E-MAIL</label>
                       <input 
-                        type="email" 
-                        value={emailInput} 
-                        onChange={(e) => setEmailInput(e.target.value)} 
-                        placeholder="you@company.com" 
-                        style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid rgba(255,255,255,0.06)`, background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box", transition: "all 0.3s" }} 
-                        onFocus={e => Object.assign(e.target.style, { borderColor: c.accent, background: "rgba(0,0,0,0.5)", boxShadow: `0 0 0 4px ${c.accent}22` })}
-                        onBlur={e => Object.assign(e.target.style, { borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.3)", boxShadow: "none" })}
-                        required 
+                        type="email" required
+                        value={email} onChange={e => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        style={{
+                          width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box'
+                        }}
                       />
                     </div>
-                    <div style={{ position: "relative" }}>
-                      <label style={{ display: "block", marginBottom: 6, fontSize: 10, fontWeight: 700, color: c.textMuted, fontFamily: mono, letterSpacing: 1, textTransform: "uppercase" }}>{uiLang === "fr" ? "Mot de passe" : (uiLang === "it" ? "Password" : "Password")}</label>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>MOT DE PASSE</label>
                       <input 
-                        type={showPass ? "text" : "password"} 
-                        value={passInput} 
-                        onChange={(e) => setPassInput(e.target.value)} 
-                        placeholder="••••••••" 
-                        style={{ width: "100%", padding: "12px 40px 12px 16px", borderRadius: 10, border: `1.5px solid rgba(255,255,255,0.06)`, background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box", transition: "all 0.3s" }} 
-                        onFocus={e => Object.assign(e.target.style, { borderColor: c.accent, background: "rgba(0,0,0,0.5)", boxShadow: `0 0 0 4px ${c.accent}22` })}
-                        onBlur={e => Object.assign(e.target.style, { borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.3)", boxShadow: "none" })}
-                        required 
+                        type="password" required
+                        value={password} onChange={e => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        style={{
+                          width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
+                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box'
+                        }}
                       />
-                      <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, top: 32, background: "none", border: "none", color: c.textDim, cursor: "pointer", padding: 4 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                      </button>
                     </div>
-
-                    <button type="submit" style={{ width: "100%", padding: "14px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: mono, marginTop: 10, boxShadow: `0 8px 24px ${c.accentGlow}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, transition: "transform 0.2s" }} className="hover-lift">
-                      {authMode === "login" ? (uiLang === "fr" ? "Se Connecter" : (uiLang === "it" ? "Accedi" : "Log In")) : (uiLang === "fr" ? "Valider l'Inscription" : (uiLang === "it" ? "Registrati" : "Sign Up"))}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <button type="submit" disabled={authLoading} style={{
+                      width: '100%', padding: 16, borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', color: '#fff', fontSize: 16, fontWeight: 700,
+                      cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1,
+                      marginTop: 10, boxShadow: '0 8px 25px rgba(236,72,153,0.3)'
+                    }}>
+                      {authLoading ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
                     </button>
                   </form>
-
-                  <div style={{ textAlign: "center", marginTop: 24, fontSize: 13, color: c.textDim }}>
-                    {authMode === "login" ? (uiLang === "fr" ? "Pas encore membre ?" : (uiLang === "it" ? "Non sei membro?" : "Not a member yet?")) : (uiLang === "fr" ? "Déjà un compte ?" : (uiLang === "it" ? "Hai già un account?" : "Already have an account?"))}
-                    <span style={{ color: c.accent, cursor: "pointer", fontWeight: 700, marginLeft: 6 }} onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>
-                      {authMode === "login" ? (uiLang === "fr" ? "S'inscrire" : (uiLang === "it" ? "Registrati" : "Sign up")) : (uiLang === "fr" ? "Se connecter" : (uiLang === "it" ? "Accedi" : "Log in"))}
+                  <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#A1A1AA' }}>
+                    {authMode === "signup" ? "Déjà un compte ? " : "Pas encore de compte ? "}
+                    <span onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")} style={{ color: '#8B5CF6', fontWeight: 600, cursor: 'pointer' }}>
+                      {authMode === "signup" ? "Se connecter" : "Créer un compte"}
                     </span>
                   </div>
                 </div>
 
-                {/* Right Column: Pricing Plans Selection (only on Signup) */}
-                {authMode === "signup" && (
-                  <div style={{ flex: "1.2 1 360px", minWidth: 360, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <div>
-                      <h3 style={{ margin: "0 0 6px 0", fontSize: 14, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 0.5, fontFamily: mono }}>
-                        ⚡ {uiLang === "fr" ? "Étape 2 : Choisissez votre forfait" : "Step 2: Choose your pricing plan"}
-                      </h3>
-                      <p style={{ margin: "0 0 16px 0", fontSize: 12, color: c.textMuted }}>
-                        {uiLang === "fr" ? "Les abonnements disposent d'accès de fonctionnalités et de données différents." : "Plans feature different feature capacities and data access rules."}
-                      </p>
-                    </div>
-                    
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flexGrow: 1 }}>
-                      {[
-                        {
-                          id: "free",
-                          name: uiLang === "fr" ? "Gratuit (Trial)" : (uiLang === "it" ? "Gratuito (Trial)" : "Free (Trial)"),
-                          price: "0 €",
-                          period: uiLang === "fr" ? "à vie" : "forever",
-                          desc: uiLang === "fr" ? "Vetting IA et ressources basiques uniquement." : "Vetting IA and basic resources only.",
-                          color: c.textDim,
-                          badge: uiLang === "fr" ? "Débuter" : "Start"
-                        },
-                        {
-                          id: "standard",
-                          name: "Standard",
-                          price: "39 €",
-                          period: uiLang === "fr" ? "/mois" : "/mo",
-                          desc: uiLang === "fr" ? "CRM 10 leads, 3 analyses/jour, AdSpy view-only." : "CRM 10 leads, 3 analysis/day, AdSpy view-only.",
-                          color: c.accent,
-                          badge: "Standard"
-                        },
-                        {
-                          id: "vip_pro",
-                          name: "VIP Pro",
-                          price: "49 €",
-                          period: uiLang === "fr" ? "/mois" : "/mo",
-                          desc: uiLang === "fr" ? "Accès total, 2 Coachings + 2 Blogs/mois." : "Full access, 2 coachings + 2 blogs/mo.",
-                          color: c.accent2,
-                          badge: "Populaire"
-                        },
-                        {
-                          id: "vip_elite",
-                          name: "VIP Elite",
-                          price: "99 €",
-                          period: uiLang === "fr" ? "/mois" : "/mo",
-                          desc: uiLang === "fr" ? "Accès total, Coaching hebdomadaire, Blog illimité." : "Total access, weekly coaching, unlimited blog.",
-                          color: c.success,
-                          badge: "Ultimate"
-                        }
-                      ].map(plan => (
-                        <div
-                          key={plan.id}
-                          onClick={() => setSelectedSignupTier(plan.id)}
-                          style={{
-                            background: selectedSignupTier === plan.id ? `${plan.color}08` : "rgba(0,0,0,0.2)",
-                            border: `1.5px solid ${selectedSignupTier === plan.id ? plan.color : "rgba(255,255,255,0.06)"}`,
-                            borderRadius: 12,
-                            padding: "12px 14px",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "space-between",
-                            position: "relative",
-                            overflow: "hidden",
-                            boxShadow: selectedSignupTier === plan.id ? `0 4px 14px ${plan.color}22` : "none"
-                          }}
-                        >
-                          {selectedSignupTier === plan.id && (
-                            <div style={{ position: "absolute", top: 0, right: 0, background: plan.color, color: "#fff", padding: "2px 8px", fontSize: 9, fontWeight: 700, borderRadius: "0 0 0 8px", textTransform: "uppercase" }}>★</div>
-                          )}
-                          <div>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: selectedSignupTier === plan.id ? plan.color : c.textMuted, fontFamily: mono, textTransform: "uppercase" }}>
-                              {plan.name}
-                            </span>
-                            <p style={{ fontSize: 10.5, color: c.textDim, margin: "4px 0 0 0", lineHeight: 1.3 }}>
-                              {plan.desc}
-                            </p>
-                          </div>
-                          <div style={{ marginTop: 12 }}>
-                            <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: mono }}>{plan.price}</span>
-                            <span style={{ fontSize: 10, color: c.textDim, marginLeft: 2 }}>{plan.period}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Pricing / Value Prop Side */}
+                <div style={{ flex: 1.2, background: 'rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.05)', padding: 60, display: 'flex', flexDirection: 'column' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#F97316', fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 16 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      {authMode === "signup" ? "ÉTAPE 2 : CHOISISSEZ VOTRE FORFAIT" : "DÉBLOQUEZ TOUTES LES FONCTIONNALITÉS"}
+                   </div>
+                   <p style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.6, marginBottom: 32 }}>
+                      Les abonnements disposent d'accès de fonctionnalités et de données différents.
+                   </p>
+                   
+                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, flex: 1 }}>
+                      {/* Plan: Free */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>GRATUIT (TRIAL)</div>
+                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Vetting IA et ressources basiques uniquement.</p>
+                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /à vie</span></div>
+                      </div>
+                      {/* Plan: Standard */}
+                      <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                         <div style={{ position: 'absolute', top: 12, right: 12, color: '#8B5CF6' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#8B5CF6', letterSpacing: 1, marginBottom: 8 }}>STANDARD</div>
+                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>CRM 10 leads, 3 analyses/jour, AdSpy view-only.</p>
+                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>39 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                      </div>
+                      {/* Plan: Pro */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>VIP PRO</div>
+                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Accès total, 2 Coachings + 2 Blogs/mois.</p>
+                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>49 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                      </div>
+                      {/* Plan: Elite */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>VIP ELITE</div>
+                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Accès total, Coaching hebdomadaire, Blog illimité.</p>
+                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>99 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                      </div>
+                   </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
     );
   }
-
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: c.bg, color: c.text, fontFamily: sans, transition: "background 0.3s, color 0.3s" }}>
