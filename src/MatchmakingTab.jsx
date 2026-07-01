@@ -221,52 +221,82 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       const today = new Date();
       const endDate = new Date(today);
       endDate.setMonth(endDate.getMonth() + 3);
-      const contractText = `CONTRAT DE COLLABORATION UGC
-═══════════════════════════════════════
+      const contractText = `CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)
+Réf: C-${match.id.substring(0, 8).toUpperCase()}
 
-Entre : ${match.brand.name} (ci-après "la Marque")
-Et    : @${match.influencer.username} (ci-après "le Créateur")
-Via   : Viral Acquisition Agency (ci-après "l'Agence")
+ENTRE LES SOUSSIGNÉS :
+
+1. La société ${match.brand.name}, dûment représentée,
+Ci-après dénommée "La Marque",
+
+ET
+
+2. Le Créateur de Contenu @${match.influencer.username},
+Ci-après dénommé(e) "Le Créateur",
+
+INTERMÉDIÉ PAR :
+
+3. VIRAL ACQUISITION AGENCY, agence de marketing d'influence, sise en France,
+Ci-après dénommée "L'Agence" (représentée par Brejnev Diaz).
 
 Date d'effet : ${today.toLocaleDateString('fr-FR')}
 Date de fin  : ${endDate.toLocaleDateString('fr-FR')}
 
-─── ARTICLE 1 : OBJET ───
-La Marque confie au Créateur, par l'intermédiaire de l'Agence, 
-la création de contenu UGC pour promouvoir ses produits/services 
-dans la niche "${match.brand.niche}".
+IL A ÉTÉ PRÉALABLEMENT EXPOSÉ CE QUI SUIT :
+La Marque, opérant dans le secteur de "${match.brand.niche}", souhaite promouvoir ses produits et services à travers la création de Contenus Générés par les Utilisateurs (UGC). Le Créateur possède une expertise reconnue dans la création de tels contenus.
 
-─── ARTICLE 2 : LIVRABLES ───
-• 2x Vidéos UGC (Reels/TikTok) de 15-60 secondes
-• 1x Story Instagram avec lien swipe-up
-• Droits d'utilisation publicitaire pendant 90 jours
+CECI EXPOSÉ, IL A ÉTÉ CONVENU CE QUI SUIT :
 
-─── ARTICLE 3 : RÉMUNÉRATION ───
-• Montant : À définir (selon barème agence)
-• Produit(s) offert(s) : Oui (expédition DHL)
-• Paiement : Sous 30 jours après validation du contenu
+ARTICLE 1 : OBJET DU CONTRAT
+Le présent contrat a pour objet de définir les conditions dans lesquelles le Créateur s'engage à concevoir, réaliser et livrer des contenus numériques (ci-après les "Livrables") pour le compte de la Marque, par l'intermédiaire de l'Agence.
 
-─── ARTICLE 4 : EXCLUSIVITÉ ───
-Le Créateur s'engage à ne pas promouvoir de marque 
-directement concurrente pendant la durée du contrat.
+ARTICLE 2 : DESCRIPTION DES LIVRABLES
+Le Créateur s'engage à livrer à l'Agence, aux fins de validation par la Marque, les éléments suivants :
+- Deux (2) vidéos UGC optimisées pour le format vertical (9:16, 1080x1920) d'une durée de 15 à 60 secondes.
+- Les vidéos devront intégrer un hook (accroche) fort dans les 3 premières secondes, un développement (démonstration du produit), et un appel à l'action (Call-to-Action).
+- Une (1) Story Instagram (ou format similaire) incluant le lien d'affiliation ou le Swipe-Up fourni par l'Agence.
+Le Créateur dispose d'une totale liberté éditoriale, sous réserve de respecter le brief créatif transmis en annexe.
 
-─── ARTICLE 5 : PROPRIÉTÉ INTELLECTUELLE ───
-Les contenus créés restent la propriété du Créateur.
-La Marque bénéficie d'une licence d'utilisation de 90 jours
-pour ses canaux publicitaires (Meta Ads, TikTok Ads).
+ARTICLE 3 : RÉMUNÉRATION ET MODALITÉS DE PAIEMENT
+En contrepartie de l'exécution complète des prestations et de la cession de droits visée à l'Article 5, le Créateur percevra :
+- Un paiement forfaitaire de [À DÉFINIR] EUR (Hors Taxes).
+- La dotation gratuite du ou des produit(s) d'une valeur marchande de [À DÉFINIR] EUR, expédié(s) à l'adresse du Créateur.
+Le paiement sera effectué par virement bancaire sous trente (30) jours francs à compter de la validation définitive des Livrables par la Marque et réception de la facture correspondante émise par le Créateur ou l'Agence.
 
-─── ARTICLE 6 : REPORTING ───
-L'Agence fournira un rapport de performance incluant :
-impressions, engagement, clics et ROI estimé.
+ARTICLE 4 : OBLIGATION D'EXCLUSIVITÉ
+Le Créateur s'engage, pendant toute la durée d'exécution du présent contrat et pour une durée de trente (30) jours suivant la livraison, à ne pas collaborer, mentionner, ou créer des contenus pour le compte de marques directement concurrentes de ${match.brand.name}.
 
-Signatures :
-_________________________          _________________________
-${match.brand.name}                @${match.influencer.username}
-La Marque                          Le Créateur
+ARTICLE 5 : CESSION DES DROITS DE PROPRIÉTÉ INTELLECTUELLE (WHITELISTING)
+Le Créateur cède à la Marque, pour le monde entier et pour une durée de quatre-vingt-dix (90) jours à compter de la livraison :
+- Le droit de reproduction et de représentation des Livrables sur l'ensemble des réseaux sociaux de la Marque (Instagram, TikTok, Facebook).
+- Le droit d'exploitation des Livrables à des fins de publicité payante (Social Ads / Whitelisting) via les comptes de la Marque ou du Créateur.
+- Le droit d'adaptation mineure (recadrage, ajout de sous-titres ou de musique libre de droit).
 
-_________________________
-Viral Acquisition Agency
-L'Agence (Brejnev Diaz)`;
+ARTICLE 6 : CONFIDENTIALITÉ
+Les Parties s'engagent à conserver strictement confidentielles toutes les informations échangées dans le cadre de la négociation et l'exécution du présent contrat (briefs, statistiques, montants financiers).
+
+ARTICLE 7 : LOI APPLICABLE ET JURIDICTION COMPÉTENTE
+Le présent contrat est soumis au droit français. Tout litige relatif à son interprétation ou son exécution sera soumis aux tribunaux compétents du ressort du siège de l'Agence.
+
+Fait pour valoir ce que de droit.
+
+LES PARTIES ACCEPTENT LES TERMES DU PRÉSENT CONTRAT :
+
+Pour la Marque : ${match.brand.name}
+Date : ______________
+Signature :
+
+
+Pour le Créateur : @${match.influencer.username}
+Date : ______________
+Signature :
+
+
+Pour l'Agence : Viral Acquisition
+Date : ${today.toLocaleDateString('fr-FR')}
+Signature :
+(Brejnev Diaz, CEO)
+`;
       setContractModal(prev => ({ ...prev, generating: false, contract: contractText }));
     }, 1500);
   };
@@ -686,12 +716,12 @@ L'Agence (Brejnev Diaz)`;
                             <>
                               {matchInfs.length > 0 && (
                                 <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
-                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                               {otherInfs.length > 0 && (
                                 <optgroup label="Autres Talents">
-                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                             </>

@@ -614,7 +614,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                     <div style={{ background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, textAlign: "center" }}>
                       <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>FOLLOWERS</div>
                       <div style={{ fontSize: 13, fontWeight: 800, color: c.text }}>
-                        {talent.followers >= 1000 ? `${(talent.followers / 1000).toFixed(0)}k` : talent.followers}
+                        {talent.followers.toLocaleString('fr-FR')}
                       </div>
                     </div>
                     <div style={{ background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, textAlign: "center" }}>
