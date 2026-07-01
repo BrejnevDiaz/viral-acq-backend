@@ -301,7 +301,8 @@ export const generateContractText = (formData) => {
                 {ct.status === 'signed_brand' && (
                   <Button onClick={() => simulateSignature(ct.id, 'signed_both')} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}`, flex: 1 }}>Valider Talent</Button>
                 )}
-                <Button onClick={() => downloadContract(ct)} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}` }}>📥 .txt</Button>
+                <Button onClick={() => downloadContractPdf(ct)} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}` }}>📄 .pdf</Button>
+                <Button onClick={() => downloadContract(ct)} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}` }}>📄 .txt</Button>
                 <Button onClick={() => {
                   setPreviewContract(ct);
                 }} bg={c.accentSoft} color={c.accent} small>Détails</Button>
