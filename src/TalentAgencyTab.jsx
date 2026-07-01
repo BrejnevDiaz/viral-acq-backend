@@ -1104,47 +1104,56 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
         </div>
       )}
 
-      {/* AI Staffing Matches Modal */}
+      {/* AI Staffing Matches Modal (PREMIUM UPGRADE) */}
       {aiMatchesResult && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
-          <div style={{ background: c.card, border: `1.5px solid ${c.accent}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: `0 20px 40px ${c.accent}33` }}>
-            <button onClick={() => setAiMatchesResult(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
+          <div style={{ background: c.surface, border: `1px solid rgba(139, 92, 246, 0.4)`, borderRadius: 24, padding: 32, width: "100%", maxWidth: 650, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: `0 0 80px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.05)` }}>
+            <button onClick={() => setAiMatchesResult(null)} style={{ position: "absolute", top: 20, right: 20, background: c.card, border: `1px solid ${c.border}`, borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", color: c.textMuted, cursor: "pointer", transition: "all 0.2s" }} onMouseOver={e=>e.currentTarget.style.background=c.border} onMouseOut={e=>e.currentTarget.style.background=c.card}>✖</button>
             
-            <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text, display: "flex", alignItems: "center", gap: 8 }}>
-              ⚡ {t.successMatch || "Placement Réussi !"}
-            </h2>
-            <p style={{ color: c.textMuted, fontSize: 14, marginBottom: 20 }}>
-              {uiLang === "fr" ? "L'IA a généré ces nouveaux contrats. Vous pouvez maintenant notifier les influenceurs assignés :" : "AI has generated these new contracts. You can now notify the assigned influencers:"}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 8 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #8b5cf6, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(236,72,153,0.3)" }}>⚡</div>
+              <h2 className="outfit" style={{ margin: 0, fontSize: 24, fontWeight: 900, color: c.text, letterSpacing: "-0.5px" }}>
+                {t.successMatch || "Placement Réussi !"}
+              </h2>
+            </div>
+            <p style={{ color: c.textMuted, fontSize: 15, marginBottom: 32, lineHeight: 1.5 }}>
+              {uiLang === "fr" ? "Notre IA d'audit a sélectionné et assigné les meilleurs talents de votre Roster à ces campagnes. Vous pouvez maintenant les notifier pour démarrer la collaboration." : "AI has generated these new contracts. You can now notify the assigned influencers:"}
             </p>
             
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {aiMatchesResult.map(contract => {
                 const talent = talents.find(t => t.username === contract.talentName);
                 return (
-                  <div key={contract.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: "bold", color: c.text }}>{contract.brandName}</div>
-                        <div style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>
-                          Mission : <span style={{ color: c.text }}>{contract.title}</span>
-                        </div>
-                        <div style={{ fontSize: 14, marginTop: 8 }}>
-                          Talent : <strong style={{ color: c.success }}>@{contract.talentName}</strong>
+                  <div key={contract.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: 20, transition: "transform 0.2s, box-shadow 0.2s", cursor: "default" }} onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,0.12)"}} onMouseOut={e=>{e.currentTarget.style.transform="none"; e.currentTarget.style.boxShadow="none"}}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                        <img src={talent?.avatar} alt={contract.talentName} style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: `2px solid ${c.accent}` }} />
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 900, color: c.text, letterSpacing: "-0.3px", marginBottom: 4 }}>{contract.brandName}</div>
+                          <div style={{ fontSize: 13, color: c.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: c.accent }}></span> Mission : <span style={{ color: c.text, fontWeight: 500 }}>{contract.title}</span>
+                          </div>
+                          <div style={{ fontSize: 14, marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                            Talent assigné : <strong style={{ color: c.success, background: c.successSoft, padding: "2px 8px", borderRadius: 6 }}>@{contract.talentName}</strong>
+                          </div>
                         </div>
                       </div>
-                      <span style={{ fontSize: 12, color: c.accent, background: c.accentSoft, padding: "4px 8px", borderRadius: 6, fontWeight: "bold" }}>
+                      <span style={{ fontSize: 13, color: "#fff", background: "linear-gradient(90deg, #10b981, #059669)", padding: "6px 12px", borderRadius: 8, fontWeight: 800, boxShadow: "0 2px 8px rgba(16,185,129,0.3)" }}>
                         {contract.budget}
                       </span>
                     </div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                    
+                    <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
                       <a href={`mailto:${talent?.email || ''}?subject=${encodeURIComponent('Nouvelle mission: ' + contract.brandName)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", flex: 1 }}>
-                        <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: c.emailBlue || '#6366f1', color: "#fff", cursor: "pointer", fontWeight: "bold", fontSize: 12, transition: "opacity 0.2s" }} onMouseOver={e=>e.target.style.opacity=0.8} onMouseOut={e=>e.target.style.opacity=1}>
-                          ✉️ Envoyer Email
+                        <button style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: c.emailBlue || '#3b82f6', color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s", boxShadow: "0 4px 12px rgba(59,130,246,0.3)" }} onMouseOver={e=>e.currentTarget.style.filter="brightness(1.1)"} onMouseOut={e=>e.currentTarget.style.filter="none"}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                          Envoyer Email
                         </button>
                       </a>
                       <a href={`https://ig.me/m/${contract.talentName}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", flex: 1 }}>
-                        <button style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", color: "#fff", cursor: "pointer", fontWeight: "bold", fontSize: 12, transition: "opacity 0.2s" }} onMouseOver={e=>e.target.style.opacity=0.8} onMouseOut={e=>e.target.style.opacity=1}>
-                          📱 DM Instagram
+                        <button style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s", boxShadow: "0 4px 12px rgba(220,39,67,0.3)" }} onMouseOver={e=>e.currentTarget.style.filter="brightness(1.1)"} onMouseOut={e=>e.currentTarget.style.filter="none"}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                          DM Instagram
                         </button>
                       </a>
                     </div>
@@ -1153,8 +1162,8 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
               })}
             </div>
             
-            <button onClick={() => setAiMatchesResult(null)} style={{ marginTop: 24, width: "100%", padding: "12px", borderRadius: 8, border: "none", background: c.border, color: c.text, fontWeight: 700, cursor: "pointer" }}>
-              Terminer
+            <button onClick={() => setAiMatchesResult(null)} style={{ marginTop: 24, width: "100%", padding: "14px", borderRadius: 12, border: `1px solid ${c.border}`, background: c.bg, color: c.text, fontWeight: 800, fontSize: 14, cursor: "pointer", transition: "all 0.2s" }} onMouseOver={e=>e.currentTarget.style.background=c.border} onMouseOut={e=>e.currentTarget.style.background=c.bg}>
+              Terminer l'Assignation
             </button>
           </div>
         </div>
@@ -1277,7 +1286,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 40, paddingTop: 20, borderTop: "1px dashed #d1d5db" }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 30 }}>Agency Representative:</div>
-                      <div style={{ fontFamily: "'Brush Script MT', cursive, sans-serif", fontSize: 24, color: "#1f2937" }}>ViralAcq</div>
+                      <div style={{ fontFamily: "'Brush Script MT', cursive, sans-serif", fontSize: 24, color: "#1f2937" }}>Viral Acquisition</div>
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>Creator Signature:</div>

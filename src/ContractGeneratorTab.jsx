@@ -43,6 +43,7 @@ const Input = ({ value, onChange, placeholder, c, type="text" }) => (
 
 export default function ContractGeneratorTab({ c, mono, uiLang }) {
   const [contracts, setContracts] = useState([]);
+  const [activeTab, setActiveTab] = useState('all'); // all | validated | pending
   
   const [formData, setFormData] = useState({
     brandName: '',
@@ -54,11 +55,13 @@ export default function ContractGeneratorTab({ c, mono, uiLang }) {
     remuneration: '',
     livrables: '2x Vidéos UGC (15-60s)\n1x Story Instagram (Swipe-up)',
     durationMonths: 3,
-    exclusivity: true
+    exclusivity: true,
+    contractLanguage: 'fr'
   });
   
   const [previewContract, setPreviewContract] = useState(null);
   const [generating, setGenerating] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("contract_generator_db");
@@ -82,8 +85,138 @@ export default function ContractGeneratorTab({ c, mono, uiLang }) {
       const endDate = new Date(today);
       endDate.setMonth(endDate.getMonth() + parseInt(formData.durationMonths || 3));
       
-      const contractText = `CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)
-Réf: C-${Math.random().toString(36).substring(2,10).toUpperCase()}
+      const ref = `C-${Math.random().toString(36).substring(2,10).toUpperCase()}`;
+      let contractText = "";
+
+      if (formData.contractLanguage === 'en') {
+        contractText = `SERVICE PROVISION AND COPYRIGHT ASSIGNMENT CONTRACT (UGC)
+Ref: ${ref}
+
+BETWEEN THE UNDERSIGNED:
+
+1. The company ${formData.brandName}, duly represented,
+Email: ${formData.brandEmail || 'contact@brand.com'}
+Hereinafter referred to as "The Brand",
+
+AND
+
+2. The Content Creator ${formData.influencerName || '@'+formData.influencerHandle},
+Account: @${formData.influencerHandle}
+Email: ${formData.influencerEmail || 'contact@creator.com'}
+Hereinafter referred to as "The Creator",
+
+INTERMEDIATED BY:
+
+3. VIRAL ACQUISITION AGENCY, influencer marketing agency,
+Hereinafter referred to as "The Agency" (represented by Brejnev Diaz).
+
+Effective Date: ${today.toLocaleDateString('en-US')}
+End Date: ${endDate.toLocaleDateString('en-US')}
+
+PREAMBLE:
+The Brand, operating in the "${formData.niche || 'General'}" sector, wishes to promote its products and services through User Generated Content (UGC).
+
+IT HAS BEEN AGREED AS FOLLOWS:
+
+ARTICLE 1: OBJECT OF THE CONTRACT
+The purpose of this contract is to define the conditions under which the Creator undertakes to design, produce, and deliver digital content.
+
+ARTICLE 2: DESCRIPTION OF DELIVERABLES
+The Creator undertakes to deliver to the Agency, for validation by the Brand, the following elements:
+${formData.livrables}
+The Creator has complete editorial freedom, subject to respecting the creative brief.
+
+ARTICLE 3: REMUNERATION AND PAYMENT TERMS
+In return, the Creator will receive:
+- A flat fee of ${formData.remuneration} EUR (Excluding Taxes).
+Payment will be made by bank transfer within thirty (30) clear days from validation.
+
+${formData.exclusivity ? `ARTICLE 4: EXCLUSIVITY OBLIGATION
+The Creator undertakes, for the entire duration of this contract, not to collaborate with direct competitors of ${formData.brandName}.` : ''}
+
+ARTICLE 5: ASSIGNMENT OF RIGHTS (WHITELISTING)
+The Creator assigns to the Brand, worldwide and for a period of 90 days:
+- The right of exploitation for paid advertising purposes (Social Ads / Whitelisting) via the Brand's or Creator's accounts.
+
+ARTICLE 6: CONFIDENTIALITY & JURISDICTION
+The Parties undertake to keep strictly confidential all exchanged information. This contract is exclusively subject to Italian Jurisdiction (Diritto Italiano).
+
+THE PARTIES ACCEPT THE TERMS:
+
+For the Brand: ${formData.brandName}
+Signature: [PENDING]
+
+For the Creator: @${formData.influencerHandle}
+Signature: [PENDING]
+
+For the Agency: Viral Acquisition
+Signature: Brejnev Diaz (Signed)`;
+      } else if (formData.contractLanguage === 'it') {
+        contractText = `CONTRATTO DI PRESTAZIONE DI SERVIZI E CESSIONE DEI DIRITTI D'AUTORE (UGC)
+Rif: ${ref}
+
+TRA I SOTTOSCRITTI:
+
+1. La società ${formData.brandName}, debitamente rappresentata,
+E-mail: ${formData.brandEmail || 'contact@brand.com'}
+Di seguito denominata "Il Brand",
+
+E
+
+2. Il Content Creator ${formData.influencerName || '@'+formData.influencerHandle},
+Account: @${formData.influencerHandle}
+E-mail: ${formData.influencerEmail || 'contact@creator.com'}
+Di seguito denominato "Il Creator",
+
+INTERMEDIATO DA:
+
+3. VIRAL ACQUISITION AGENCY, agenzia di influencer marketing,
+Di seguito denominata "L'Agenzia" (rappresentata da Brejnev Diaz).
+
+Data di inizio: ${today.toLocaleDateString('it-IT')}
+Data di fine: ${endDate.toLocaleDateString('it-IT')}
+
+PREMESSO CHE:
+Il Brand, operante nel settore "${formData.niche || 'Generale'}", desidera promuovere i propri prodotti e servizi attraverso la creazione di User Generated Content (UGC).
+
+SI CONVIENE E STIPULA QUANTO SEGUE:
+
+ARTICOLO 1: OGGETTO DEL CONTRATTO
+Il presente contratto ha per oggetto la definizione delle condizioni alle quali il Creator si impegna a ideare, realizzare e consegnare contenuti digitali.
+
+ARTICOLO 2: DESCRIZIONE DEI DELIVERABLE
+Il Creator si impegna a consegnare all'Agenzia, per l'approvazione del Brand, i seguenti elementi:
+${formData.livrables}
+Il Creator gode di totale libertà editoriale, a condizione di rispettare il brief creativo.
+
+ARTICOLO 3: COMPENSO E MODALITÀ DI PAGAMENTO
+In cambio, il Creator riceverà:
+- Un compenso forfettario di ${formData.remuneration} EUR (Escluse Imposte).
+Il pagamento sarà effettuato tramite bonifico bancario entro trenta (30) giorni solari dalla validazione.
+
+${formData.exclusivity ? `ARTICOLO 4: OBBLIGO DI ESCLUSIVA
+Il Creator si impegna, per tutta la durata del presente contratto, a non collaborare con concorrenti diretti di ${formData.brandName}.` : ''}
+
+ARTICOLO 5: CESSIONE DEI DIRITTI (WHITELISTING)
+Il Creator cede al Brand, per tutto il mondo e per un periodo di 90 giorni:
+- Il diritto di sfruttamento per finalità di pubblicità a pagamento (Social Ads / Whitelisting) tramite gli account del Brand o del Creator.
+
+ARTICOLO 6: RISERVATEZZA E FORO COMPETENTE
+Le Parti si impegnano a mantenere strettamente riservate tutte le informazioni scambiate. Il presente contratto è soggetto esclusivamente alla Giurisdizione Italiana (Diritto Italiano).
+
+LE PARTI ACCETTANO I TERMINI:
+
+Per il Brand: ${formData.brandName}
+Firma: [IN ATTESA]
+
+Per il Creator: @${formData.influencerHandle}
+Firma: [IN ATTESA]
+
+Per l'Agenzia: Viral Acquisition
+Firma: Brejnev Diaz (Firmato)`;
+      } else {
+        contractText = `CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)
+Réf: ${ref}
 
 ENTRE LES SOUSSIGNÉS :
 
@@ -132,7 +265,7 @@ Le Créateur cède à la Marque, pour le monde entier et pour une durée de 90 j
 - Le droit d'exploitation à des fins de publicité payante (Social Ads / Whitelisting) via les comptes de la Marque ou du Créateur.
 
 ARTICLE 6 : CONFIDENTIALITÉ & JURIDICTION
-Les Parties s'engagent à conserver strictement confidentielles toutes les informations échangées. Ce contrat est soumis au droit français.
+Les Parties s'engagent à conserver strictement confidentielles toutes les informations échangées. Ce contrat est soumis exclusivement à la juridiction italienne (Diritto Italiano).
 
 LES PARTIES ACCEPTENT LES TERMES :
 
@@ -145,6 +278,7 @@ Signature : [EN ATTENTE]
 Pour l'Agence : Viral Acquisition
 Signature : Brejnev Diaz (Signé)
 `;
+      }
       
       const newContract = {
         id: `CG_${Date.now()}`,
@@ -152,7 +286,9 @@ Signature : Brejnev Diaz (Signé)
         influencerHandle: formData.influencerHandle,
         content: contractText,
         status: 'draft', // draft | sent | signed_brand | signed_both
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        brandEmail: formData.brandEmail,
+        influencerEmail: formData.influencerEmail
       };
       
       setPreviewContract(newContract);
@@ -160,17 +296,54 @@ Signature : Brejnev Diaz (Signé)
     }, 1200);
   };
 
-  const saveAndSend = () => {
+  const saveAndSend = async () => {
     if (!previewContract) return;
-    const ct = { ...previewContract, status: 'sent' };
-    setContracts(prev => [ct, ...prev]);
-    setPreviewContract(null);
-    setFormData({
-      brandName: '', brandEmail: '', influencerName: '', influencerEmail: '',
-      influencerHandle: '', niche: '', remuneration: '',
-      livrables: '2x Vidéos UGC (15-60s)\\n1x Story Instagram (Swipe-up)', durationMonths: 3, exclusivity: true
-    });
-    alert("✅ Contrat enregistré et 'envoyé' (simulé) pour signature électronique !");
+    
+    if (!previewContract.brandEmail || !previewContract.influencerEmail) {
+      alert("⚠️ Vous devez renseigner les adresses e-mail de la Marque et du Créateur dans le formulaire avant de pouvoir envoyer le contrat.");
+      return;
+    }
+
+    setSendingEmail(true);
+
+    try {
+      // 1. Send to Brand
+      await fetch("https://viral-acq-backend.vercel.app/api/send-email", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: previewContract.brandEmail,
+          subject: `Validation Requise : Contrat avec @${previewContract.influencerHandle}`,
+          body: `Bonjour ${previewContract.brandName},\n\nVotre contrat de partenariat avec @${previewContract.influencerHandle} a été généré par Viral Acquisition.\n\nVeuillez le consulter et procéder à sa signature électronique.\n\nCordialement,\nL'équipe Viral Acquisition.`,
+          brandName: previewContract.brandName
+        })
+      });
+
+      // 2. Send to Influencer
+      await fetch("https://viral-acq-backend.vercel.app/api/send-email", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: previewContract.influencerEmail,
+          subject: `Nouveau Contrat UGC : ${previewContract.brandName}`,
+          body: `Bonjour @${previewContract.influencerHandle},\n\nUn nouveau contrat a été généré pour votre collaboration avec ${previewContract.brandName}.\n\nVeuillez le consulter et procéder à sa signature.\n\nCordialement,\nViral Acquisition.`,
+          brandName: previewContract.brandName
+        })
+      });
+
+      const ct = { ...previewContract, status: 'sent' };
+      setContracts(prev => [ct, ...prev]);
+      setPreviewContract(null);
+      setFormData({
+        brandName: '', brandEmail: '', influencerName: '', influencerEmail: '',
+        influencerHandle: '', niche: '', remuneration: '',
+        livrables: '2x Vidéos UGC (15-60s)\n1x Story Instagram (Swipe-up)', durationMonths: 3, exclusivity: true, contractLanguage: 'fr'
+      });
+      alert("✅ Contrat enregistré et envoyé avec succès par e-mail aux deux parties !");
+    } catch (e) {
+      alert("❌ Une erreur est survenue lors de l'envoi des e-mails. Avez-vous configuré GMAIL_USER sur le backend ?");
+      console.error(e);
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const simulateSignature = (id, targetStatus) => {
@@ -183,12 +356,31 @@ Signature : Brejnev Diaz (Signé)
     }
   };
 
+  const downloadContract = (contract) => {
+    const blob = new Blob([contract.content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Contrat_${contract.brandName}_${contract.influencerHandle}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredContracts = contracts.filter(ct => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'validated') return ct.status === 'signed_both';
+    if (activeTab === 'pending') return ['sent', 'signed_brand'].includes(ct.status);
+    return true;
+  });
+
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out" }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, color: c.text, margin: "0 0 8px 0" }}>⚖️ Générateur de Contrats</h2>
+        <h2 style={{ fontSize: 22, color: c.text, margin: "0 0 8px 0" }}>⚖️ Générateur de Contrats Internationaux</h2>
         <p style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>
-          Générez des contrats juridiques précis (UGC, Whitelisting, Exclusivité) et gérez les signatures électroniques.
+          Générez des contrats juridiques conformes (Juridiction Italienne), traduisez-les instantanément, et notifiez les signataires par E-mail.
         </p>
       </div>
 
@@ -198,24 +390,37 @@ Signature : Brejnev Diaz (Signé)
         <div style={{ flex: "1 1 450px", minWidth: 0 }}>
           <Card c={c} style={{ position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -50, right: -50, width: 150, height: 150, background: `radial-gradient(circle, ${c.accent}15 0%, transparent 70%)`, pointerEvents: "none" }}></div>
-            <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>📝 Nouveau Contrat</h3>
+            <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>📝 Paramètres du Contrat</h3>
             
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 6, display: "block" }}>Langue du Contrat</label>
+              <select 
+                value={formData.contractLanguage} 
+                onChange={e=>setFormData({...formData, contractLanguage: e.target.value})}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none" }}
+              >
+                <option value="fr">🇫🇷 Français</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="it">🇮🇹 Italiano</option>
+              </select>
+            </div>
+
             <div style={{ display: "flex", gap: 12 }}>
               <div style={{ flex: 1 }}><Input placeholder="Nom Marque *" value={formData.brandName} onChange={e=>setFormData({...formData, brandName: e.target.value})} c={c} /></div>
-              <div style={{ flex: 1 }}><Input placeholder="E-mail Marque" type="email" value={formData.brandEmail} onChange={e=>setFormData({...formData, brandEmail: e.target.value})} c={c} /></div>
+              <div style={{ flex: 1 }}><Input placeholder="E-mail Marque *" type="email" value={formData.brandEmail} onChange={e=>setFormData({...formData, brandEmail: e.target.value})} c={c} /></div>
             </div>
             
             <div style={{ display: "flex", gap: 12 }}>
               <div style={{ flex: 1 }}><Input placeholder="Pseudo Créateur (sans @) *" value={formData.influencerHandle} onChange={e=>setFormData({...formData, influencerHandle: e.target.value})} c={c} /></div>
-              <div style={{ flex: 1 }}><Input placeholder="Nom Complet (Optionnel)" value={formData.influencerName} onChange={e=>setFormData({...formData, influencerName: e.target.value})} c={c} /></div>
+              <div style={{ flex: 1 }}><Input placeholder="E-mail Créateur *" type="email" value={formData.influencerEmail} onChange={e=>setFormData({...formData, influencerEmail: e.target.value})} c={c} /></div>
             </div>
-            
-            <Input placeholder="E-mail Créateur" type="email" value={formData.influencerEmail} onChange={e=>setFormData({...formData, influencerEmail: e.target.value})} c={c} />
             
             <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ flex: 1 }}><Input placeholder="Nom Complet (Optionnel)" value={formData.influencerName} onChange={e=>setFormData({...formData, influencerName: e.target.value})} c={c} /></div>
               <div style={{ flex: 1 }}><Input placeholder="Niche (ex: Beauté)" value={formData.niche} onChange={e=>setFormData({...formData, niche: e.target.value})} c={c} /></div>
-              <div style={{ flex: 1 }}><Input placeholder="Rémunération (€) *" type="number" value={formData.remuneration} onChange={e=>setFormData({...formData, remuneration: e.target.value})} c={c} /></div>
             </div>
+            
+            <Input placeholder="Rémunération (€) *" type="number" value={formData.remuneration} onChange={e=>setFormData({...formData, remuneration: e.target.value})} c={c} />
 
             <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 4, display: "block" }}>Livrables attendus</label>
             <textarea 
@@ -232,7 +437,7 @@ Signature : Brejnev Diaz (Signé)
               </label>
             </div>
 
-            <Button onClick={handleGenerate} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" disabled={generating || !formData.brandName || !formData.influencerHandle || !formData.remuneration} style={{ width: "100%" }}>
+            <Button onClick={handleGenerate} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" disabled={generating || !formData.brandName || !formData.influencerHandle || !formData.remuneration || !formData.brandEmail || !formData.influencerEmail} style={{ width: "100%" }}>
               {generating ? "⏳ Génération IA..." : "✨ Générer le Contrat"}
             </Button>
           </Card>
@@ -240,15 +445,33 @@ Signature : Brejnev Diaz (Signé)
 
         {/* COLONNE GESTION DES CONTRATS */}
         <div style={{ flex: "1 1 500px", minWidth: 0 }}>
-          <h3 style={{ fontSize: 16, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>🗂️ Contrats Actifs ({contracts.length})</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, color: c.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>🗂️ Historique des Contrats</h3>
+            <div style={{ display: "flex", background: c.card, borderRadius: 8, padding: 4, border: `1px solid ${c.border}` }}>
+              {[{id: 'all', label: 'Tous'}, {id: 'pending', label: 'En attente'}, {id: 'validated', label: 'Validés'}].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: "4px 10px", fontSize: 12, borderRadius: 6, border: "none",
+                    background: activeTab === tab.id ? c.accentSoft : "transparent",
+                    color: activeTab === tab.id ? c.accent : c.textMuted,
+                    cursor: "pointer", fontWeight: activeTab === tab.id ? 700 : 500
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
           
-          {contracts.length === 0 && (
+          {filteredContracts.length === 0 && (
             <div style={{ padding: 32, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 12, color: c.textMuted, fontSize: 13 }}>
-              Aucun contrat généré. Utilisez le formulaire pour en créer un.
+              Aucun contrat ne correspond à ce filtre.
             </div>
           )}
 
-          {contracts.map(ct => (
+          {filteredContracts.map(ct => (
             <div key={ct.id} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
@@ -257,7 +480,11 @@ Signature : Brejnev Diaz (Signé)
                   </div>
                   <div style={{ fontSize: 11, color: c.textMuted, marginTop: 4, fontFamily: mono }}>Réf: {ct.id} • {new Date(ct.createdAt).toLocaleDateString()}</div>
                 </div>
-                <button onClick={() => deleteContract(ct.id)} style={{ background: "none", border: "none", color: c.error, cursor: "pointer", fontSize: 18 }}>✖</button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {ct.status === 'signed_both' && <span style={{ padding: "4px 8px", background: c.successSoft, color: c.success, borderRadius: 6, fontSize: 11, fontWeight: "bold" }}>✅ Validé</span>}
+                  {(ct.status === 'sent' || ct.status === 'signed_brand') && <span style={{ padding: "4px 8px", background: c.warningBg, color: c.warning, borderRadius: 6, fontSize: 11, fontWeight: "bold" }}>⏳ En attente</span>}
+                  <button onClick={() => deleteContract(ct.id)} style={{ background: "none", border: "none", color: c.error, cursor: "pointer", fontSize: 16, padding: "4px" }}>✖</button>
+                </div>
               </div>
 
               {/* Status Timeline */}
@@ -271,14 +498,15 @@ Signature : Brejnev Diaz (Signé)
 
               <div style={{ display: "flex", gap: 8 }}>
                 {ct.status === 'sent' && (
-                  <Button onClick={() => simulateSignature(ct.id, 'signed_brand')} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}`, flex: 1 }}>Simuler Signature Marque</Button>
+                  <Button onClick={() => simulateSignature(ct.id, 'signed_brand')} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}`, flex: 1 }}>Valider Marque</Button>
                 )}
                 {ct.status === 'signed_brand' && (
-                  <Button onClick={() => simulateSignature(ct.id, 'signed_both')} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}`, flex: 1 }}>Simuler Signature Talent</Button>
+                  <Button onClick={() => simulateSignature(ct.id, 'signed_both')} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}`, flex: 1 }}>Valider Talent</Button>
                 )}
+                <Button onClick={() => downloadContract(ct)} bg={c.bg} color={c.text} small style={{ border: `1px solid ${c.border}` }}>📥 .txt</Button>
                 <Button onClick={() => {
                   setPreviewContract(ct);
-                }} bg={c.accentSoft} color={c.accent} small>Voir Détails</Button>
+                }} bg={c.accentSoft} color={c.accent} small>Détails</Button>
               </div>
             </div>
           ))}
@@ -305,13 +533,16 @@ Signature : Brejnev Diaz (Signé)
               }}
             />
             
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
-              <Button onClick={() => setPreviewContract(null)} bg={c.bg} color={c.text} style={{ border: `1px solid ${c.border}` }}>Fermer</Button>
-              {(!previewContract.status || previewContract.status === 'draft') && (
-                <Button onClick={saveAndSend} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff">
-                  ✅ Valider & Envoyer pour Signature (E-mail)
-                </Button>
-              )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20 }}>
+              <Button onClick={() => downloadContract(previewContract)} bg={c.bg} color={c.text} style={{ border: `1px solid ${c.border}` }}>📥 Télécharger (.txt)</Button>
+              <div style={{ display: "flex", gap: 12 }}>
+                <Button onClick={() => setPreviewContract(null)} bg={c.bg} color={c.text} style={{ border: `1px solid ${c.border}` }}>Fermer</Button>
+                {(!previewContract.status || previewContract.status === 'draft') && (
+                  <Button onClick={saveAndSend} disabled={sendingEmail} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff">
+                    {sendingEmail ? "Envoi en cours..." : "✅ Valider & Envoyer pour Signature (E-mail)"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
