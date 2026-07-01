@@ -541,23 +541,38 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
         <div style={{ display: "flex", flexDirection: "column", gap: 20, animation: "fadeIn 0.3s" }}>
           
           {/* AI staffing button */}
-          <div style={{ background: c.card, border: `1.5px dashed ${c.accent}`, padding: 18, borderRadius: 14, display: "flex", alignItems: "center", justify: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ background: c.card, border: `1.5px dashed ${c.accent}`, padding: 18, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
             <div>
               <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: c.text }}>⚡ IA Recruitment & Staffing</h4>
               <p style={{ margin: 0, fontSize: 12.5, color: c.textMuted }}>Déclenchez l'algorithme d'attribution de l'agence pour attribuer le créateur idéal à chaque contrat e-commerce ouvert.</p>
             </div>
-            <button
-              onClick={runAiStaffing}
-              disabled={matchingLoader}
-              style={{
-                padding: "12px 20px", borderRadius: 10, border: "none",
-                background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff",
-                fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono,
-                boxShadow: `0 4px 16px ${c.accentGlow}`, opacity: matchingLoader ? 0.6 : 1
-              }}
-            >
-              {matchingLoader ? t.matchingActive : t.autoMatch}
-            </button>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setActiveTab('join')}
+                style={{
+                  padding: "12px 20px", borderRadius: 10, border: `1px solid ${c.accent}55`,
+                  background: `linear-gradient(135deg, ${c.accent}15, transparent)`, color: c.text,
+                  fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono,
+                  transition: "background 0.2s"
+                }}
+                onMouseOver={e=>e.currentTarget.style.background=`linear-gradient(135deg, ${c.accent}25, transparent)`}
+                onMouseOut={e=>e.currentTarget.style.background=`linear-gradient(135deg, ${c.accent}15, transparent)`}
+              >
+                ➕ {uiLang === "fr" ? "Nouveau Talent" : uiLang === "en" ? "New Talent" : "Nuovo Talento"}
+              </button>
+              <button
+                onClick={runAiStaffing}
+                disabled={matchingLoader}
+                style={{
+                  padding: "12px 20px", borderRadius: 10, border: "none",
+                  background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff",
+                  fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono,
+                  boxShadow: `0 4px 16px ${c.accentGlow}`, opacity: matchingLoader ? 0.6 : 1
+                }}
+              >
+                {matchingLoader ? t.matchingActive : t.autoMatch}
+              </button>
+            </div>
           </div>
 
           {/* Identity masking notice for restricted plans */}
