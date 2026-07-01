@@ -1,5 +1,33 @@
 import React, { useState, useEffect } from 'react';
 
+const PremiumTrophyIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#trophyGrad)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "bottom", filter: "drop-shadow(0px 2px 4px rgba(245,158,11,0.4))" }}>
+    <defs><linearGradient id="trophyGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#fcd34d"/><stop offset="100%" stopColor="#d97706"/></linearGradient></defs>
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+  </svg>
+);
+
+const PremiumBookIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#bookGrad)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "bottom", filter: "drop-shadow(0px 2px 4px rgba(16,185,129,0.4))" }}>
+    <defs><linearGradient id="bookGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#34d399"/><stop offset="100%" stopColor="#047857"/></linearGradient></defs>
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+  </svg>
+);
+
+const PremiumDiamondIcon = ({ size = 24, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="url(#diamondGrad)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ ...style, verticalAlign: "bottom", filter: "drop-shadow(0px 2px 6px rgba(59,130,246,0.5))" }}>
+    <defs><linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#93c5fd"/><stop offset="50%" stopColor="#3b82f6"/><stop offset="100%" stopColor="#2563eb"/></linearGradient></defs>
+    <path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13"/><path d="M13 3l3 6-4 13"/>
+  </svg>
+);
+
+const PremiumHandshakeIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#handGrad)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "bottom", filter: "drop-shadow(0px 2px 4px rgba(168,85,247,0.4))" }}>
+    <defs><linearGradient id="handGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#c084fc"/><stop offset="100%" stopColor="#7e22ce"/></linearGradient></defs>
+    <path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3-6 6"/><path d="m21 14-6 6"/><path d="M9 19 6 22a2 2 0 1 1-3-3l6-6a2 2 0 0 1 3 3"/><path d="m15 15-3 3"/>
+  </svg>
+);
+
 export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier }) {
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -542,7 +570,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
         boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 20 }}>💎</span>
+          <PremiumDiamondIcon size={28} />
           <div>
             <h4 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: c.text }}>
               {uiLang === 'fr' ? 'Simulateur d\'Abonnement (Test d\'Accès VIP Tiers)' : (uiLang === 'it' ? 'Simulatore di Abbonamento (Test VIP Tiers)' : 'Billing Tier Simulator (VIP Tiers Test)')}
@@ -608,7 +636,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
             >
               ✖
             </button>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💎</div>
+            <div style={{ marginBottom: 16, display: "flex", justifyContent: "center" }}><PremiumDiamondIcon size={46} /></div>
             <h3 style={{ fontSize: 19, fontWeight: 900, color: c.text, margin: "0 0 4px 0", letterSpacing: "-0.5px" }}>
               {t.lockedTitle}
             </h3>
@@ -993,7 +1021,10 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           {/* ── SECTION SUCCESS / NOS SUCCÈS ── */}
           <div>
             <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>{t.titleSuccess}</h3>
+              <h3 style={{ display: "flex", alignItems: "center", fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+                <PremiumTrophyIcon />
+                {t.titleSuccess.replace(/🏆 /g, "")}
+              </h3>
               <p style={{ color: c.textMuted, margin: 0, fontSize: 13 }}>{t.descSuccess}</p>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20 }}>
@@ -1010,7 +1041,10 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           {/* ── SECTION RESSOURCES (INSPIRED BY COPYFY) ── */}
           <div>
             <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>{t.titleEdu}</h3>
+              <h3 style={{ display: "flex", alignItems: "center", fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+                <PremiumBookIcon />
+                {t.titleEdu.replace(/📚 /g, "")}
+              </h3>
               <p style={{ color: c.textMuted, margin: 0, fontSize: 13 }}>{t.descEdu}</p>
             </div>
             
@@ -1147,7 +1181,10 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           {/* ── SECTION PARTENARIATS ── */}
           <div>
             <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>{t.titlePartners}</h3>
+              <h3 style={{ display: "flex", alignItems: "center", fontSize: 18, fontWeight: 800, color: c.text, margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+                <PremiumHandshakeIcon />
+                {t.titlePartners.replace(/🤝 /g, "")}
+              </h3>
               <p style={{ color: c.textMuted, margin: 0, fontSize: 13 }}>{t.descPartners}</p>
             </div>
             <div style={{ background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, display: "flex", flexWrap: "wrap", gap: 30, justifyContent: "center", alignItems: "center" }}>
