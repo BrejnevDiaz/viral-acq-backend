@@ -42,7 +42,8 @@ const Input = ({ value, onChange, placeholder, c, type="text" }) => (
   />
 );
 
-export default function ContractGeneratorTab({ c, mono, uiLang }) {
+export default function ContractGeneratorTab({ c, mono, uiLang, API_URL }) {
+  const EMAIL_BASE = (API_URL || "https://viral-acq-backend.vercel.app");
   const [contracts, setContracts] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // all | validated | pending
   
@@ -89,6 +90,13 @@ export default function ContractGeneratorTab({ c, mono, uiLang }) {
   const [previewContract, setPreviewContract] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("contract_generator_db");
@@ -346,14 +354,14 @@ Signature : Brejnev Diaz (Signé)
 
       // Agency Name / Logo Text
       doc.setFillColor(...primaryColor);
-      doc.rect(15, 12, 10, 10, 'F');
-      doc.setFillColor(...accentColor);
-      doc.circle(28, 17, 5, 'F');
-      
+      doc.rect(15, 11, 12, 12, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("VA", 17.2, 19.5);
+      
       doc.setFontSize(20);
-      doc.text("VIRAL ACQUISITION", 38, 20);
+      doc.text("VIRAL ACQUISITION", 31, 20);
 
       // Document Type
       doc.setTextColor(200, 200, 200);
@@ -477,52 +485,54 @@ Signature : Brejnev Diaz (Signé)
 
   const saveAndSend = async () => {
     if (!previewContract) return;
-    
+
     if (!previewContract.brandEmail || !previewContract.influencerEmail) {
-      alert("⚠️ Vous devez renseigner les adresses e-mail de la Marque et du Créateur dans le formulaire avant de pouvoir envoyer le contrat.");
+      showToast("⚠️ Renseignez les adresses e-mail de la Marque et du Créateur avant d'envoyer.", "warning");
       return;
     }
 
     setSendingEmail(true);
 
-    try {
-      // 1. Send to Brand
-      await fetch("https://viral-acq-backend.vercel.app/api/send-email", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: previewContract.brandEmail,
-          subject: `Validation Requise : Contrat avec @${previewContract.influencerHandle}`,
-          body: `Bonjour ${previewContract.brandName},\n\nVotre contrat de partenariat avec @${previewContract.influencerHandle} a été généré par Viral Acquisition.\n\nVeuillez le consulter et procéder à sa signature électronique.\n\nCordialement,\nL'équipe Viral Acquisition.`,
-          brandName: previewContract.brandName
-        })
-      });
+    // Emails are best-effort — contract is always saved regardless
+    const sendOne = (to, subject, body) =>
+      fetch(`${EMAIL_BASE}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, subject, body, brandName: previewContract.brandName }),
+      }).catch(() => null);
 
-      // 2. Send to Influencer
-      await fetch("https://viral-acq-backend.vercel.app/api/send-email", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: previewContract.influencerEmail,
-          subject: `Nouveau Contrat UGC : ${previewContract.brandName}`,
-          body: `Bonjour @${previewContract.influencerHandle},\n\nUn nouveau contrat a été généré pour votre collaboration avec ${previewContract.brandName}.\n\nVeuillez le consulter et procéder à sa signature.\n\nCordialement,\nViral Acquisition.`,
-          brandName: previewContract.brandName
-        })
-      });
+    const [brandRes, influencerRes] = await Promise.allSettled([
+      sendOne(
+        previewContract.brandEmail,
+        `Validation Requise : Contrat avec @${previewContract.influencerHandle}`,
+        `Bonjour ${previewContract.brandName},\n\nVotre contrat de partenariat avec @${previewContract.influencerHandle} a été généré par Viral Acquisition.\n\nVeuillez le consulter et procéder à sa signature électronique.\n\nCordialement,\nL'équipe Viral Acquisition.`
+      ),
+      sendOne(
+        previewContract.influencerEmail,
+        `Nouveau Contrat UGC : ${previewContract.brandName}`,
+        `Bonjour @${previewContract.influencerHandle},\n\nUn nouveau contrat a été généré pour votre collaboration avec ${previewContract.brandName}.\n\nVeuillez le consulter et procéder à sa signature.\n\nCordialement,\nViral Acquisition.`
+      ),
+    ]);
 
-      const ct = { ...previewContract, status: 'sent' };
-      setContracts(prev => [ct, ...prev]);
-      setPreviewContract(null);
-      setFormData({
-        brandName: '', brandEmail: '', influencerName: '', influencerEmail: '',
-        influencerHandle: '', niche: '', remuneration: '',
-        livrables: '2x Vidéos UGC (15-60s)\n1x Story Instagram (Swipe-up)', durationMonths: 3, exclusivity: true, contractLanguage: 'fr'
-      });
-      alert("✅ Contrat enregistré et envoyé avec succès par e-mail aux deux parties !");
-    } catch (e) {
-      alert("❌ Une erreur est survenue lors de l'envoi des e-mails. Avez-vous configuré GMAIL_USER sur le backend ?");
-      console.error(e);
-    } finally {
-      setSendingEmail(false);
-    }
+    const emailOk = brandRes.status === "fulfilled" && influencerRes.status === "fulfilled";
+
+    const ct = { ...previewContract, status: "sent" };
+    setContracts(prev => [ct, ...prev]);
+    setPreviewContract(null);
+    setFormData({
+      brandName: "", brandEmail: "", influencerName: "", influencerEmail: "",
+      influencerHandle: "", niche: "", remuneration: "",
+      livrables: "2x Vidéos UGC (15-60s)\n1x Story Instagram (Swipe-up)",
+      durationMonths: 3, exclusivity: true, contractLanguage: "fr",
+    });
+
+    setSendingEmail(false);
+    showToast(
+      emailOk
+        ? "✅ Contrat enregistré et notifications envoyées aux deux parties."
+        : "✅ Contrat enregistré. Les e-mails seront envoyés dès que le serveur de mail sera configuré.",
+      "success"
+    );
   };
 
   const simulateSignature = (id, targetStatus) => {
@@ -530,8 +540,12 @@ Signature : Brejnev Diaz (Signé)
   };
   
   const deleteContract = (id) => {
-    if(window.confirm("Supprimer ce contrat ?")) {
+    if (pendingDeleteId === id) {
       setContracts(prev => prev.filter(c => c.id !== id));
+      setPendingDeleteId(null);
+    } else {
+      setPendingDeleteId(id);
+      setTimeout(() => setPendingDeleteId(null), 3500);
     }
   };
 
@@ -662,7 +676,14 @@ Signature : Brejnev Diaz (Signé)
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {ct.status === 'signed_both' && <span style={{ padding: "4px 8px", background: c.successSoft, color: c.success, borderRadius: 6, fontSize: 11, fontWeight: "bold" }}>✅ Validé</span>}
                   {(ct.status === 'sent' || ct.status === 'signed_brand') && <span style={{ padding: "4px 8px", background: c.warningBg, color: c.warning, borderRadius: 6, fontSize: 11, fontWeight: "bold" }}>⏳ En attente</span>}
-                  <button onClick={() => deleteContract(ct.id)} style={{ background: "none", border: "none", color: c.error, cursor: "pointer", fontSize: 16, padding: "4px" }}>✖</button>
+                  {pendingDeleteId === ct.id ? (
+                    <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <button onClick={() => deleteContract(ct.id)} style={{ padding: "3px 8px", borderRadius: 6, border: "none", background: c.error, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Confirmer</button>
+                      <button onClick={() => setPendingDeleteId(null)} style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid ${c.border}`, background: "none", color: c.textMuted, cursor: "pointer", fontSize: 11 }}>Annuler</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => deleteContract(ct.id)} style={{ background: "none", border: "none", color: c.error, cursor: "pointer", fontSize: 16, padding: "4px" }} title="Supprimer">✖</button>
+                  )}
                 </div>
               </div>
 
@@ -731,6 +752,22 @@ Signature : Brejnev Diaz (Signé)
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 24px", borderRadius: 12,
+          background: toast.type === "success" ? "linear-gradient(90deg,#10b981,#059669)"
+            : toast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : "linear-gradient(90deg,#ef4444,#dc2626)",
+          color: "#fff", fontWeight: 700, fontSize: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.28)",
+          animation: "fadeIn 0.25s ease-out", maxWidth: 520, textAlign: "center",
+          pointerEvents: "none",
+        }}>
+          {toast.message}
         </div>
       )}
     </div>
