@@ -16,7 +16,7 @@ const TikTokIcon = () => (
   </svg>
 );
 
-export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
+export default function VettingTab({ c, mono, API_URL, uiLang, t, userId }) {
   const [username, setUsername] = useState("");
   const [platform, setPlatform] = useState("instagram");
   const [loading, setLoading] = useState(false);
@@ -28,11 +28,25 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/vetting/history`)
-      .then(res => res.json())
-      .then(d => setHistory(d.history || []))
-      .catch(e => console.error(e));
-  }, [API_URL, data]);
+    if (!userId) return;
+    const key = `vetting_history_${userId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) { }
+    } else {
+      setHistory([]);
+    }
+  }, [userId]);
+
+  const saveToHistory = (newRec) => {
+    setHistory(prev => {
+      const updated = [newRec, ...prev.filter(h => h.username !== newRec.username)].slice(0, 50);
+      localStorage.setItem(`vetting_history_${userId}`, JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const exportPDF = async () => {
     setIsExporting(true);
@@ -94,6 +108,15 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Une erreur est survenue");
       setData(json);
+      
+      // Save to local history per user
+      saveToHistory({
+        username: cleanUsername,
+        platform,
+        profilePic: json.profilePic,
+        score: json.score,
+        engagement: json.metrics.engagementRate
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -118,14 +141,22 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
         </p>
         
         <form onSubmit={handleSubmit} style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <select 
-            value={platform} 
-            onChange={e => setPlatform(e.target.value)}
-            style={{ padding: "14px 16px", borderRadius: 11, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 14, fontFamily: mono, cursor: "pointer" }}
-          >
-            <option value="instagram">Instagram</option>
-            <option value="tiktok">TikTok</option>
-          </select>
+          <div style={{ display: "flex", background: c.card, borderRadius: 11, border: `1.5px solid ${c.border}`, overflow: "hidden" }}>
+            <button 
+              type="button" 
+              onClick={() => setPlatform('instagram')} 
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", border: "none", background: platform === 'instagram' ? `linear-gradient(135deg, ${c.accent}22, transparent)` : "transparent", color: c.text, cursor: "pointer", borderRight: `1px solid ${c.border}`, transition: "all 0.2s" }}
+            >
+              <InstaIcon /> <span style={{ fontSize: 13, fontWeight: platform === 'instagram' ? "bold" : "normal" }}>Insta</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setPlatform('tiktok')} 
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", border: "none", background: platform === 'tiktok' ? `linear-gradient(135deg, ${c.accent}22, transparent)` : "transparent", color: c.text, cursor: "pointer", transition: "all 0.2s" }}
+            >
+              <TikTokIcon /> <span style={{ fontSize: 13, fontWeight: platform === 'tiktok' ? "bold" : "normal" }}>TikTok</span>
+            </button>
+          </div>
 
           <input 
             type="text" 
@@ -232,15 +263,22 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {history.map((h, idx) => (
               <div key={idx} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: c.text }}>@{h.username}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: h.trust_score >= 80 ? c.success : (h.trust_score >= 50 ? c.warning : c.error) }}>
-                    {h.trust_score}/100
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <img src={h.profilePic ? `${API_URL}/api/image-proxy?url=${encodeURIComponent(h.profilePic)}` : `https://ui-avatars.com/api/?name=${h.username}&background=333&color=fff&size=50&rounded=true`} alt="Profile" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: `1px solid ${c.border}` }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: c.text }}>@{h.username}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: (h.score || h.trust_score) >= 80 ? c.success : ((h.score || h.trust_score) >= 50 ? c.warning : c.error) }}>
+                        {h.score || h.trust_score}/100
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                      <span style={{ color: c.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
+                        {h.platform === 'instagram' ? <InstaIcon /> : <TikTokIcon />} {h.platform === 'instagram' ? 'Instagram' : 'TikTok'}
+                      </span>
+                      <span style={{ color: c.textMuted }}>{h.engagement}% eng</span>
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                  <span style={{ color: c.textMuted, textTransform: "capitalize" }}>{h.platform}</span>
-                  <span style={{ color: c.textMuted }}>{h.engagement}% eng</span>
                 </div>
               </div>
             ))}

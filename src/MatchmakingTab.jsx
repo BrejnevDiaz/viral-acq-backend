@@ -60,8 +60,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const [contractModal, setContractModal] = useState({ isOpen: false, match: null, generating: false, contract: null });
 
   // Brand contact form (merged from Brand Portal)
-  const [brandContact, setBrandContact] = useState({ brandName: '', website: '', niche: '', budget: '', message: '' });
-  const [brandContactStatus, setBrandContactStatus] = useState('idle');
+
 
   useEffect(() => {
     localStorage.setItem("matchmaking_contracts", JSON.stringify(contracts));
@@ -327,17 +326,6 @@ Signature :
     setContracts(prev => prev.map(ct => ct.id === id ? { ...ct, status } : ct));
   };
 
-  // Brand contact form handler
-  const handleBrandContactSubmit = (e) => {
-    e.preventDefault();
-    if (!brandContact.brandName || !brandContact.message) return;
-    setBrandContactStatus('submitting');
-    setTimeout(() => {
-      setBrandContactStatus('success');
-      setBrandContact({ brandName: '', website: '', niche: '', budget: '', message: '' });
-      setTimeout(() => setBrandContactStatus('idle'), 5000);
-    }, 1500);
-  };
 
   // Combine influencers + roster for dropdown rendering
   const getCombinedInfluencers = () => {
@@ -375,13 +363,20 @@ Signature :
           {brands.map(b => (
             <div key={b.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
               <button onClick={() => deleteBrand(b.id)} style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: c.error, cursor: "pointer" }}>✖</button>
-              <div style={{ fontSize: 16, fontWeight: "bold", color: c.text, marginBottom: 4 }}>{b.name}</div>
-              <div style={{ fontSize: 12, color: c.textMuted, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Niche: <span style={{ color: c.accent }}>{b.niche}</span></span>
-                {b.createdAt && <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>📅 {new Date(b.createdAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</span>}
+              
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <img src={`https://ui-avatars.com/api/?name=${b.name}&background=333&color=fff&size=50&rounded=true`} alt="Brand Logo" style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${c.border}` }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: "bold", color: c.text }}>{b.name}</div>
+                  <div style={{ fontSize: 12, color: c.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Niche: <span style={{ color: c.accent }}>{b.niche}</span></span>
+                    {b.createdAt && <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>📅 {new Date(b.createdAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</span>}
+                  </div>
+                </div>
               </div>
+              
               <p style={{ fontSize: 13, color: c.text, margin: "0 0 16px 0", lineHeight: 1.4 }}>{b.description}</p>
-              <Button onClick={() => openMatchModal(b, 'brand')} bg={`linear-gradient(90deg, ${c.accent}, #ff9a5c)`} color="#fff" small>🎯 Trouver un Influenceur pour {b.name}</Button>
+              <Button onClick={() => openMatchModal(b, 'brand')} bg={`linear-gradient(90deg, ${c.accent}, #ff9a5c)`} color="#fff" small style={{ width: "100%" }}>🎯 Trouver un Influenceur pour {b.name}</Button>
             </div>
           ))}
         </div>
@@ -442,13 +437,20 @@ Signature :
           {influencers.map(i => (
             <div key={i.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, marginBottom: 12, position: "relative" }}>
               <button onClick={() => deleteInfluencer(i.id)} style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: c.error, cursor: "pointer" }}>✖</button>
-              <div style={{ fontSize: 16, fontWeight: "bold", color: c.text, marginBottom: 4 }}>@{i.username} <span style={{ fontSize: 12, fontWeight: "normal", color: c.textMuted }}>({i.platform})</span></div>
-              <div style={{ fontSize: 12, color: c.textMuted, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Niche: <span style={{ color: c.success }}>{i.niche}</span></span>
-                {i.createdAt && <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>📅 {new Date(i.createdAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</span>}
+              
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <img src={i.avatar || `https://ui-avatars.com/api/?name=${i.username}&background=10B981&color=fff&size=50&rounded=true`} alt="Profile" style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${c.border}` }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: "bold", color: c.text }}>@{i.username} <span style={{ fontSize: 12, fontWeight: "normal", color: c.textMuted }}>({i.platform})</span></div>
+                  <div style={{ fontSize: 12, color: c.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Niche: <span style={{ color: c.success }}>{i.niche}</span></span>
+                    {i.createdAt && <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>📅 {new Date(i.createdAt).toLocaleString(uiLang === 'fr' ? 'fr-FR' : (uiLang === 'it' ? 'it-IT' : 'en-US'))}</span>}
+                  </div>
+                </div>
               </div>
+
               <div style={{ display: "flex", gap: 12, fontSize: 12, color: c.text, marginBottom: 16 }}>
-                <div>👥 {i.followers}</div>
+                <div>👥 {i.followers.toLocaleString('fr-FR')}</div>
                 <div>🔥 {i.engagement}% eng</div>
               </div>
               <Button onClick={() => openMatchModal(i, 'influencer')} bg={`linear-gradient(90deg, ${c.success}, #69C9D0)`} color="#fff" small>🎯 Proposer à une Marque</Button>
@@ -557,64 +559,6 @@ Signature :
               );
             })}
           </div>
-        )}
-      </div>
-
-      {/* ══════ SECTION CONTACT MARQUE (ex Brand Portal) ══════ */}
-      <div className="glass-panel" style={{ marginTop: 24, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)`, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -80, right: -80, width: 200, height: 200, background: `radial-gradient(circle, ${c.accent}22 0%, transparent 70%)`, pointerEvents: "none" }}></div>
-        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 8, display: "flex", alignItems: "center", gap: 8, fontWeight: 800, position: "relative", zIndex: 1 }}>🏢 Portail Marques — Demander une Collaboration</h3>
-        <p style={{ color: c.textMuted, margin: "0 0 20px 0", fontSize: 13, lineHeight: 1.5, position: "relative", zIndex: 1 }}>
-          Vous êtes une marque et souhaitez confier votre campagne marketing à notre agence ? Remplissez ce formulaire.
-        </p>
-
-        {brandContactStatus === 'success' ? (
-          <div style={{ background: c.successSoft, border: `1.5px solid ${c.success}`, borderRadius: 12, padding: "20px", textAlign: "center", animation: "fadeIn 0.3s" }}>
-            <span style={{ fontSize: 36, display: "block", marginBottom: 8 }}>🎉</span>
-            <div style={{ color: c.success, fontWeight: 700, fontSize: 14 }}>
-              ✅ Demande envoyée ! Notre équipe (Brejnev Diaz) vous contactera sous 24h.
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleBrandContactSubmit} style={{ display: "flex", flexDirection: "column", gap: 12, position: "relative", zIndex: 1 }}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 200px" }}>
-                <Input placeholder="Nom de la Marque *" value={brandContact.brandName} onChange={e => setBrandContact({...brandContact, brandName: e.target.value})} c={c} />
-              </div>
-              <div style={{ flex: "1 1 200px" }}>
-                <Input placeholder="Site Web (ex: bleame.com)" value={brandContact.website} onChange={e => setBrandContact({...brandContact, website: e.target.value})} c={c} />
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 200px" }}>
-                <Input placeholder="Niche (Beauté, Tech, Food...)" value={brandContact.niche} onChange={e => setBrandContact({...brandContact, niche: e.target.value})} c={c} />
-              </div>
-              <div style={{ flex: "1 1 200px" }}>
-                <select value={brandContact.budget} onChange={e => setBrandContact({...brandContact, budget: e.target.value})} style={{ ...selectStyle(c), marginBottom: 10, padding: "10px 14px" }}>
-                  <option value="" style={optionStyle}>Budget estimé...</option>
-                  <option value="<1000" style={optionStyle}>&lt; 1,000 €</option>
-                  <option value="1000-5000" style={optionStyle}>1,000 € - 5,000 €</option>
-                  <option value="5000-10000" style={optionStyle}>5,000 € - 10,000 €</option>
-                  <option value=">10000" style={optionStyle}>&gt; 10,000 €</option>
-                </select>
-              </div>
-            </div>
-            <textarea
-              placeholder="Décrivez vos objectifs (UGC, Notoriété, Conversion) *"
-              rows={4}
-              value={brandContact.message}
-              onChange={e => setBrandContact({...brandContact, message: e.target.value})}
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, boxSizing: "border-box", resize: "vertical" }}
-            />
-            <Button
-              onClick={handleBrandContactSubmit}
-              disabled={brandContactStatus === 'submitting' || !brandContact.brandName || !brandContact.message}
-              bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`}
-              color="#fff"
-            >
-              {brandContactStatus === 'submitting' ? "⏳ Envoi..." : "🚀 Envoyer la demande à l'Agence"}
-            </Button>
-          </form>
         )}
       </div>
 
