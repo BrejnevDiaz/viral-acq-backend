@@ -377,7 +377,9 @@ Signature :
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out" }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, color: c.text, margin: "0 0 8px 0" }}>🤝 Matchmaking & Collaborations</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: c.text, margin: "0 0 8px 0", display: "flex", alignItems: "center", gap: 12 }}>{<div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: `0 4px 12px ${c.accentGlow}` }}>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+</div>} Matchmaking & Collaborations</h2>
         <p style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>Gérez vos marques, influenceurs, et générez des pitchs et contrats via l'IA.</p>
       </div>
 
@@ -555,7 +557,7 @@ Signature :
 
           {influencers.length === 0 && (
             <div style={{ padding: "32px 20px", textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 14, background: `linear-gradient(to bottom, transparent, ${c.successSoft})`, color: c.textMuted, fontSize: 14, lineHeight: 1.5, marginBottom: 12 }}>
-              <div style={{ fontSize: 28, marginBottom: 12 }}>⭐</div>
+              <div style={{ fontSize: 28, marginBottom: 12 }}></div>
               <strong style={{ color: c.text }}>Aucun influenceur ajouté.</strong>
               <div style={{ marginTop: 8, fontSize: 13 }}>Ajoutez un influenceur depuis votre Roster. L'IA pourra ensuite scanner les marques pour lui trouver un contrat.</div>
             </div>
@@ -632,7 +634,7 @@ Signature :
                             relationship: m.relationship, pitchLang: m.pitchLang, email: m.email, loading: false
                           });
                         }} bg={c.accent} color="#fff" small>🔍 Lire</Button>
-                        <Button onClick={() => generateContract(m)} bg={`linear-gradient(90deg, #f59e0b, #ef4444)`} color="#fff" small>📄 Contrat</Button>
+                        <Button onClick={() => generateContract(m)} bg={`linear-gradient(90deg, #f59e0b, #ef4444)`} color="#fff" small> Contrat</Button>
                         <Button onClick={() => deleteMatch(m.id)} bg={c.error} color="#fff" small>✖</Button>
                       </div>
                     </td>
@@ -650,7 +652,7 @@ Signature :
         
         {contracts.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
-            Aucun contrat généré. Validez un accord ci-dessus, puis cliquez sur "📄 Contrat" pour en créer un.
+            Aucun contrat généré. Validez un accord ci-dessus, puis cliquez sur " Contrat" pour en créer un.
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
@@ -796,12 +798,12 @@ Signature :
                             <>
                               {matchInfs.length > 0 && (
                                 <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
-                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                               {otherInfs.length > 0 && (
                                 <optgroup label="Autres Talents">
-                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? '⭐ Roster' : ''}</option>)}
+                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                             </>
@@ -915,7 +917,7 @@ Signature :
           <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
             <button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
             
-            <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text }}>📄 Contrat de Collaboration</h2>
+            <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text }}> Contrat de Collaboration</h2>
             
             {contractModal.generating ? (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
