@@ -516,6 +516,25 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
         <p style={{ color: c.textMuted, margin: 0, fontSize: 14, lineHeight: 1.5, maxWidth: 700 }}>{t.desc}</p>
       </div>
 
+      {/* AI Store Builder Banner */}
+      <div style={{ background: `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)`, border: `1px solid ${c.accent}55`, padding: "16px 24px", borderRadius: 16, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #8b5cf6, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(236,72,153,0.3)" }}>🪄</div>
+          <div>
+            <h3 style={{ margin: "0 0 4px 0", fontSize: 16, fontWeight: 800, color: c.text }}>
+              {uiLang === "fr" ? "Débutant ? Créez votre boutique e-commerce avec l'IA" : uiLang === "en" ? "Beginner? Create your e-commerce store with AI" : "Principiante? Crea il tuo negozio e-commerce con l'IA"}
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, color: c.textMuted }}>
+              {uiLang === "fr" ? "Générez une boutique clé en main optimisée pour la conversion en 1 clic." : uiLang === "en" ? "Generate a turnkey store optimized for conversion in 1 click." : "Genera un negozio chiavi in mano ottimizzato per la conversione in 1 clic."}
+            </p>
+          </div>
+        </div>
+        <button onClick={() => alert(uiLang === "fr" ? "L'IA de génération de boutique arrive très bientôt dans la Pro Suite !" : "AI Store Generation is coming very soon to the Pro Suite!")} style={{ background: `linear-gradient(90deg, ${c.accent}, ${c.accent2})`, border: "none", color: "#fff", padding: "10px 20px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 4px 12px rgba(236,72,153,0.3)", display: "flex", alignItems: "center", gap: 8, transition: "transform 0.2s" }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="none"}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          {uiLang === "fr" ? "Générer ma Boutique (IA)" : uiLang === "en" ? "Generate My Store (AI)" : "Genera il mio Negozio (IA)"}
+        </button>
+      </div>
+
       {/* Tip Banner */}
       <div style={{ background: c.accentSoft, border: `1.5px dashed ${c.accent}`, padding: "12px 16px", borderRadius: 12, marginBottom: 20, color: c.text, fontSize: 13 }}>
         <span>{t.tipText}</span>
