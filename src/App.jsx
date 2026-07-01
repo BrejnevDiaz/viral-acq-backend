@@ -806,7 +806,7 @@ export default function ProspectionAgent() {
           
           {/* Background Ambient Glow */}
           <div style={{ position: 'fixed', top: '-20%', left: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }}></div>
-          <div style={{ position: 'fixed', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(249,115,22,0.1) 0%, transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }}></div>
+          <div style={{ position: 'fixed', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw', background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 60%)', filter: 'blur(100px)', pointerEvents: 'none', zIndex: 0 }}></div>
 
           {/* NavBar */}
           <nav style={{
@@ -818,7 +818,7 @@ export default function ProspectionAgent() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                background: 'linear-gradient(135deg, #8B5CF6, #F97316)',
+                background: 'linear-gradient(135deg, #8B5CF6, #8B5CF6)',
                 width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: '0 0 20px rgba(139,92,246,0.4)'
               }}>VA</div>
@@ -869,7 +869,7 @@ export default function ProspectionAgent() {
               <button 
                 onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
                 style={{
-                  background: 'linear-gradient(90deg, #8B5CF6, #EC4899, #F97316)',
+                  background: 'linear-gradient(90deg, #8B5CF6, #EC4899, #8B5CF6)',
                   color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12,
                   fontSize: 16, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 10px 30px rgba(236,72,153,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
@@ -914,7 +914,7 @@ export default function ProspectionAgent() {
                  </div>
                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
                     <div style={{ display: 'flex', gap: 16 }}>
-                       <div style={{ flex: 1, height: 120, background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(249,115,22,0.05))', borderRadius: 12, border: '1px solid rgba(139,92,246,0.2)' }}></div>
+                       <div style={{ flex: 1, height: 120, background: 'linear-gradient(135deg, rgba(139,92,246,0.1), rgba(139,92,246,0.05))', borderRadius: 12, border: '1px solid rgba(139,92,246,0.2)' }}></div>
                        <div style={{ flex: 1, height: 120, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}></div>
                        <div style={{ flex: 1, height: 120, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}></div>
                     </div>
@@ -934,15 +934,15 @@ export default function ProspectionAgent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Repère les annonces <span style={{ color: '#F97316' }}>performantes</span>
+                  Repère les annonces <span style={{ color: '#8B5CF6' }}>performantes</span>
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
                   Identifie les tendances avant les autres. Filtre par réseau, engagement, activité et popularité pour trouver les créatives publicitaires qui génèrent des millions.
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
-                  background: 'linear-gradient(90deg, #F97316, #EA580C)', color: '#fff', border: 'none',
+                  background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                  boxShadow: '0 8px 25px rgba(249,115,22,0.3)', transition: 'transform 0.2s'
+                  boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
                   Essayer gratuitement
                 </button>
@@ -954,7 +954,21 @@ export default function ProspectionAgent() {
                        <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 100, fontSize: 10, color: '#fff' }}>🔥 Facebook</div>
                        <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 100, fontSize: 10, color: '#fff' }}>♪ TikTok</div>
                     </div>
-                    <div style={{ width: '100%', height: 200, background: 'rgba(255,255,255,0.02)', borderRadius: 12, marginBottom: 16 }}></div>
+                    
+<div style={{ width: '100%', height: 200, background: '#000', borderRadius: 12, marginBottom: 16, overflow: 'hidden', position: 'relative', border: '1px solid rgba(139,92,246,0.3)' }}>
+  <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}>
+    <source src="https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4" type="video/mp4" />
+  </video>
+  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 50%)', pointerEvents: 'none' }}></div>
+  <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+     <div style={{ display: 'flex', gap: 6 }}>
+       <div style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 6, fontSize: 10, color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}>👁 1.2M</div>
+       <div style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 6, fontSize: 10, color: '#10B981', border: '1px solid rgba(16,185,129,0.2)' }}>+450% ROI</div>
+     </div>
+     <div style={{ background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', padding: '6px 12px', borderRadius: 6, fontSize: 11, fontWeight: 'bold', color: '#fff', boxShadow: '0 0 10px rgba(139,92,246,0.5)' }}>Acheter</div>
+  </div>
+</div>
+
                     <div style={{ width: '70%', height: 12, background: 'rgba(255,255,255,0.1)', borderRadius: 6, marginBottom: 10 }}></div>
                     <div style={{ width: '40%', height: 12, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}></div>
                  </div>
@@ -980,7 +994,13 @@ export default function ProspectionAgent() {
               </div>
               <div style={{ flex: 1, height: 450, background: '#111', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
                  <div style={{ position: 'absolute', top: 40, right: -40, width: 300, height: 350, background: '#18181B', borderRadius: 16, border: '1px solid rgba(139,92,246,0.3)', padding: 20, boxShadow: '-10px 10px 40px rgba(0,0,0,0.8)' }}>
-                    <div style={{ width: '100%', height: 100, background: 'rgba(139,92,246,0.1)', borderRadius: 8, marginBottom: 16 }}></div>
+                    
+<div style={{ width: '100%', height: 100, background: 'rgba(139,92,246,0.05)', borderRadius: 8, marginBottom: 16, display: 'flex', alignItems: 'flex-end', padding: '10px 10px 0 10px', gap: 6, border: '1px solid rgba(139,92,246,0.1)' }}>
+   {[40, 60, 45, 80, 50, 90, 70, 100].map((h, i) => (
+      <div key={i} className="chart-bar" style={{ flex: 1, background: 'linear-gradient(180deg, #8B5CF6 0%, transparent 100%)', height: `${h}%`, borderRadius: '4px 4px 0 0', animationDelay: `${i * 0.1}s` }}></div>
+   ))}
+</div>
+
                     <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 10 }}></div>
                     <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6, marginBottom: 10 }}></div>
                     <div style={{ width: '100%', height: 40, background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}></div>
@@ -1017,7 +1037,7 @@ export default function ProspectionAgent() {
                   
                   <div style={{ textAlign: 'center', marginBottom: 40, marginTop: 20 }}>
                     <div style={{
-                      background: 'linear-gradient(135deg, #8B5CF6, #F97316)', width: 48, height: 48, borderRadius: 12,
+                      background: 'linear-gradient(135deg, #8B5CF6, #8B5CF6)', width: 48, height: 48, borderRadius: 12,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 20,
                       margin: '0 auto 20px auto', boxShadow: '0 0 20px rgba(139,92,246,0.5)'
                     }}>VA</div>
@@ -1073,7 +1093,7 @@ export default function ProspectionAgent() {
 
                 {/* Pricing / Value Prop Side */}
                 <div style={{ flex: 1.2, background: 'rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.05)', padding: 60, display: 'flex', flexDirection: 'column' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#F97316', fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 16 }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#8B5CF6', fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 16 }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                       {authMode === "signup" ? "ÉTAPE 2 : CHOISISSEZ VOTRE FORFAIT" : "DÉBLOQUEZ TOUTES LES FONCTIONNALITÉS"}
                    </div>

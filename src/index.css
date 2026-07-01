@@ -71,3 +71,6 @@ h1, h2, h3, h4, h5, h6, .outfit {
 .hover-glow-intense:hover { box-shadow: 0 15px 40px rgba(236,72,153,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important; }
 .hover-bg-white-10:hover { background: rgba(255,255,255,0.1) !important; }
 .hover-white:hover { color: #fff !important; }
+
+.chart-bar { animation: pulseHeight 1.5s infinite alternate ease-in-out; }
+@keyframes pulseHeight { 0% { opacity: 0.6; transform: scaleY(0.7); transform-origin: bottom; } 100% { opacity: 1; transform: scaleY(1); transform-origin: bottom; } }
