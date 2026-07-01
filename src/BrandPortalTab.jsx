@@ -1,5 +1,21 @@
 import React, { useState } from 'react';
 
+const PremiumBuildingIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#premiumGradient)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "text-bottom", filter: "drop-shadow(0px 2px 6px rgba(236, 72, 153, 0.4))" }}>
+    <defs>
+      <linearGradient id="premiumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#c084fc" />
+        <stop offset="50%" stopColor="#ec4899" />
+        <stop offset="100%" stopColor="#f59e0b" />
+      </linearGradient>
+    </defs>
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/>
+    <path d="M6 12H4a2 2 0 0 0-2 2v8"/>
+    <path d="M18 12h2a2 2 0 0 1 2 2v8"/>
+    <path d="M10 6h.01M14 6h.01M10 10h.01M14 10h.01M10 14h.01M14 14h.01M10 18h.01M14 18h.01"/>
+  </svg>
+);
+
 export default function BrandPortalTab({ c, uiLang, API_URL }) {
   const [formData, setFormData] = useState({
     brandName: '',
@@ -91,8 +107,9 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", maxWidth: 900, margin: "0 auto" }}>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <h2 style={{ fontSize: 26, fontWeight: 900, color: c.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>
-          🏢 {t.title}
+        <h2 style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 900, color: c.text, margin: "0 0 12px 0", letterSpacing: "-0.5px" }}>
+          <PremiumBuildingIcon />
+          {t.title}
         </h2>
         <p style={{ color: c.textMuted, margin: "0 auto", fontSize: 15, lineHeight: 1.6, maxWidth: 650 }}>
           {t.desc}
