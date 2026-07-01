@@ -283,10 +283,9 @@ const SourcingCRMIcon = ({ color, size = 18 }) => (
 );
 
 const VettingIAIcon = ({ color, size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-    <circle cx="12" cy="11" r="3"/>
-    <line x1="12" y1="14" x2="12" y2="17"/>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+    <path d="M12 7l-1.5 3.5L7 12l3.5 1.5L12 17l1.5-3.5L17 12l-3.5-1.5z"/>
   </svg>
 );
 
