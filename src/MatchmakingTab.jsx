@@ -457,12 +457,15 @@ Signature :
                           />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700, color: c.text, fontSize: 13.5 }}>@{t.username.replace('@','')}</div>
-                            <div style={{ fontSize: 11.5, color: c.textMuted, marginTop: 2, display: "flex", alignItems: "center" }}>
-                              <span style={{ color: t.platform === "instagram" ? "#E1306C" : "#fff", display: "inline-flex", alignItems: "center" }}>
-                                {t.platform === "instagram" ? <InstaIcon /> : <TikTokIcon />}
-                                <span style={{ marginLeft: 4, marginRight: 6 }}>{t.platform === "instagram" ? "Instagram" : "TikTok"}</span>
+                            <div style={{ fontSize: 11.5, color: c.textMuted, marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#E1306C" }}>
+                                <InstaIcon />
+                                {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers}
                               </span>
-                              • {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers} abonnés
+                              <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff" }}>
+                                <TikTokIcon />
+                                {t.tiktokFollowers ? (t.tiktokFollowers >= 1000 ? `${(t.tiktokFollowers/1000).toFixed(1)}k` : t.tiktokFollowers) : `${(t.followers * 1.5 / 1000).toFixed(1)}k`}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -500,9 +503,6 @@ Signature :
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: "bold", color: c.text, display: "flex", alignItems: "center", gap: 6 }}>
                     @{i.username} 
-                    <span style={{ display: "inline-flex", alignItems: "center", color: i.platform === "instagram" ? "#E1306C" : "#fff" }} title={i.platform}>
-                      {i.platform === "instagram" ? <InstaIcon /> : <TikTokIcon />}
-                    </span>
                   </div>
                   <div style={{ fontSize: 12, color: c.textMuted, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span>Niche: <span style={{ color: c.success }}>{i.niche}</span></span>
@@ -511,9 +511,10 @@ Signature :
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 12, fontSize: 12, color: c.text, marginBottom: 16 }}>
-                <div>👥 {i.followers.toLocaleString('fr-FR')}</div>
-                <div>🔥 {i.engagement}% eng</div>
+              <div style={{ display: "flex", gap: 12, fontSize: 12, color: c.text, marginBottom: 16, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#E1306C" }}><InstaIcon /> {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff" }}><TikTokIcon /> {i.tiktokFollowers ? (i.tiktokFollowers >= 1000 ? `${(i.tiktokFollowers/1000).toFixed(1)}k` : i.tiktokFollowers) : `${(i.followers * 1.5 / 1000).toFixed(1)}k`}</div>
+                <div style={{ marginLeft: 8 }}>🔥 {i.engagement}% eng</div>
               </div>
               <Button onClick={() => openMatchModal(i, 'influencer')} bg={`linear-gradient(90deg, ${c.success}, #69C9D0)`} color="#fff" small>🎯 Proposer à une Marque</Button>
             </div>
