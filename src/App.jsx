@@ -378,6 +378,7 @@ export default function ProspectionAgent() {
 
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [researchMenuOpen, setResearchMenuOpen] = useState(true);
   const [redirectShop, setRedirectShop]   = useState(null);
   const [authMode, setAuthMode]           = useState("login");
   const [emailInput, setEmailInput]       = useState("");
@@ -1191,38 +1192,55 @@ export default function ProspectionAgent() {
 
         {/* Sidebar Nav Links */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6, flexGrow: 1 }}>
-          <button onClick={() => handleTabChange("adspy")} style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
-            background: currentTab === "adspy" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-            borderLeft: `3px solid ${currentTab === "adspy" ? c.accent : "transparent"}`,
-            color: currentTab === "adspy" ? c.text : c.textMuted, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-            textAlign: "left", transition: "all 0.2s"
+          {/* Submenu Trigger */}
+          <button onClick={() => setResearchMenuOpen(!researchMenuOpen)} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, border: "none",
+            background: "transparent", color: c.text, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+            textAlign: "left", transition: "all 0.2s", marginBottom: 2
           }}>
-            <AdSpyIcon color={currentTab === "adspy" ? c.accent : c.textDim} />
-            Creative AdSpy
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 16 }}>🔍</span> Research & Discovery
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: researchMenuOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}><path d="m6 9 6 6 6-6"/></svg>
           </button>
 
-          <button onClick={() => handleTabChange("productfinder")} style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
-            background: currentTab === "productfinder" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-            borderLeft: `3px solid ${currentTab === "productfinder" ? c.accent : "transparent"}`,
-            color: currentTab === "productfinder" ? c.text : c.textMuted, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-            textAlign: "left", transition: "all 0.2s"
+          {/* Submenu Items */}
+          <div style={{ 
+            display: "flex", flexDirection: "column", gap: 6,
+            overflow: "hidden", transition: "max-height 0.3s ease-in-out", 
+            maxHeight: researchMenuOpen ? "200px" : "0px",
+            marginLeft: 12, paddingLeft: 8, borderLeft: `2px solid ${c.border}`
           }}>
-            <ProductFinderIcon color={currentTab === "productfinder" ? c.accent : c.textDim} />
-            Product Finder
-          </button>
+            <button onClick={() => handleTabChange("adspy")} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none",
+              background: currentTab === "adspy" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
+              color: currentTab === "adspy" ? c.text : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+              textAlign: "left", transition: "all 0.2s"
+            }}>
+              <AdSpyIcon color={currentTab === "adspy" ? c.accent : c.textDim} />
+              Creative AdSpy
+            </button>
 
-          <button onClick={() => handleTabChange("shopanalyzer")} style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
-            background: currentTab === "shopanalyzer" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-            borderLeft: `3px solid ${currentTab === "shopanalyzer" ? c.accent : "transparent"}`,
-            color: currentTab === "shopanalyzer" ? c.text : c.textMuted, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-            textAlign: "left", transition: "all 0.2s"
-          }}>
-            <ShopAnalyzerIcon color={currentTab === "shopanalyzer" ? c.accent : c.textDim} />
-            Shop Analyzer
-          </button>
+            <button onClick={() => handleTabChange("productfinder")} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none",
+              background: currentTab === "productfinder" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
+              color: currentTab === "productfinder" ? c.text : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+              textAlign: "left", transition: "all 0.2s"
+            }}>
+              <ProductFinderIcon color={currentTab === "productfinder" ? c.accent : c.textDim} />
+              Product Finder
+            </button>
+
+            <button onClick={() => handleTabChange("shopanalyzer")} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none",
+              background: currentTab === "shopanalyzer" ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
+              color: currentTab === "shopanalyzer" ? c.text : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+              textAlign: "left", transition: "all 0.2s"
+            }}>
+              <ShopAnalyzerIcon color={currentTab === "shopanalyzer" ? c.accent : c.textDim} />
+              Shop Analyzer
+            </button>
+          </div>
           
           <button onClick={() => handleTabChange("acquisition")} style={{
             display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
@@ -1416,32 +1434,57 @@ export default function ProspectionAgent() {
                   borderRadius: 12, boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
                   width: 220, zIndex: 100, overflow: "hidden", display: "flex", flexDirection: "column", padding: 6
                 }}>
-                  {[
-                    { id: "adspy", label: "Creative AdSpy", icon: <AdSpyIcon color={currentTab === "adspy" ? c.accent : c.textDim} /> },
-                    { id: "productfinder", label: "Product Finder", icon: <ProductFinderIcon color={currentTab === "productfinder" ? c.accent : c.textDim} /> },
-                    { id: "shopanalyzer", label: "Shop Analyzer", icon: <ShopAnalyzerIcon color={currentTab === "shopanalyzer" ? c.accent : c.textDim} /> },
-                    { id: "acquisition", label: "Sourcing CRM", icon: <SourcingCRMIcon color={currentTab === "acquisition" ? c.accent : c.textDim} /> },
-                    { id: "vetting", label: "Vetting IA", icon: <VettingIAIcon color={currentTab === "vetting" ? c.accent : c.textDim} /> },
-                    { id: "matchmaking", label: "Matchmaking", icon: <MatchmakingIcon color={currentTab === "matchmaking" ? c.accent : c.textDim} /> },
-                    { id: "talentagency", label: "Talents & Gigs", icon: <BriefcaseIcon color={currentTab === "talentagency" ? c.accent : c.textDim} /> },
-                    { id: "resources", label: "Ressources & FAQ", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTab === "resources" ? c.accent : c.textDim} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> }
-                  ].map(item => (
-                    <button 
-                      key={item.id}
-                      onClick={() => { handleTabChange(item.id); setMobileMenuOpen(false); }}
-                      style={{
-                        width: "100%", padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 8,
-                        background: currentTab === item.id ? `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)` : "transparent",
-                        color: currentTab === item.id ? c.text : c.textDim,
-                        textAlign: "left", fontSize: 13, fontFamily: mono, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20 }}>
-                        {item.icon}
-                      </div>
-                      {item.label}
-                    </button>
-                  ))}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ fontSize: 11, color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, padding: "4px 14px", marginTop: 4 }}>Research & Discovery</div>
+                    {[
+                      { id: "adspy", label: "Creative AdSpy", icon: <AdSpyIcon color={currentTab === "adspy" ? c.accent : c.textDim} /> },
+                      { id: "productfinder", label: "Product Finder", icon: <ProductFinderIcon color={currentTab === "productfinder" ? c.accent : c.textDim} /> },
+                      { id: "shopanalyzer", label: "Shop Analyzer", icon: <ShopAnalyzerIcon color={currentTab === "shopanalyzer" ? c.accent : c.textDim} /> },
+                    ].map(item => (
+                      <button 
+                        key={item.id}
+                        onClick={() => { handleTabChange(item.id); setMobileMenuOpen(false); }}
+                        style={{
+                          width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 8,
+                          background: currentTab === item.id ? `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)` : "transparent",
+                          color: currentTab === item.id ? c.text : c.textDim,
+                          textAlign: "left", fontSize: 13, fontFamily: mono, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20 }}>
+                          {item.icon}
+                        </div>
+                        {item.label}
+                      </button>
+                    ))}
+                    
+                    <div style={{ height: 1, background: c.border, margin: "4px 14px" }} />
+                    <div style={{ fontSize: 11, color: c.textMuted, textTransform: "uppercase", letterSpacing: 1, padding: "4px 14px" }}>Tools</div>
+
+                    {[
+                      { id: "acquisition", label: "Sourcing CRM", icon: <SourcingCRMIcon color={currentTab === "acquisition" ? c.accent : c.textDim} /> },
+                      { id: "vetting", label: "Vetting IA", icon: <VettingIAIcon color={currentTab === "vetting" ? c.accent : c.textDim} /> },
+                      { id: "matchmaking", label: "Matchmaking", icon: <MatchmakingIcon color={currentTab === "matchmaking" ? c.accent : c.textDim} /> },
+                      { id: "talentagency", label: "Talents & Gigs", icon: <BriefcaseIcon color={currentTab === "talentagency" ? c.accent : c.textDim} /> },
+                      { id: "resources", label: "Ressources & FAQ", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={currentTab === "resources" ? c.accent : c.textDim} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> }
+                    ].map(item => (
+                      <button 
+                        key={item.id}
+                        onClick={() => { handleTabChange(item.id); setMobileMenuOpen(false); }}
+                        style={{
+                          width: "100%", padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 8,
+                          background: currentTab === item.id ? `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)` : "transparent",
+                          color: currentTab === item.id ? c.text : c.textDim,
+                          textAlign: "left", fontSize: 13, fontFamily: mono, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 20 }}>
+                          {item.icon}
+                        </div>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
