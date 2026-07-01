@@ -3,6 +3,7 @@ import VettingTab from "./VettingTab";
 import MatchmakingTab from "./MatchmakingTab";
 import AdSpyTab from "./AdSpyTab";
 import ProductFinderTab from "./ProductFinderTab";
+import ShopAnalyzerTab from "./ShopAnalyzerTab";
 import TalentAgencyTab from "./TalentAgencyTab";
 import BrandPortalTab from "./BrandPortalTab";
 import ContractGeneratorTab from "./ContractGeneratorTab";
@@ -386,6 +387,14 @@ export default function ProspectionAgent() {
   const [authError, setAuthError]         = useState("");
   const logRef   = useRef(null);
   const abortRef = useRef(false);
+  const [appToast, setAppToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showAppToast = (message, type = "success") => {
+    clearTimeout(toastTimerRef.current);
+    setAppToast({ message, type });
+    toastTimerRef.current = setTimeout(() => setAppToast(null), 4000);
+  };
 
   // ─── Supabase Auth ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -438,7 +447,7 @@ export default function ProspectionAgent() {
 
     setResults(prev => {
       if (prev.some(x => x.name === lead.name && x.platformId === lead.platformId)) {
-        alert(uiLang === "fr" ? "Ce lead a déjà été importé !" : "Questo lead è già stato importato!");
+        showAppToast(uiLang === "fr" ? "Ce lead a déjà été importé !" : "Questo lead è già stato importato!", "warning");
         return prev;
       }
       const updated = [lead, ...prev];
@@ -591,11 +600,16 @@ export default function ProspectionAgent() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Error");
+      if (data.simulated) {
+        updateBrand(idx, { emailStatus: "ready" });
+        showAppToast("📭 Email simulé (Gmail non configuré)", "warning");
+        return;
+      }
       updateBrand(idx, { emailStatus: "sent" });
       setEmailsSent(n => n + 1);
     } catch (err) {
       updateBrand(idx, { emailStatus: "error" });
-      alert(`❌ ${err.message}`);
+      showAppToast(`❌ ${err.message}`, "error");
     }
   };
 
@@ -622,14 +636,14 @@ export default function ProspectionAgent() {
 
   const sendAllDrafts = async () => {
     const drafts = results.map((r, i) => ({ r, i })).filter(item => item.r.generatedEmail && item.r.emailStatus === 'draft');
-    if (drafts.length === 0) return alert(uiLang === "fr" ? "Aucun email en brouillon à envoyer." : "Nessuna email in bozza da inviare.");
-    if (!window.confirm(uiLang === "fr" ? `Envoyer ${drafts.length} e-mails ?` : `Inviare ${drafts.length} email ?`)) return;
-    
-    for (const { i } of drafts) {
-      await sendEmail(i);
+    if (drafts.length === 0) { showAppToast(uiLang === "fr" ? "Aucun email en brouillon à envoyer." : "Nessuna email in bozza da inviare.", "warning"); return; }
+    showAppToast(uiLang === "fr" ? `Envoi de ${drafts.length} e-mails en cours…` : `Invio di ${drafts.length} email in corso…`, "info");
+
+    for (const { r, i } of drafts) {
+      await sendEmail(r, i);
       await new Promise(res => setTimeout(res, 2000));
     }
-    alert(uiLang === "fr" ? "Envoi de masse terminé !" : "Invio massivo completato!");
+    showAppToast(uiLang === "fr" ? "Envoi de masse terminé !" : "Invio massivo completato!");
   };
 
   const exportCSV = () => {
@@ -642,7 +656,7 @@ export default function ProspectionAgent() {
   };
 
   const clearLeads = async () => {
-    if (!window.confirm(uiLang === "fr" ? "Vider tous les résultats ?" : "Clear all results?")) return;
+    if (!window.confirm(uiLang === "fr" ? "Vider tous les résultats ?" : "Clear all results?")) return; // gardé pour destructive action
     try {
       await fetch(`${API_URL}/api/leads`, { method: 'DELETE' });
       setResults([]);
@@ -1939,7 +1953,7 @@ export default function ProspectionAgent() {
         )}
           </>
         ) : currentTab === "vetting" ? (
-          <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={(k) => t[k] || k} />
+          <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={(k) => t[k] || k} userId={userId} />
         ) : currentTab === "shopanalyzer" ? (
           <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
         ) : currentTab === "talentagency" ? (
@@ -2087,7 +2101,25 @@ export default function ProspectionAgent() {
           .mobile-nav-bar { display: none !important; }
         }
       `}</style>
+
+      {/* Global toast notification */}
+      {appToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 26px", borderRadius: 14,
+          background: appToast.type === "success" ? "linear-gradient(90deg,#10b981,#059669)"
+            : appToast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : appToast.type === "info" ? "linear-gradient(90deg,#6366f1,#8B5CF6)"
+            : "linear-gradient(90deg,#ef4444,#dc2626)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.32)",
+          animation: "fadeIn 0.25s ease-out",
+          maxWidth: 540, textAlign: "center", pointerEvents: "none",
+        }}>
+          {appToast.message}
+        </div>
+      )}
     </div>
   );
 }
-// build: 2026-06-30
+// build: 2026-07-01

@@ -183,6 +183,12 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     ]
   });
   const [newCommentText, setNewCommentText] = useState("");
+  const [agencyToast, setAgencyToast] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setAgencyToast({ message, type });
+    setTimeout(() => setAgencyToast(null), 4000);
+  };
 
   const addComment = (contractId) => {
     if (!newCommentText.trim()) return;
@@ -326,11 +332,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
           engagement: data.engagementRate.replace('%', '') 
         });
       } else {
-        alert("Erreur IA: " + data.error);
+        showToast("Erreur IA: " + data.error, "error");
       }
     } catch (e) {
       console.error(e);
-      alert("Erreur lors de l'analyse du profil.");
+      showToast("Erreur lors de l'analyse du profil.", "error");
     }
     setIsVerifying(false);
   };
@@ -368,7 +374,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     if (currentUserRole === "admin") {
       setActiveTab("roster");
     } else {
-      alert(uiLang === "fr" ? "✅ Votre candidature a bien été envoyée et est sur liste d'attente. Nous l'analyserons très bientôt !" : "✅ Your application is on the waiting list. We will review it shortly!");
+      showToast(uiLang === "fr" ? "✅ Votre candidature est sur liste d'attente. Nous l'analyserons très bientôt !" : "✅ Application submitted — on the waiting list!");
     }
   };
 
@@ -402,9 +408,9 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          alert(uiLang === "fr" 
-            ? `✉️ Offre publiée ! Notifications envoyées par mail à nos ${matchingTalents.length} influenceurs de la niche ${newGig.niche.toUpperCase()} !` 
-            : `✉️ Gig published! Email notifications sent to our ${matchingTalents.length} influencers in the ${newGig.niche.toUpperCase()} niche!`);
+          showToast(uiLang === "fr"
+            ? `✉️ Offre publiée ! Notifications envoyées à ${matchingTalents.length} créateurs ${newGig.niche.toUpperCase()}.`
+            : `✉️ Gig published! ${matchingTalents.length} ${newGig.niche.toUpperCase()} creators notified.`);
         }
       })
       .catch(err => console.error("Erreur envoi notification email:", err));
@@ -419,7 +425,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     setTimeout(() => {
       const openGigs = gigs.filter(g => g.status === "open");
       if (openGigs.length === 0) {
-        alert(uiLang === "fr" ? "Toutes les offres de missions ont déjà été assignées !" : "All gigs have already been staffed!");
+        showToast(uiLang === "fr" ? "Toutes les offres de missions ont déjà été assignées !" : "All gigs have already been staffed!", "warning");
         setMatchingLoader(false);
         return;
       }
@@ -450,7 +456,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
         setContracts([...newContracts, ...contracts]);
         setAiMatchesResult(newContracts);
       } else {
-        alert(t.noPending);
+        showToast(t.noPending, "warning");
       }
       setMatchingLoader(false);
     }, 2000);
@@ -711,9 +717,9 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                       <button
                         onClick={() => {
                           if (isBrand) {
-                            alert(uiLang === "fr" 
-                              ? "🔒 Contact direct bloqué (Sécurité Anti-Double). Ce talent exclusif a signé avec notre agence. Veuillez passer par l'Admin Brejnev Diaz pour vos projets." 
-                              : "🔒 Direct contact locked (Anti-double protection). This exclusive talent is represented by the agency. Please consult Admin Brejnev Diaz to book.");
+                            showToast(uiLang === "fr"
+                              ? "🔒 Contact direct bloqué. Ce talent exclusif est représenté par l'agence. Contactez l'Admin Brejnev Diaz."
+                              : "🔒 Direct contact locked. This talent is agency-exclusive. Contact Admin Brejnev Diaz.", "warning");
                           } else {
                             const platform = activePlatforms[talent.id] || "instagram";
                             const url = platform === "tiktok" 
@@ -1315,7 +1321,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                           onClick={() => {
                             setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "produit_envoye" } : cr));
                             setActiveModal(null);
-                            alert(uiLang === 'fr' ? '✅ Contrat signé numériquement. Le produit peut maintenant être expédié !' : '✅ Contract digitally signed. Product shipping unlocked!');
+                            showToast(uiLang === 'fr' ? '✅ Contrat signé numériquement. Expédition du produit déverrouillée !' : '✅ Contract digitally signed. Product shipping unlocked!');
                           }}
                           style={{ background: "#10b981", color: "#fff", border: "none", padding: "10px 16px", borderRadius: 6, fontWeight: 600, cursor: "pointer", fontFamily: "sans-serif", fontSize: 13, boxShadow: "0 4px 10px rgba(16,185,129,0.3)" }}>
                           {uiLang === 'fr' ? '🖊️ Signer Numériquement' : '🖊️ Digitally Sign'}
@@ -1400,11 +1406,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                       onClick={() => {
                         setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "contenu_cree" } : cr));
                         setActiveModal(prev => ({ ...prev, contract: { ...prev.contract, status: "contenu_cree" }, type: 'review' }));
-                        alert(uiLang === "fr" 
-                          ? "📦 Colis livré ! Transition automatique vers l'étape de Revue de Contenu UGC 🎥" 
-                          : (uiLang === "it" 
-                            ? "📦 Pacco consegnato! Transizione automatica alla fase di revisione UGC 🎥" 
-                            : "📦 Package delivered! Auto-transitioned to UGC Content Review stage 🎥"));
+                        showToast(uiLang === "fr"
+                          ? "📦 Colis livré ! Transition vers la Revue UGC 🎥"
+                          : (uiLang === "it"
+                            ? "📦 Pacco consegnato! Revisione UGC attivata 🎥"
+                            : "📦 Package delivered! Moved to UGC Review 🎥"));
                       }}
                       style={{
                         flex: 1, padding: "12px", borderRadius: 8, border: "none",
@@ -1508,11 +1514,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                       onClick={() => {
                         setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "live" } : cr));
                         setActiveModal(prev => ({ ...prev, contract: { ...prev.contract, status: "live" }, type: 'roi' }));
-                        alert(uiLang === "fr" 
-                          ? "✅ Brouillon UGC Approuvé avec succès ! La campagne est désormais PUBLIÉE et le suivi ROI est activé ! 🚀" 
-                          : (uiLang === "it" 
-                            ? "✅ Bozza UGC Approvata con successo! La campagna è PUBBLICATA e il monitoraggio ROI è attivo! 🚀" 
-                            : "✅ UGC Draft Approved successfully! The campaign is now PUBLISHED and live ROI tracking is activated! 🚀"));
+                        showToast(uiLang === "fr"
+                          ? "✅ UGC Approuvé ! Campagne LIVE — Suivi ROI activé 🚀"
+                          : (uiLang === "it"
+                            ? "✅ UGC Approvato! Campagna LIVE — ROI attivo 🚀"
+                            : "✅ UGC Approved! Campaign is LIVE — ROI tracking active 🚀"));
                       }}
                       style={{
                         flex: 1, padding: "12px", borderRadius: 8, border: "none",
@@ -1652,6 +1658,23 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
       `}</style>
+
+      {/* Agency toast notification */}
+      {agencyToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 26px", borderRadius: 14,
+          background: agencyToast.type === "success" ? "linear-gradient(90deg,#10b981,#059669)"
+            : agencyToast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : "linear-gradient(90deg,#ef4444,#dc2626)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.32)",
+          animation: "fadeIn 0.25s ease-out",
+          maxWidth: 540, textAlign: "center", pointerEvents: "none",
+        }}>
+          {agencyToast.message}
+        </div>
+      )}
     </div>
   );
 }

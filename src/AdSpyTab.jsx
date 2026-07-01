@@ -370,6 +370,8 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
   const [creatives, setCreatives] = useState(MOCK_ADS);
   const [loading, setLoading] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState("overview"); // overview | transcript | suppliers
+  const [adToast, setAdToast] = useState(null);
+  const showToast = (msg, type = "success") => { setAdToast({ message: msg, type }); setTimeout(() => setAdToast(null), 4000); };
 
   const maskString = (str) => {
     if (userTier === "admin") return str;
@@ -493,11 +495,11 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       if (data.creatives && data.creatives.length > 0) {
         setCreatives(data.creatives);
       } else {
-        alert(uiLang === "fr" ? "Aucun créatif réel trouvé pour cette recherche." : "Nessuna creatività reale trovata per questa ricerca.");
+        showToast(uiLang === "fr" ? "Aucun créatif trouvé pour cette recherche." : "Nessuna creatività trovata per questa ricerca.", "warning");
       }
     } catch (err) {
       console.error(err);
-      alert(uiLang === "fr" ? "Erreur de connexion au backend. Assurez-vous que node server.js est lancé." : "Errore del server.");
+      showToast(uiLang === "fr" ? "Erreur de connexion au backend." : "Errore del server.", "error");
     } finally {
       setLoading(false);
     }
@@ -1074,7 +1076,24 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
 
       <style>{`
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
       `}</style>
+
+      {adToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 26px", borderRadius: 14,
+          background: adToast.type === "error" ? "linear-gradient(90deg,#ef4444,#dc2626)"
+            : adToast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : "linear-gradient(90deg,#10b981,#059669)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.32)",
+          animation: "fadeIn 0.25s ease-out",
+          maxWidth: 520, textAlign: "center", pointerEvents: "none",
+        }}>
+          {adToast.message}
+        </div>
+      )}
     </div>
   );
 }

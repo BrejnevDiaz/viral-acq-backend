@@ -37,8 +37,13 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      if (!res.ok) throw new Error("Erreur réseau");
-      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur réseau");
+      if (data.simulated) {
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 4000);
+        return;
+      }
       setStatus('success');
       setFormData({ brandName: '', website: '', niche: '', budget: '', message: '' });
       setTimeout(() => setStatus('idle'), 5000);
@@ -131,6 +136,13 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
           <div style={{ background: c.successSoft, border: `1.5px solid ${c.success}`, borderRadius: 12, padding: "20px", textAlign: "center", animation: "fadeInUp 0.3s" }}>
             <span style={{ fontSize: 40, display: "block", marginBottom: 10 }}>🎉</span>
             <div style={{ color: c.success, fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{t.success}</div>
+          </div>
+        ) : status === 'error' ? (
+          <div style={{ background: "#fef2f2", border: "1.5px solid #ef4444", borderRadius: 12, padding: "20px", textAlign: "center" }}>
+            <span style={{ fontSize: 36, display: "block", marginBottom: 8 }}>⚠️</span>
+            <div style={{ color: "#dc2626", fontWeight: 700, fontSize: 14 }}>
+              {uiLang === "it" ? "Servizio temporaneamente non disponibile. Riprova tra qualche minuto." : uiLang === "en" ? "Service temporarily unavailable. Please try again shortly." : "Service temporairement indisponible. Veuillez réessayer dans quelques instants."}
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, position: "relative", zIndex: 1 }}>

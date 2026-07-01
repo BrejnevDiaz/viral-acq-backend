@@ -120,6 +120,13 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     ];
   });
   const [contractModal, setContractModal] = useState({ isOpen: false, match: null, generating: false, contract: null });
+  const [mmToast, setMmToast] = useState(null);
+  const [pendingDeleteContractId, setPendingDeleteContractId] = useState(null);
+
+  const showToast = (message, type = "success") => {
+    setMmToast({ message, type });
+    setTimeout(() => setMmToast(null), 3500);
+  };
 
   // Brand contact form (merged from Brand Portal)
 
@@ -183,10 +190,10 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       
       setValidatedMatches(prev => [...prev, res]);
         syncToRoster(influencer);
-      alert(uiLang === "fr" ? "Accord validé et enregistré !" : "Accordo validato e registrato!");
+      showToast(uiLang === "fr" ? "Accord validé et enregistré !" : "Accordo validato e registrato!");
       setPitchModal({ ...pitchModal, isOpen: false });
     } catch (err) {
-      alert(`Erreur: ${err.message}`);
+      showToast(`Erreur: ${err.message}`, "error");
     }
   };
 
@@ -204,12 +211,17 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
         })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error || "Erreur réseau");
+      if (data.simulated) {
+        setPitchModal(prev => ({ ...prev, sendingEmail: false }));
+        showToast("📭 Email simulé — Gmail non configuré sur le serveur.", "warning");
+        return;
+      }
       setPitchModal(prev => ({ ...prev, sendingEmail: false, emailSent: true }));
       setTimeout(() => setPitchModal(prev => ({ ...prev, emailSent: false })), 4000);
     } catch (err) {
       setPitchModal(prev => ({ ...prev, sendingEmail: false }));
-      alert(`Erreur d'envoi: ${err.message}`);
+      showToast(`Erreur d'envoi: ${err.message}`, "error");
     }
   };
 
@@ -378,11 +390,10 @@ Signature :
     };
     setContracts(prev => [...prev, newContract]);
     setContractModal({ isOpen: false, match: null, generating: false, contract: null });
-    alert(uiLang === "fr" ? "Contrat sauvegardé !" : "Contratto salvato!");
+    showToast(uiLang === "fr" ? "Contrat sauvegardé !" : "Contratto salvato!");
   };
 
   const deleteContract = (id) => {
-    if (!window.confirm("Supprimer ce contrat ?")) return;
     setContracts(prev => prev.filter(ct => ct.id !== id));
   };
 
@@ -717,9 +728,16 @@ Signature :
                     }} bg={c.accent} color="#fff" small>👁️ Voir</Button>
                     <Button onClick={() => {
                       navigator.clipboard.writeText(ct.content);
-                      alert("Contrat copié !");
+                      showToast("📋 Contrat copié !");
                     }} bg={c.success} color="#fff" small>📋 Copier</Button>
-                    <Button onClick={() => deleteContract(ct.id)} bg={c.error} color="#fff" small>✖</Button>
+                    {pendingDeleteContractId === ct.id ? (
+                      <>
+                        <Button onClick={() => { deleteContract(ct.id); setPendingDeleteContractId(null); }} bg={c.error} color="#fff" small>Confirmer</Button>
+                        <Button onClick={() => setPendingDeleteContractId(null)} bg={c.border} color={c.text} small>Annuler</Button>
+                      </>
+                    ) : (
+                      <Button onClick={() => setPendingDeleteContractId(ct.id)} bg={c.error} color="#fff" small>✖</Button>
+                    )}
                   </div>
                 </div>
               );
@@ -779,7 +797,7 @@ Signature :
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                  <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); showToast("📋 E-mail copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
                   <Button onClick={() => setPitchModal({...pitchModal, isOpen: false})} bg={c.border} color={c.text} small>Fermer</Button>
                 </div>
               </div>
@@ -925,7 +943,7 @@ Signature :
                             </Button>
                           </div>
                           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); alert("Copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
+                            <Button onClick={() => { navigator.clipboard.writeText(pitchModal.email); showToast("📋 E-mail copié !"); }} bg={c.success} color="#fff" small>📋 Copier l'e-mail</Button>
                             <Button onClick={validateMatch} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff" small>Valider & Enregistrer l'Accord 🤝</Button>
                           </div>
                         </div>
@@ -968,12 +986,28 @@ Signature :
                   {contractModal.match && (
                     <Button onClick={saveContract} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff">💾 Sauvegarder le Contrat</Button>
                   )}
-                  <Button onClick={() => { navigator.clipboard.writeText(contractModal.contract); alert("Contrat copié !"); }} bg={c.success} color="#fff" small>📋 Copier</Button>
+                  <Button onClick={() => { navigator.clipboard.writeText(contractModal.contract); showToast("📋 Contrat copié !"); }} bg={c.success} color="#fff" small>📋 Copier</Button>
                   <Button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} bg={c.border} color={c.text} small>Fermer</Button>
                 </div>
               </div>
             ) : null}
           </div>
+        </div>
+      )}
+
+      {mmToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 26px", borderRadius: 14,
+          background: mmToast.type === "error" ? "linear-gradient(90deg,#ef4444,#dc2626)"
+            : mmToast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : "linear-gradient(90deg,#10b981,#059669)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.32)",
+          animation: "fadeIn 0.25s ease-out",
+          maxWidth: 520, textAlign: "center", pointerEvents: "none",
+        }}>
+          {mmToast.message}
         </div>
       )}
     </div>

@@ -492,6 +492,7 @@ Signature : Brejnev Diaz (Signé)
     }
 
     setSendingEmail(true);
+    try {
 
     // Emails are best-effort — contract is always saved regardless
     const sendOne = (to, subject, body) =>
@@ -499,7 +500,9 @@ Signature : Brejnev Diaz (Signé)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to, subject, body, brandName: previewContract.brandName }),
-      }).catch(() => null);
+      })
+        .then(async r => { const d = await r.json(); return r.ok ? d : null; })
+        .catch(() => null);
 
     const [brandRes, influencerRes] = await Promise.allSettled([
       sendOne(
@@ -514,7 +517,8 @@ Signature : Brejnev Diaz (Signé)
       ),
     ]);
 
-    const emailOk = brandRes.status === "fulfilled" && influencerRes.status === "fulfilled";
+    const emailOk = brandRes.value?.success === true && !brandRes.value?.simulated &&
+                    influencerRes.value?.success === true && !influencerRes.value?.simulated;
 
     const ct = { ...previewContract, status: "sent" };
     setContracts(prev => [ct, ...prev]);
@@ -526,13 +530,15 @@ Signature : Brejnev Diaz (Signé)
       durationMonths: 3, exclusivity: true, contractLanguage: "fr",
     });
 
-    setSendingEmail(false);
-    showToast(
-      emailOk
-        ? "✅ Contrat enregistré et notifications envoyées aux deux parties."
-        : "✅ Contrat enregistré. Les e-mails seront envoyés dès que le serveur de mail sera configuré.",
-      "success"
-    );
+      showToast(
+        emailOk
+          ? "✅ Contrat enregistré et notifications envoyées aux deux parties."
+          : "✅ Contrat enregistré. Les e-mails seront envoyés dès que le serveur de mail sera configuré.",
+        "success"
+      );
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const simulateSignature = (id, targetStatus) => {

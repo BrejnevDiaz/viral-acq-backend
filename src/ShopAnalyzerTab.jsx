@@ -363,6 +363,17 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
   const [hoveredProd, setHoveredProd] = useState(null);
   const [activeTab, setActiveTab] = useState("tech");
   const [openFaq, setOpenFaq] = useState(null);
+  const [shopToast, setShopToast] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState({
+    convRate: 2.0,
+    avgOrderValue: 45,
+    currency: "EUR",
+    minTraffic: 0,
+    minRevenue: 0,
+  });
+  const showToast = (msg, type = "success") => { setShopToast({ message: msg, type }); setTimeout(() => setShopToast(null), 4000); };
+  const currencySymbol = settings.currency === "USD" ? "$" : "€";
 
   React.useEffect(() => {
     if (redirectShop) {
@@ -469,14 +480,28 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    if (onAnalyzeStore && !onAnalyzeStore()) return;
 
     const rawInput = searchTerm.trim();
-    if (!rawInput) { alert(uiLang === "fr" ? "Entrez un domaine ou nom de boutique." : "Enter a domain or store name."); return; }
+    if (!rawInput) {
+      showToast(uiLang === "fr" ? "Entrez un domaine ou nom de boutique." : "Enter a domain or store name.", "warning");
+      return;
+    }
 
-    // Extract domain from input (handles https://example.com or just example.com)
+    // ── 1. Recherche locale d'abord — aucune API nécessaire ─────────────────
+    const query = rawInput.toLowerCase().replace(/^https?:\/\//i, "").replace(/\/.*$/, "").trim();
+    const localMatch = [...shops, ...MOCK_SHOPS].find(s =>
+      s.domain.toLowerCase().includes(query) ||
+      s.name.toLowerCase().includes(query)
+    );
+    if (localMatch) {
+      setActiveShop(localMatch);
+      return;
+    }
+
+    // ── 2. Vérifier quota avant appel API ───────────────────────────────────
+    if (onAnalyzeStore && !onAnalyzeStore()) return;
+
     let domain = rawInput.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").trim();
-    // If no dot, treat as keyword and append .com as best guess
     if (!domain.includes(".")) domain = domain.toLowerCase().replace(/\s+/g, "") + ".com";
 
     setLoading(true);
@@ -491,11 +516,11 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
       if (data.analysis) {
         const a = data.analysis;
         const r = a.report || {};
-        const visits   = r.monthlyVisits || 25000;
-        const aov      = r.avgOrderValue || 45;
-        const conv     = r.convRate || 2.0;
-        const revenue  = Math.round(visits * (conv / 100) * aov);
-        const actualNiche = selectedNiche === "all" ? "beauty" : selectedNiche;
+        const visits  = r.monthlyVisits || 25000;
+        const aov     = r.avgOrderValue || settings.avgOrderValue;
+        const conv    = r.convRate || settings.convRate;
+        const revenue = Math.round(visits * (conv / 100) * aov);
+        const niche   = selectedNiche === "all" ? "beauty" : selectedNiche;
 
         const shop = {
           id:             `shop_${a.domain}_${Date.now()}`,
@@ -504,37 +529,68 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
           url:            `https://${a.domain}`,
           monthlyTraffic: visits,
           monthlyRevenue: revenue,
-          dailyGrowth:    `+$${Math.round(revenue / 30).toLocaleString()}/Day`,
+          dailyGrowth:    `+${currencySymbol}${Math.round(revenue / 30).toLocaleString()}/Day`,
           trafficGrowth:  [40, 50, 62, 70, 78],
           theme:          a.isShopify ? "Shopify" : "Non-Shopify",
-          apps:           a.detectedApps.length > 0 ? a.detectedApps : ["Aucune app détectée"],
+          apps:           a.detectedApps && a.detectedApps.length > 0 ? a.detectedApps : ["Aucune app détectée"],
           countries:      [{ code: "US", pct: 45 }, { code: "EU", pct: 35 }, { code: "FR", pct: 20 }],
           sources:        { social: 40, search: 35, direct: 15, mail: 10 },
           productsCount:  a.productCount || 0,
           activeAdsCount: a.hasActiveAds ? "Oui" : "Non détecté",
-          niche:          actualNiche,
+          niche,
           contact:        Object.values(a.socials || {})[0] || `contact@${a.domain}`,
           topProducts:    (a.topProducts || []).map((p, i) => ({
-            id:            `tp_${i}`,
-            name:          p.title,
-            price:         parseFloat(p.price) || 29.99,
-            monthlySales:  Math.round(150 + i * 80),
+            id:             `tp_${i}`,
+            name:           p.title,
+            price:          parseFloat(p.price) || 29.99,
+            monthlySales:   Math.round(150 + i * 80),
             monthlyRevenue: Math.round((parseFloat(p.price) || 29.99) * (150 + i * 80)),
-            growth:        "+N/A",
-            thumbnail:     p.image || `https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80`,
-            trend:         [40, 50, 60, 70, 75]
+            growth:         "+N/A",
+            thumbnail:      p.image || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80",
+            trend:          [40, 50, 60, 70, 75]
           })),
           activeAds: [],
           report: r,
         };
-        setShops([shop]);
-        setActiveShop(shop.id);
+        setShops(prev => [shop, ...prev.filter(s => !s.id.startsWith("shop_local_"))]);
+        setActiveShop(shop);
       } else {
-        alert(uiLang === "fr" ? "Analyse impossible pour ce domaine." : "Could not analyze this domain.");
+        showToast(uiLang === "fr" ? "Aucun résultat pour ce domaine." : "No results for this domain.", "warning");
       }
     } catch (err) {
       console.error(err);
-      alert(uiLang === "fr" ? "Erreur de connexion au serveur." : "Server connection error.");
+      // ── 3. Fallback local — génère une analyse simulée ─────────────────────
+      const niche    = selectedNiche === "all" ? "beauty" : selectedNiche;
+      const shopName = domain.split(".")[0].replace(/[^a-zA-Z0-9]/g, "");
+      const capName  = shopName.charAt(0).toUpperCase() + shopName.slice(1);
+      const { topProducts, activeAds } = generateProductsAndAds(niche, capName);
+      const visits   = Math.floor(Math.random() * 150000) + 20000;
+      const revenue  = Math.round(visits * (settings.convRate / 100) * settings.avgOrderValue);
+
+      const fallbackShop = {
+        id:             `shop_local_${Date.now()}`,
+        name:           capName,
+        domain,
+        url:            `https://${domain}`,
+        monthlyTraffic: visits,
+        monthlyRevenue: revenue,
+        dailyGrowth:    `+${currencySymbol}${Math.round(revenue / 30).toLocaleString()}/Day`,
+        trafficGrowth:  [30, 42, 58, 70, 80],
+        theme:          "Shopify (estimé)",
+        apps:           ["Klaviyo", "Loox Reviews", "Judge.me"],
+        countries:      [{ code: "US", pct: 50 }, { code: "EU", pct: 30 }, { code: "FR", pct: 20 }],
+        sources:        { social: 48, search: 28, direct: 14, mail: 10 },
+        productsCount:  topProducts.length,
+        activeAdsCount: activeAds.length,
+        niche,
+        contact:        `contact@${domain}`,
+        topProducts,
+        activeAds,
+        simulated: true,
+      };
+      setShops(prev => [fallbackShop, ...prev.filter(s => !s.id.startsWith("shop_local_"))]);
+      setActiveShop(fallbackShop);
+      showToast(uiLang === "fr" ? "⚡ Analyse locale générée (serveur indisponible)" : "⚡ Local estimate generated (server offline)", "warning");
     } finally {
       setLoading(false);
     }
@@ -543,9 +599,11 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
   const filteredShops = useMemo(() => {
     return shops.filter(s => {
       const matchNiche = selectedNiche === "all" || s.niche === selectedNiche;
-      return matchNiche;
+      const matchTraffic = s.monthlyTraffic >= settings.minTraffic * 1000;
+      const matchRevenue = s.monthlyRevenue >= settings.minRevenue * 1000;
+      return matchNiche && matchTraffic && matchRevenue;
     });
-  }, [shops, selectedNiche]);
+  }, [shops, selectedNiche, settings.minTraffic, settings.minRevenue]);
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", position: "relative" }}>
@@ -574,9 +632,9 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
         </div>
 
         {/* Niche */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 11, fontFamily: mono, color: c.textDim, textTransform: "uppercase" }}>{t.niche}</span>
-          <select 
+          <select
             value={selectedNiche}
             onChange={e => setSelectedNiche(e.target.value)}
             style={{ padding: "10px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
@@ -588,13 +646,149 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
             <option value="home">Home & Kitchen</option>
           </select>
         </div>
+
+        {/* Settings toggle */}
+        <button
+          type="button"
+          onClick={() => setShowSettings(v => !v)}
+          style={{ padding: "10px 16px", borderRadius: 9, border: `1.5px solid ${showSettings ? c.accent : c.border}`, background: showSettings ? `${c.accent}18` : "transparent", color: showSettings ? c.accent : c.textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s", marginLeft: "auto" }}
+        >
+          ⚙️ {uiLang === "it" ? "Parametri" : uiLang === "en" ? "Settings" : "Paramètres"}
+        </button>
       </form>
+
+      {/* ─── Settings Panel ─────────────────────────────────────────────────── */}
+      {showSettings && (
+        <div style={{ background: c.card, border: `1.5px solid ${c.accent}44`, borderRadius: 14, padding: "20px 24px", marginBottom: 20, animation: "fadeIn 0.2s ease-out" }}>
+          <h4 style={{ margin: "0 0 16px 0", fontSize: 13, fontWeight: 800, color: c.accent, letterSpacing: "0.5px", textTransform: "uppercase", fontFamily: mono }}>
+            ⚙️ {uiLang === "it" ? "Parametri di Analisi" : uiLang === "en" ? "Analysis Parameters" : "Paramètres d'Analyse"}
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+
+            {/* Conv rate */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                {uiLang === "it" ? "Tasso di Conversione" : uiLang === "en" ? "Conversion Rate" : "Taux de Conversion"} (%)
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="range" min="0.5" max="6" step="0.1"
+                  value={settings.convRate}
+                  onChange={e => setSettings(s => ({ ...s, convRate: parseFloat(e.target.value) }))}
+                  style={{ flex: 1, accentColor: c.accent }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 36 }}>{settings.convRate.toFixed(1)}%</span>
+              </div>
+            </div>
+
+            {/* Avg order value */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                {uiLang === "it" ? "Carrello Medio" : uiLang === "en" ? "Avg Order Value" : "Panier Moyen"} ({currencySymbol})
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="range" min="10" max="250" step="5"
+                  value={settings.avgOrderValue}
+                  onChange={e => setSettings(s => ({ ...s, avgOrderValue: parseInt(e.target.value) }))}
+                  style={{ flex: 1, accentColor: c.accent }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 40 }}>{settings.avgOrderValue}{currencySymbol}</span>
+              </div>
+            </div>
+
+            {/* Min traffic */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                {uiLang === "it" ? "Traffico Minimo" : uiLang === "en" ? "Min. Traffic" : "Trafic Minimum"} (k/mois)
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="range" min="0" max="500" step="10"
+                  value={settings.minTraffic}
+                  onChange={e => setSettings(s => ({ ...s, minTraffic: parseInt(e.target.value) }))}
+                  style={{ flex: 1, accentColor: c.accent }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 44 }}>{settings.minTraffic}k</span>
+              </div>
+            </div>
+
+            {/* Min revenue */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                {uiLang === "it" ? "Fatturato Minimo" : uiLang === "en" ? "Min. Revenue" : "Revenu Minimum"} (k{currencySymbol}/mois)
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="range" min="0" max="1000" step="10"
+                  value={settings.minRevenue}
+                  onChange={e => setSettings(s => ({ ...s, minRevenue: parseInt(e.target.value) }))}
+                  style={{ flex: 1, accentColor: c.accent }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 50 }}>{settings.minRevenue}k</span>
+              </div>
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                {uiLang === "it" ? "Valuta" : uiLang === "en" ? "Currency" : "Devise"}
+              </label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["EUR", "USD"].map(cur => (
+                  <button
+                    key={cur}
+                    type="button"
+                    onClick={() => setSettings(s => ({ ...s, currency: cur }))}
+                    style={{ flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid ${settings.currency === cur ? c.accent : c.border}`, background: settings.currency === cur ? `${c.accent}22` : "transparent", color: settings.currency === cur ? c.accent : c.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.15s" }}
+                  >
+                    {cur === "EUR" ? "€ EUR" : "$ USD"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Reset */}
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setSettings({ convRate: 2.0, avgOrderValue: 45, currency: "EUR", minTraffic: 0, minRevenue: 0 })}
+                style={{ width: "100%", padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: "transparent", color: c.textDim, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                ↺ {uiLang === "it" ? "Ripristina" : uiLang === "en" ? "Reset defaults" : "Réinitialiser"}
+              </button>
+            </div>
+          </div>
+
+          {/* Live estimation preview */}
+          <div style={{ marginTop: 16, padding: "10px 14px", background: c.bg, borderRadius: 10, border: `1px solid ${c.border}`, fontSize: 12, color: c.textMuted }}>
+            <span style={{ color: c.textDim, fontFamily: mono }}>Estimation CA pour 100k visites/mois : </span>
+            <span style={{ fontWeight: 800, color: c.success }}>
+              {currencySymbol}{Math.round(100000 * (settings.convRate / 100) * settings.avgOrderValue).toLocaleString()}
+            </span>
+            <span style={{ color: c.textDim }}> ({settings.convRate}% conv × {settings.avgOrderValue}{currencySymbol} panier)</span>
+          </div>
+        </div>
+      )}
 
       {/* Loading Overlay */}
       {loading && (
         <div style={{ position: "absolute", top: 120, left: 0, right: 0, bottom: 0, background: "rgba(8,8,16,0.7)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 300, zIndex: 50, borderRadius: 14 }}>
           <div style={{ width: 50, height: 50, borderRadius: "50%", border: `3px solid ${c.accent}22`, borderTopColor: c.accent, animation: "spin 1s linear infinite", marginBottom: 16 }}></div>
           <p style={{ fontSize: 14, fontWeight: 700, color: c.text, fontFamily: mono }}>{t.loadingText}</p>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {filteredShops.length === 0 && !loading && (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: c.textMuted, background: c.card, borderRadius: 14, border: `1px dashed ${c.border}`, marginBottom: 20 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 6 }}>{t.emptyText}</div>
+          {(settings.minTraffic > 0 || settings.minRevenue > 0) && (
+            <div style={{ fontSize: 12, color: c.textDim, marginTop: 8 }}>
+              {uiLang === "en" ? "Try lowering your traffic or revenue filters in Settings." : uiLang === "it" ? "Abbassa i filtri di traffico o fatturato nei Parametri." : "Réduisez les filtres de trafic ou revenu dans les Paramètres."}
+            </div>
+          )}
         </div>
       )}
 
@@ -645,7 +839,7 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
               <div style={{ background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, textAlign: "center" }}>
                 <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>REVENUE / MOIS</div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: c.success }}>
-                  ${s.monthlyRevenue >= 1000 ? `${(s.monthlyRevenue / 1000).toFixed(0)}k` : s.monthlyRevenue}
+                  {currencySymbol}{s.monthlyRevenue >= 1000 ? `${(s.monthlyRevenue / 1000).toFixed(0)}k` : s.monthlyRevenue}
                 </div>
               </div>
             </div>
@@ -658,11 +852,8 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
 
             {/* Action buttons */}
             <div style={{ display: "flex", gap: 6 }}>
-              <button 
-                onClick={() => {
-                  if (onAnalyzeStore && !onAnalyzeStore()) return;
-                  setActiveShop(s);
-                }}
+              <button
+                onClick={() => setActiveShop(s)}
                 style={{ flex: 1, padding: "9px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 12, fontWeight: 650, cursor: "pointer", fontFamily: mono }}
               >
                 Auditer 📊
@@ -1172,7 +1363,24 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
 
       <style>{`
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
       `}</style>
+
+      {shopToast && (
+        <div style={{
+          position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9999, padding: "14px 26px", borderRadius: 14,
+          background: shopToast.type === "error" ? "linear-gradient(90deg,#ef4444,#dc2626)"
+            : shopToast.type === "warning" ? "linear-gradient(90deg,#f59e0b,#d97706)"
+            : "linear-gradient(90deg,#10b981,#059669)",
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.32)",
+          animation: "fadeIn 0.25s ease-out",
+          maxWidth: 520, textAlign: "center", pointerEvents: "none",
+        }}>
+          {shopToast.message}
+        </div>
+      )}
     </div>
   );
 }
