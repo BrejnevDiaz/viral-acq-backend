@@ -5,9 +5,9 @@
 }
 
 body { 
-  background: #09090E; 
+  background: #f4f5f7; /* Default fallback light */
   font-family: 'Inter', sans-serif;
-  color: #fff;
+  color: #111827;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -28,9 +28,9 @@ h1, h2, h3, h4, h5, h6, .outfit {
 }
 
 @keyframes pulseGlow {
-  0% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0.4); }
-  70% { box-shadow: 0 0 0 15px rgba(255, 107, 53, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 107, 53, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
 }
 
 @keyframes float {
@@ -45,11 +45,11 @@ h1, h2, h3, h4, h5, h6, .outfit {
 }
 
 .glass-panel {
-  background: rgba(17, 17, 25, 0.6) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
 }
 
 .hover-lift {
@@ -57,11 +57,11 @@ h1, h2, h3, h4, h5, h6, .outfit {
 }
 .hover-lift:hover {
   transform: translateY(-3px) !important;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: #09090E; }
-::-webkit-scrollbar-thumb { background: #222230; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #ff6b35; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

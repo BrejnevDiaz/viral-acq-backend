@@ -797,390 +797,395 @@ export default function ProspectionAgent() {
         brand: "VIRALACQUISITION",
         titlePre: "L'ère de",
         titleMain: "l'Acquisition Virale & Spy",
-        desc: "Découvrez les produits gagnants, analysez les boutiques e-commerce concurrentes, espionnez les meilleures créatives publicitaires et recrutez des influenceurs à fort impact sur Meta, TikTok, Pinterest et plus encore.",
-        statShops: "Boutiques Analysées",
+        subtitle: "Découvrez les produits gagnants, analysez les boutiques e-commerce concurrentes, espionnez les meilleures créatives publicitaires et recrutez des influenceurs à fort impact sur Meta, TikTok, Pinterest et plus encore.",
+        statStores: "Boutiques Analysées",
         statAds: "Créatifs AdSpy",
         quote: "J'ai conçu cette suite pour vous offrir en direct la détection de tendances virales et la prospection automatique de vos cibles idéales dans une interface unique.",
-        quoteTitle: "Fondateur & CEO",
-        emailLabel: "Adresse E-mail",
-        passLabel: "Mot de passe",
-        btnIn: "Se Connecter ➔",
-        btnUp: "S'inscrire ➔",
-        switchUp: "Pas encore membre ? Créer un compte",
-        switchIn: "Déjà membre ? Se connecter",
-        authTitle: "ACQUISITION.",
-        authDescLogin: "Saisissez vos identifiants pour entrer dans l'Workspace.",
-        authDescSignup: "Créez votre compte premium ViralAcq Pro.",
+        quoteTitle: "Fondateur & CEO"
       },
       en: {
         brand: "VIRALACQUISITION",
         titlePre: "The Era of",
         titleMain: "Viral Acquisition & Spy",
-        desc: "Discover winning products, analyze competitor e-commerce stores, spy on top ad creatives, and recruit high-impact influencers across Meta, TikTok, Pinterest and more.",
-        statShops: "Shops Analyzed",
+        subtitle: "Discover winning products, analyze competing e-commerce stores, spy on top ad creatives, and recruit high-impact influencers on Meta, TikTok, Pinterest, and more.",
+        statStores: "Stores Analyzed",
         statAds: "AdSpy Creatives",
-        quote: "I designed this suite to provide you with live viral trend detection and automated prospecting of your ideal targets in a single interface.",
-        quoteTitle: "Founder & CEO",
-        emailLabel: "Email Address",
-        passLabel: "Password",
-        btnIn: "Sign In ➔",
-        btnUp: "Sign Up ➔",
-        switchUp: "Don't have an account? Sign up",
-        switchIn: "Already have an account? Log in",
-        authTitle: "ACQUISITION.",
-        authDescLogin: "Enter your credentials to access the Workspace.",
-        authDescSignup: "Create your premium ViralAcq Pro account.",
+        quote: "I designed this suite to give you live viral trend detection and automatic ideal-target prospecting in a single interface.",
+        quoteTitle: "Founder & CEO"
       },
       it: {
         brand: "VIRALACQUISITION",
-        titlePre: "L'era dell'",
+        titlePre: "L'era di",
         titleMain: "Acquisizione Virale & Spy",
-        desc: "Scopri prodotti vincenti, analizza i negozi e-commerce dei concorrenti, spia le migliori inserzioni pubblicitarie e recluta influencer ad alto impatto su Meta, TikTok, Pinterest e altro.",
-        statShops: "Negozi Analizzati",
-        statAds: "Creativi AdSpy",
-        quote: "Ho progettato questa suite per offrirti il rilevamento in tempo reale dei trend virali e la prospezione automatica dei tuoi target ideali in un'interfaccia unica.",
-        quoteTitle: "Fondatore & CEO",
-        emailLabel: "Indirizzo E-mail",
-        passLabel: "Password",
-        btnIn: "Accedi ➔",
-        btnUp: "Registrati ➔",
-        switchUp: "Non hai un account? Registrati",
-        switchIn: "Hai già un account? Accedi",
-        authTitle: "ACQUISITION.",
-        authDescLogin: "Inserisci le tue credenziali per accedere all'Workspace.",
-        authDescSignup: "Crea il tuo account premium ViralAcq Pro.",
+        subtitle: "Scopri prodotti vincenti, analizza negozi e-commerce della concorrenza, spia le migliori creatività pubblicitarie e recluta influencer ad alto impatto su Meta, TikTok, Pinterest e altro ancora.",
+        statStores: "Negozi Analizzati",
+        statAds: "Creatività AdSpy",
+        quote: "Ho progettato questa suite per offrirti il rilevamento dal vivo delle tendenze virali e la prospezione automatica dei tuoi target ideali in un'unica interfaccia.",
+        quoteTitle: "Fondatore & CEO"
       }
-    }[uiLang] || {};
+    }[uiLang];
+
+    const handleAuth = async (e) => {
+      e.preventDefault();
+      setAuthError("");
+      if (!emailInput || !passInput) {
+        setAuthError(uiLang === "fr" ? "Veuillez remplir tous les champs." : "Please fill all fields.");
+        return;
+      }
+      try {
+        if (authMode === "signup") {
+          const { data, error } = await supabase.auth.signUp({
+            email: emailInput,
+            password: passInput,
+            options: {
+              data: {
+                tier: selectedSignupTier,
+                role: "user"
+              }
+            }
+          });
+          if (error) throw error;
+          if (data?.user?.identities?.length === 0) {
+            throw new Error(uiLang === "fr" ? "Cet utilisateur existe déjà." : "This user already exists.");
+          }
+          setAuthMode("login");
+          setAuthError(uiLang === "fr" ? "Inscription réussie ! Vous pouvez vous connecter." : "Sign up successful! You can now log in.");
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: emailInput,
+            password: passInput
+          });
+          if (error) throw error;
+          // onAuthStateChange handles isLoggedIn
+        }
+      } catch (err) {
+        setAuthError(err.message || (uiLang === "fr" ? "Erreur d'authentification" : "Authentication error"));
+      }
+    };
 
     return (
-      <div style={{ minHeight: "100vh", background: "#080810", color: c.text, display: "flex", flexDirection: "row", overflow: "hidden", position: "relative", fontFamily: sans }}>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet" />
-        
-        {/* Glow backgrounds */}
-        <div style={{ position: "absolute", top: "-20%", left: "-10%", width: "800px", height: "800px", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0) 70%)", filter: "blur(65px)", pointerEvents: "none" }}></div>
-        <div style={{ position: "absolute", bottom: "-10%", right: "10%", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(236,72,153,0.1) 0%, rgba(0,0,0,0) 70%)", filter: "blur(65px)", pointerEvents: "none" }}></div>
-
-        {/* Left Side: Marketing Column */}
-        <div className="desktop-only" style={{ flex: 1.2, padding: "80px 60px 80px 80px", display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 1 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginBottom: 36 }}>
-            <svg viewBox="0 0 24 24" width="36" height="36" stroke="url(#va-grad-login)" strokeWidth="2.5" fill="none">
-              <defs>
-                <linearGradient id="va-grad-login" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#8B5CF6"/>
-                  <stop offset="100%" stopColor="#ec4899"/>
-                </linearGradient>
-              </defs>
-              <polygon points="12 2 2 22 22 22"/>
-              <polyline points="2 12 12 12 12 22"/>
-            </svg>
-            <h1 className="outfit" style={{ fontSize: 24, fontWeight: 900, letterSpacing: "-0.5px", margin: 0, color: "#fff" }}>
-              VIRAL<span style={{ color: c.accent }}>ACQUISITION</span>
+      <div style={{
+        minHeight: "100vh",
+        background: "#fff",
+        color: "#111827",
+        fontFamily: "'Inter', sans-serif",
+        overflowX: "hidden",
+        position: "relative"
+      }}>
+        {/* Minea-style Header */}
+        <header style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "20px 40px", position: "absolute", top: 0, left: 0, right: 0, zIndex: 50
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>VA</div>
+            <h1 className="outfit" style={{ fontSize: 20, fontWeight: 900, margin: 0, letterSpacing: "-0.5px", color: "#111827" }}>
+              ViralAcquisition
             </h1>
           </div>
 
-          <h2 className="outfit" style={{ fontSize: 52, fontWeight: 900, lineHeight: 1.1, marginBottom: 24, color: "#fff", letterSpacing: "-1px" }}>
-            {loginT.titlePre}<br />
-            <span style={{ background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{loginT.titleMain}</span>
-          </h2>
-
-          <p style={{ fontSize: 16, color: c.textMuted, lineHeight: 1.6, marginBottom: 40, maxWidth: 540 }}>
-            {loginT.desc}
-          </p>
-
-          {/* Key Value Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 40, maxWidth: 540 }}>
-            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", padding: "16px 20px", borderRadius: 12 }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: c.accent, marginBottom: 4 }}>+150k</div>
-              <div style={{ fontSize: 12, color: c.textDim }}>{loginT.statShops}</div>
-            </div>
-            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)", padding: "16px 20px", borderRadius: 12 }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: c.accent2, marginBottom: 4 }}>12M+</div>
-              <div style={{ fontSize: 12, color: c.textDim }}>{loginT.statAds}</div>
-            </div>
+          <div className="desktop-only" style={{ display: "flex", gap: 32, fontSize: 15, fontWeight: 600, color: "#374151" }}>
+            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Adspy</span>
+            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Produit gagnant</span>
+            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Sourcing CRM</span>
+            <span style={{ cursor: "pointer", transition: "color 0.2s" }} className="hover-color-accent">Matchmaking</span>
           </div>
 
-          {/* Founder Quote Card */}
-          <div className="glass-panel" style={{ 
-            padding: "16px 20px", 
-            borderRadius: 16, 
-            border: "1.5px solid rgba(139,92,246,0.15)", 
-            background: "rgba(139,92,246,0.02)", 
-            maxWidth: 540, 
-            display: "flex", 
-            gap: 14, 
-            alignItems: "center" 
-          }}>
-            <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: `1.5px solid ${c.accent}` }}>
-              <img 
-                src="/founder.jpg" 
-                onError={(e) => { 
-                  e.target.onerror = null; 
-                  e.target.src = "https://ui-avatars.com/api/?name=Brejnev+Diaz&background=8B5CF6&color=fff&size=100&rounded=true";
-                }}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-                alt="Brejnev Diaz" 
-              />
-            </div>
-            <div>
-              <p style={{ fontStyle: "italic", fontSize: 12.5, color: "#d1d5db", margin: "0 0 4px 0", lineHeight: 1.4 }}>
-                "{loginT.quote}"
-              </p>
-              <div style={{ fontSize: 11, fontWeight: 800, color: c.accent }}>Brejnev Diaz <span style={{ color: "#9ca3af", fontWeight: 400 }}>— {loginT.quoteTitle}</span></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Credentials Form Column */}
-        <div style={{ flex: 1, padding: "80px 24px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 1, background: "rgba(6, 6, 12, 0.4)", backdropFilter: "blur(10px)", borderLeft: "1px solid rgba(255,255,255,0.02)" }}>
-          {/* Mobile Header (Hidden on Desktop) */}
-          <div className="mobile-only" style={{ position: "absolute", top: 24, left: 24, zIndex: 10 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-              <svg viewBox="0 0 24 24" width="24" height="24" stroke="url(#va-grad-mob)" strokeWidth="2.5" fill="none">
-                <defs>
-                  <linearGradient id="va-grad-mob" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#8B5CF6"/>
-                    <stop offset="100%" stopColor="#ec4899"/>
-                  </linearGradient>
-                </defs>
-                <polygon points="12 2 2 22 22 22"/>
-                <polyline points="2 12 12 12 12 22"/>
-              </svg>
-              <span className="outfit" style={{ fontSize: 16, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>VIRAL<span style={{ color: c.accent }}>ACQ</span></span>
-            </div>
-          </div>
-
-          {/* Controls Bar in Top Right */}
-          <div style={{ position: "absolute", top: 24, right: 24, display: "flex", gap: 10, alignItems: "center", zIndex: 10 }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <select
               value={uiLang}
               onChange={(e) => setUiLang(e.target.value)}
               style={{
-                background: "rgba(0,0,0,0.5)",
-                color: "#fff",
-                border: `1px solid rgba(255,255,255,0.1)`,
-                borderRadius: 8,
-                padding: "8px 12px",
-                fontFamily: mono,
-                fontSize: 12,
-                fontWeight: 700,
-                outline: "none",
-                cursor: "pointer"
+                background: "transparent", border: "none", fontSize: 15, fontWeight: 600, color: "#374151", cursor: "pointer", outline: "none"
               }}
             >
-              <option value="fr">🇫🇷 FR</option>
-              <option value="en">🇬🇧 EN</option>
-              <option value="it">🇮🇹 IT</option>
+              <option value="fr">French</option>
+              <option value="en">English</option>
+              <option value="it">Italian</option>
             </select>
-
-            {/* Theme toggle corner */}
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
-              display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34,
-              borderRadius: 10, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
-              cursor: "pointer", transition: "all 0.2s"
+            <button onClick={() => { setAuthMode("login"); setShowLoginModal(true); }} style={{
+              padding: "10px 24px", borderRadius: 12, background: "#111827", color: "#fff", border: "none", fontSize: 15, fontWeight: 700, cursor: "pointer", transition: "transform 0.2s"
             }} className="hover-lift">
-              {theme === "dark" ? 
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
-                : 
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-              }
+              Login
             </button>
           </div>
+        </header>
 
-          {/* Login Card */}
-          <div className="glass-panel animate-border" style={{ 
-            width: "100%", 
-            maxWidth: authMode === "signup" ? 860 : 420, 
-            background: "rgba(15, 15, 32, 0.65)", 
-            padding: "36px 32px", 
-            borderRadius: 24, 
-            border: `1.5px solid rgba(139, 92, 246, 0.2)`, 
-            boxShadow: "0 25px 50px rgba(0,0,0,0.4)", 
-            boxSizing: "border-box",
-            position: "relative",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-          }}>
-            
-            {/* Stripe simulation checkout loading screens */}
-            {isUpgradingSim && (
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                background: "rgba(8, 8, 16, 0.96)", backdropFilter: "blur(12px)",
-                borderRadius: 24, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24, textAlign: "center"
-              }}>
-                <div style={{ width: 60, height: 60, borderRadius: "50%", border: `3px solid ${c.accent}22`, borderTopColor: c.accent, animation: "spin 1s linear infinite", marginBottom: 20 }}></div>
-                <h3 style={{ fontSize: 18, color: "#fff", fontWeight: 700, margin: "0 0 8px 0" }}>
-                  {uiLang === "fr" ? "Traitement sécurisé de l'abonnement..." : "Processing secure subscription..."}
-                </h3>
-                <p style={{ fontSize: 13, color: c.textDim, fontFamily: mono, margin: 0 }}>
-                  🔐 Stripe Secure Checkout Simulation
-                </p>
-              </div>
-            )}
+        {/* Hero Section (Radial Gradient) */}
+        <section style={{
+          position: "relative",
+          paddingTop: 160,
+          paddingBottom: 80,
+          display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center",
+          overflow: "hidden"
+        }}>
+          {/* Background Radial Glow */}
+          <div style={{
+            position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)",
+            width: "100%", maxWidth: 1000, height: 800,
+            background: "radial-gradient(ellipse at top, rgba(139,92,246,0.3) 0%, rgba(236,72,153,0.15) 40%, transparent 70%)",
+            zIndex: 0, pointerEvents: "none"
+          }}></div>
 
-            {upgradeSimSuccess && (
-              <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                background: "rgba(8, 8, 16, 0.96)", backdropFilter: "blur(12px)",
-                borderRadius: 24, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24, textAlign: "center"
-              }}>
-                <div style={{ width: 64, height: 64, borderRadius: "50%", background: c.successSoft, display: "flex", alignItems: "center", justifyContent: "center", color: c.success, fontSize: 32, marginBottom: 20, border: `2px solid ${c.success}` }}>✓</div>
-                <h3 style={{ fontSize: 20, color: "#fff", fontWeight: 800, margin: "0 0 8px 0" }}>
-                  {uiLang === "fr" ? "Paiement Réussi ! 🎉" : "Payment Successful! 🎉"}
-                </h3>
-                <p style={{ fontSize: 13, color: c.textMuted, margin: 0 }}>
-                  {uiLang === "fr" ? "Bienvenue dans le club VIP ViralAcq Pro !" : "Welcome to the VIP ViralAcq Pro club!"}
-                </p>
-              </div>
-            )}
+          <div style={{ position: "relative", zIndex: 10, maxWidth: 900, padding: "0 20px" }}>
+            <h2 style={{
+              fontSize: "clamp(48px, 6vw, 76px)", fontWeight: 900, lineHeight: 1.1, margin: "0 0 24px 0", letterSpacing: "-2px", color: "#111827"
+            }}>
+              <span style={{ display: "block" }}>{loginT.titlePre}</span>
+              <span style={{ background: `linear-gradient(90deg, ${c.accent}, #ec4899)`, WebkitBackgroundClip: "text", color: "transparent" }}>
+                {loginT.titleMain}
+              </span>
+            </h2>
+            <p style={{
+              fontSize: 18, color: "#4B5563", lineHeight: 1.6, maxWidth: 700, margin: "0 auto 40px auto", fontWeight: 500
+            }}>
+              {loginT.subtitle}
+            </p>
 
-            <div style={{ display: "flex", flexDirection: authMode === "signup" ? "row" : "column", gap: 32, flexWrap: "wrap", alignItems: "stretch" }}>
-              
-              {/* Left Column: Input Form fields */}
-              <div style={{ flex: "1 1 300px", minWidth: 300, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ textAlign: "center", marginBottom: 28 }}>
-                   <div style={{ width: 56, height: 56, borderRadius: 14, background: `linear-gradient(135deg, ${c.accent}, #ff9a5c)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color: "#fff", fontFamily: mono, margin: "0 auto 16px", boxShadow: `0 8px 24px ${c.accentGlow}` }}>VA</div>
-                   <h2 className="outfit" style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: "-0.5px", color: "#fff" }}>{loginT.authTitle}</h2>
-                   <p style={{ color: c.textDim, fontSize: 13.5, marginTop: 8 }}>{authMode === "login" ? loginT.authDescLogin : loginT.authDescSignup}</p>
-                </div>
-                
-                <form onSubmit={handleAuth}>
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: "block", fontSize: 10.5, fontFamily: mono, color: c.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{loginT.emailLabel}</label>
-                    <input type="email" required value={emailInput} onChange={e=>setEmailInput(e.target.value)} placeholder="you@company.com" style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${c.border}`, background: "rgba(0,0,0,0.3)", color: "#fff", outline: "none", boxSizing: "border-box", fontSize: 13.5, transition: "all 0.2s" }} onFocus={e=>e.target.style.borderColor=c.accent} onBlur={e=>e.target.style.borderColor=c.border} />
-                  </div>
-                  <div style={{ marginBottom: 16, position: "relative" }}>
-                    <label style={{ display: "block", fontSize: 10.5, fontFamily: mono, color: c.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{loginT.passLabel}</label>
-                    <input type={showPass ? "text" : "password"} required value={passInput} onChange={e=>setPassInput(e.target.value)} placeholder="••••••••" style={{ width: "100%", padding: "12px 38px 12px 14px", borderRadius: 10, border: `1.5px solid ${c.border}`, background: "rgba(0,0,0,0.3)", color: "#fff", outline: "none", boxSizing: "border-box", fontSize: 13.5, transition: "all 0.2s" }} onFocus={e=>e.target.style.borderColor=c.accent} onBlur={e=>e.target.style.borderColor=c.border} />
-                    <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, bottom: 10, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 15 }}>
-                      {showPass ? "🙈" : "👁️"}
-                    </button>
-                  </div>
-                  {authError && <div style={{ color: c.error, fontSize: 11.5, marginBottom: 14, background: c.errorBg, padding: "8px 12px", borderRadius: 8 }}>{authError}</div>}
-                  
-
-                  <button type="submit" style={{ width: "100%", padding: "14px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ff9a5c)`, color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 16px ${c.accentGlow}`, transition: "transform 0.1s" }} onMouseDown={e=>e.target.style.transform="scale(0.98)"} onMouseUp={e=>e.target.style.transform="scale(1)"} onMouseLeave={e=>e.target.style.transform="scale(1)"}>
-                    {authMode === "login" ? loginT.btnIn : (selectedSignupTier === "free" ? loginT.btnUp : (uiLang === "fr" ? "S'abonner & S'inscrire ➔" : "Subscribe & Sign Up ➔"))}
-                  </button>
-                </form>
-
-                <div style={{ textAlign: "center", marginTop: 20, fontSize: 12.5, color: c.textDim }}>
-                  {authMode === "login" ? loginT.switchUp : loginT.switchIn}
-                  <span style={{ color: c.accent, cursor: "pointer", fontWeight: 600, marginLeft: 6 }} onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>
-                    {authMode === "login" ? (uiLang === "fr" ? "S'inscrire" : (uiLang === "it" ? "Registrati" : "Sign up")) : (uiLang === "fr" ? "Se connecter" : (uiLang === "it" ? "Accedi" : "Log in"))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Column: Pricing Plans Selection (only on Signup) */}
-              {authMode === "signup" && (
-                <div style={{ flex: "1.2 1 360px", minWidth: 360, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  <div>
-                    <h3 style={{ margin: "0 0 6px 0", fontSize: 14, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 0.5, fontFamily: mono }}>
-                      ⚡ {uiLang === "fr" ? "Étape 2 : Choisissez votre forfait" : "Step 2: Choose your pricing plan"}
-                    </h3>
-                    <p style={{ margin: "0 0 16px 0", fontSize: 12, color: c.textMuted }}>
-                      {uiLang === "fr" ? "Les abonnements disposent d'accès de fonctionnalités et de données différents." : "Plans feature different feature capacities and data access rules."}
-                    </p>
-                  </div>
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flexGrow: 1 }}>
-                    {[
-                      {
-                        id: "free",
-                        name: uiLang === "fr" ? "Gratuit (Trial)" : (uiLang === "it" ? "Gratuito (Trial)" : "Free (Trial)"),
-                        price: "0 €",
-                        period: uiLang === "fr" ? "à vie" : "forever",
-                        desc: uiLang === "fr" ? "Vetting IA et ressources basiques uniquement." : "Vetting IA and basic resources only.",
-                        color: c.textDim,
-                        badge: uiLang === "fr" ? "Débuter" : "Start"
-                      },
-                      {
-                        id: "standard",
-                        name: "Standard",
-                        price: "39 €",
-                        period: uiLang === "fr" ? "/mois" : "/mo",
-                        desc: uiLang === "fr" ? "CRM 10 leads, 3 analyses/jour, AdSpy view-only." : "CRM 10 leads, 3 analysis/day, AdSpy view-only.",
-                        color: c.accent,
-                        badge: "Standard"
-                      },
-                      {
-                        id: "vip_pro",
-                        name: "VIP Pro",
-                        price: "3999 €",
-                        period: uiLang === "fr" ? "/mois" : "/mo",
-                        desc: uiLang === "fr" ? "Accès total, 2 Coachings + 2 Blogs/mois." : "Full access, 2 coachings + 2 blogs/mo.",
-                        color: c.accent2,
-                        badge: "Populaire"
-                      },
-                      {
-                        id: "vip_elite",
-                        name: "VIP Elite",
-                        price: "5999 €",
-                        period: uiLang === "fr" ? "/mois" : "/mo",
-                        desc: uiLang === "fr" ? "Accès total, Coaching hebdomadaire, Blog illimité." : "Total access, weekly coaching, unlimited blog.",
-                        color: c.success,
-                        badge: "Ultimate"
-                      }
-                    ].map(plan => (
-                      <div
-                        key={plan.id}
-                        onClick={() => setSelectedSignupTier(plan.id)}
-                        style={{
-                          background: selectedSignupTier === plan.id ? `${plan.color}08` : "rgba(0,0,0,0.2)",
-                          border: `1.5px solid ${selectedSignupTier === plan.id ? plan.color : "rgba(255,255,255,0.06)"}`,
-                          borderRadius: 12,
-                          padding: "12px 14px",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                          position: "relative",
-                          overflow: "hidden",
-                          boxShadow: selectedSignupTier === plan.id ? `0 4px 14px ${plan.color}22` : "none"
-                        }}
-                      >
-                        {selectedSignupTier === plan.id && (
-                          <div style={{ position: "absolute", top: 0, right: 0, background: plan.color, color: "#fff", padding: "2px 8px", fontSize: 9, fontWeight: 700, borderRadius: "0 0 0 8px", textTransform: "uppercase" }}>✓</div>
-                        )}
-                        <div>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: selectedSignupTier === plan.id ? plan.color : c.textMuted, fontFamily: mono, textTransform: "uppercase" }}>
-                            {plan.name}
-                          </span>
-                          <p style={{ fontSize: 10.5, color: c.textDim, margin: "4px 0 0 0", lineHeight: 1.3 }}>
-                            {plan.desc}
-                          </p>
-                        </div>
-                        <div style={{ marginTop: 12 }}>
-                          <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: mono }}>{plan.price}</span>
-                          <span style={{ fontSize: 10, color: c.textDim, marginLeft: 2 }}>{plan.period}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={() => { setAuthMode("signup"); setShowLoginModal(true); }} style={{
+                padding: "16px 36px", borderRadius: 14, background: `linear-gradient(90deg, ${c.accent}, #ec4899)`, color: "#fff", border: "none", fontSize: 18, fontWeight: 800, cursor: "pointer",
+                boxShadow: `0 10px 30px ${c.accentGlow}`, transition: "all 0.3s"
+              }} className="hover-lift">
+                {uiLang === "fr" ? "Essayez gratuitement" : "Try for free"}
+              </button>
+              <button style={{
+                padding: "16px 36px", borderRadius: 14, background: "#fff", color: "#111827", border: "1px solid #E5E7EB", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)", transition: "all 0.3s"
+              }} className="hover-lift">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+                {uiLang === "fr" ? "Installer l'extension" : "Install extension"}
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Global responsive styles overlay */}
-        <style>{`
-          @media (max-width: 991px) {
-            .desktop-only { display: none !important; }
-            .mobile-only { display: block !important; }
-          }
-          @media (min-width: 992px) {
-            .desktop-only { display: flex !important; }
-            .mobile-only { display: none !important; }
-          }
-        `}</style>
+          {/* Dashboard Mockup Image */}
+          <div style={{
+            position: "relative", zIndex: 10, marginTop: 60, width: "90%", maxWidth: 1100,
+            background: "#09090E", borderRadius: "24px 24px 0 0", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none",
+            boxShadow: "0 -20px 60px rgba(139,92,246,0.15)", overflow: "hidden", height: 400
+          }}>
+             <div style={{ display: "flex", padding: "16px 24px", borderBottom: "1px solid rgba(255,255,255,0.05)", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ef4444" }}></div>
+                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#eab308" }}></div>
+                   <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#22c55e" }}></div>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.05)", padding: "6px 24px", borderRadius: 6, color: "#9ca3af", fontSize: 12, fontFamily: mono, marginLeft: 20 }}>
+                  viralacq.app/dashboard
+                </div>
+             </div>
+             {/* Fake Content Area */}
+             <div style={{ display: "flex", height: "100%" }}>
+                <div style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.05)", padding: 20 }}>
+                   <div style={{ height: 16, width: "80%", background: "rgba(255,255,255,0.1)", borderRadius: 4, marginBottom: 20 }}></div>
+                   <div style={{ height: 16, width: "60%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
+                   <div style={{ height: 16, width: "70%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
+                   <div style={{ height: 16, width: "50%", background: "rgba(255,255,255,0.05)", borderRadius: 4, marginBottom: 20 }}></div>
+                </div>
+                <div style={{ flex: 1, padding: 30 }}>
+                    <div style={{ height: 32, width: 200, background: "rgba(255,255,255,0.1)", borderRadius: 8, marginBottom: 30 }}></div>
+                    <div style={{ display: "flex", gap: 20 }}>
+                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12, border: "1px solid rgba(139,92,246,0.2)" }}></div>
+                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12 }}></div>
+                       <div style={{ height: 120, flex: 1, background: "rgba(255,255,255,0.03)", borderRadius: 12 }}></div>
+                    </div>
+                </div>
+             </div>
+          </div>
+        </section>
+
+        {/* Login/Signup Modal overlay */}
+        {showLoginModal && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000
+          }}>
+            <div className="glass-panel animate-border" style={{ 
+              width: "100%", 
+              maxWidth: authMode === "signup" ? 860 : 420, 
+              background: "#0f0f20", 
+              padding: "36px 32px", 
+              borderRadius: 24, 
+              border: `1.5px solid rgba(139, 92, 246, 0.2)`, 
+              boxShadow: "0 25px 50px rgba(0,0,0,0.6)", 
+              boxSizing: "border-box",
+              position: "relative",
+              color: "#fff"
+            }}>
+              {/* Close Button */}
+              <button onClick={() => setShowLoginModal(false)} style={{
+                position: "absolute", top: 16, right: 16, background: "transparent", border: "none", color: "#9ca3af", cursor: "pointer", padding: 8
+              }} className="hover-lift">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+
+              <div style={{ display: "flex", flexDirection: authMode === "signup" ? "row" : "column", gap: 40 }}>
+                
+                {/* Left Column: Auth Form */}
+                <div style={{ flex: "1 1 320px" }}>
+                  <div style={{ textAlign: "center", marginBottom: 32 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px auto", boxShadow: `0 8px 24px ${c.accentGlow}` }}>
+                      <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: mono }}>VA</span>
+                    </div>
+                    <h2 style={{ margin: "0 0 8px 0", fontSize: 24, fontWeight: 900, letterSpacing: "-1px" }}>
+                      {authMode === "login" ? (uiLang === "fr" ? "BON RETOUR." : (uiLang === "it" ? "BENTORNATO." : "WELCOME BACK.")) : (uiLang === "fr" ? "CRÉEZ VOTRE COMPTE." : (uiLang === "it" ? "CREA IL TUO ACCOUNT." : "CREATE ACCOUNT."))}
+                    </h2>
+                    <p style={{ margin: 0, fontSize: 13, color: c.textMuted }}>
+                      {authMode === "login" 
+                        ? (uiLang === "fr" ? "Saisissez vos identifiants pour entrer." : (uiLang === "it" ? "Inserisci le tue credenziali per entrare." : "Enter your credentials to enter."))
+                        : (uiLang === "fr" ? "Rejoignez l'élite de l'Acquisition Virale." : (uiLang === "it" ? "Unisciti all'élite dell'Acquisizione Virale." : "Join the elite of Viral Acquisition."))}
+                    </p>
+                  </div>
+
+                  {authError && <div style={{ background: `${c.error}22`, color: c.error, padding: "10px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, marginBottom: 16, border: `1px solid ${c.error}44`, display: "flex", alignItems: "center", gap: 8 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                    {authError}
+                  </div>}
+
+                  <form onSubmit={handleAuth} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 10, fontWeight: 700, color: c.textMuted, fontFamily: mono, letterSpacing: 1, textTransform: "uppercase" }}>{uiLang === "fr" ? "Adresse e-mail" : (uiLang === "it" ? "Indirizzo email" : "Email address")}</label>
+                      <input 
+                        type="email" 
+                        value={emailInput} 
+                        onChange={(e) => setEmailInput(e.target.value)} 
+                        placeholder="you@company.com" 
+                        style={{ width: "100%", padding: "12px 16px", borderRadius: 10, border: `1.5px solid rgba(255,255,255,0.06)`, background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box", transition: "all 0.3s" }} 
+                        onFocus={e => Object.assign(e.target.style, { borderColor: c.accent, background: "rgba(0,0,0,0.5)", boxShadow: `0 0 0 4px ${c.accent}22` })}
+                        onBlur={e => Object.assign(e.target.style, { borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.3)", boxShadow: "none" })}
+                        required 
+                      />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 10, fontWeight: 700, color: c.textMuted, fontFamily: mono, letterSpacing: 1, textTransform: "uppercase" }}>{uiLang === "fr" ? "Mot de passe" : (uiLang === "it" ? "Password" : "Password")}</label>
+                      <input 
+                        type={showPass ? "text" : "password"} 
+                        value={passInput} 
+                        onChange={(e) => setPassInput(e.target.value)} 
+                        placeholder="••••••••" 
+                        style={{ width: "100%", padding: "12px 40px 12px 16px", borderRadius: 10, border: `1.5px solid rgba(255,255,255,0.06)`, background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 14, fontFamily: sans, outline: "none", boxSizing: "border-box", transition: "all 0.3s" }} 
+                        onFocus={e => Object.assign(e.target.style, { borderColor: c.accent, background: "rgba(0,0,0,0.5)", boxShadow: `0 0 0 4px ${c.accent}22` })}
+                        onBlur={e => Object.assign(e.target.style, { borderColor: "rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.3)", boxShadow: "none" })}
+                        required 
+                      />
+                      <button type="button" onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, top: 32, background: "none", border: "none", color: c.textDim, cursor: "pointer", padding: 4 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
+
+                    <button type="submit" style={{ width: "100%", padding: "14px", borderRadius: 10, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: mono, marginTop: 10, boxShadow: `0 8px 24px ${c.accentGlow}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, transition: "transform 0.2s" }} className="hover-lift">
+                      {authMode === "login" ? (uiLang === "fr" ? "Se Connecter" : (uiLang === "it" ? "Accedi" : "Log In")) : (uiLang === "fr" ? "Valider l'Inscription" : (uiLang === "it" ? "Registrati" : "Sign Up"))}
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </button>
+                  </form>
+
+                  <div style={{ textAlign: "center", marginTop: 24, fontSize: 13, color: c.textDim }}>
+                    {authMode === "login" ? (uiLang === "fr" ? "Pas encore membre ?" : (uiLang === "it" ? "Non sei membro?" : "Not a member yet?")) : (uiLang === "fr" ? "Déjà un compte ?" : (uiLang === "it" ? "Hai già un account?" : "Already have an account?"))}
+                    <span style={{ color: c.accent, cursor: "pointer", fontWeight: 700, marginLeft: 6 }} onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setAuthError(""); }}>
+                      {authMode === "login" ? (uiLang === "fr" ? "S'inscrire" : (uiLang === "it" ? "Registrati" : "Sign up")) : (uiLang === "fr" ? "Se connecter" : (uiLang === "it" ? "Accedi" : "Log in"))}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Column: Pricing Plans Selection (only on Signup) */}
+                {authMode === "signup" && (
+                  <div style={{ flex: "1.2 1 360px", minWidth: 360, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div>
+                      <h3 style={{ margin: "0 0 6px 0", fontSize: 14, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 0.5, fontFamily: mono }}>
+                        ⚡ {uiLang === "fr" ? "Étape 2 : Choisissez votre forfait" : "Step 2: Choose your pricing plan"}
+                      </h3>
+                      <p style={{ margin: "0 0 16px 0", fontSize: 12, color: c.textMuted }}>
+                        {uiLang === "fr" ? "Les abonnements disposent d'accès de fonctionnalités et de données différents." : "Plans feature different feature capacities and data access rules."}
+                      </p>
+                    </div>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flexGrow: 1 }}>
+                      {[
+                        {
+                          id: "free",
+                          name: uiLang === "fr" ? "Gratuit (Trial)" : (uiLang === "it" ? "Gratuito (Trial)" : "Free (Trial)"),
+                          price: "0 €",
+                          period: uiLang === "fr" ? "à vie" : "forever",
+                          desc: uiLang === "fr" ? "Vetting IA et ressources basiques uniquement." : "Vetting IA and basic resources only.",
+                          color: c.textDim,
+                          badge: uiLang === "fr" ? "Débuter" : "Start"
+                        },
+                        {
+                          id: "standard",
+                          name: "Standard",
+                          price: "39 €",
+                          period: uiLang === "fr" ? "/mois" : "/mo",
+                          desc: uiLang === "fr" ? "CRM 10 leads, 3 analyses/jour, AdSpy view-only." : "CRM 10 leads, 3 analysis/day, AdSpy view-only.",
+                          color: c.accent,
+                          badge: "Standard"
+                        },
+                        {
+                          id: "vip_pro",
+                          name: "VIP Pro",
+                          price: "49 €",
+                          period: uiLang === "fr" ? "/mois" : "/mo",
+                          desc: uiLang === "fr" ? "Accès total, 2 Coachings + 2 Blogs/mois." : "Full access, 2 coachings + 2 blogs/mo.",
+                          color: c.accent2,
+                          badge: "Populaire"
+                        },
+                        {
+                          id: "vip_elite",
+                          name: "VIP Elite",
+                          price: "99 €",
+                          period: uiLang === "fr" ? "/mois" : "/mo",
+                          desc: uiLang === "fr" ? "Accès total, Coaching hebdomadaire, Blog illimité." : "Total access, weekly coaching, unlimited blog.",
+                          color: c.success,
+                          badge: "Ultimate"
+                        }
+                      ].map(plan => (
+                        <div
+                          key={plan.id}
+                          onClick={() => setSelectedSignupTier(plan.id)}
+                          style={{
+                            background: selectedSignupTier === plan.id ? `${plan.color}08` : "rgba(0,0,0,0.2)",
+                            border: `1.5px solid ${selectedSignupTier === plan.id ? plan.color : "rgba(255,255,255,0.06)"}`,
+                            borderRadius: 12,
+                            padding: "12px 14px",
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            position: "relative",
+                            overflow: "hidden",
+                            boxShadow: selectedSignupTier === plan.id ? `0 4px 14px ${plan.color}22` : "none"
+                          }}
+                        >
+                          {selectedSignupTier === plan.id && (
+                            <div style={{ position: "absolute", top: 0, right: 0, background: plan.color, color: "#fff", padding: "2px 8px", fontSize: 9, fontWeight: 700, borderRadius: "0 0 0 8px", textTransform: "uppercase" }}>★</div>
+                          )}
+                          <div>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: selectedSignupTier === plan.id ? plan.color : c.textMuted, fontFamily: mono, textTransform: "uppercase" }}>
+                              {plan.name}
+                            </span>
+                            <p style={{ fontSize: 10.5, color: c.textDim, margin: "4px 0 0 0", lineHeight: 1.3 }}>
+                              {plan.desc}
+                            </p>
+                          </div>
+                          <div style={{ marginTop: 12 }}>
+                            <span style={{ fontSize: 18, fontWeight: 900, color: "#fff", fontFamily: mono }}>{plan.price}</span>
+                            <span style={{ fontSize: 10, color: c.textDim, marginLeft: 2 }}>{plan.period}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
+
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: c.bg, color: c.text, fontFamily: sans, transition: "background 0.3s, color 0.3s" }}>
@@ -1344,55 +1349,103 @@ export default function ProspectionAgent() {
         </div>
 
 
-        {/* ── Founder Card ── */}
-        <div style={{
-          background: `linear-gradient(135deg, ${c.card}, rgba(139,92,246,0.03))`,
-          border: `1.5px solid ${c.border}`, borderRadius: 14, padding: 14, position: "relative", overflow: "hidden",
-          boxShadow: `0 8px 16px rgba(0,0,0,0.2)`
-        }}>
-          {/* Neon background effect */}
-          <div style={{ position: "absolute", top: "-50%", right: "-50%", width: "100px", height: "100px", background: `radial-gradient(circle, ${c.accentSoft} 0%, transparent 70%)`, filter: "blur(20px)", pointerEvents: "none" }}></div>
-          
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ position: "relative", width: 42, height: 42, flexShrink: 0 }}>
-              <img 
-                src="/founder.jpg" 
-                onError={(e) => { 
-                  e.target.onerror = null; 
-                  e.target.src = "https://ui-avatars.com/api/?name=Brejnev+Diaz&background=8B5CF6&color=fff&size=100&rounded=true";
-                }}
-                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${c.accent}` }} 
-                alt="Brejnev Diaz" 
-              />
-              <span style={{ position: "absolute", bottom: 0, right: 0, width: 10, height: 10, borderRadius: "50%", background: c.success, border: `1.5px solid ${c.card}` }}></span>
+
+        {/* 🚀 Upgrade Button (Minea style) */}
+        {userTier !== 'elite' && (
+          <button onClick={() => setShowUpgradeModal(true)} style={{
+            width: '100%', padding: '12px', borderRadius: 8, border: 'none',
+            background: 'linear-gradient(90deg, #f97316, #f59e0b)', color: '#fff',
+            fontSize: 14, fontWeight: 700, fontFamily: mono, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)', marginBottom: 16
+          }}>
+            <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'><rect width='18' height='11' x='3' y='11' rx='2' ry='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>
+            Améliorer
+          </button>
+        )}
+
+        {/* 👤 Profile Settings (Minea style) */}
+        <div style={{ position: 'relative', marginTop: 'auto' }}>
+          <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} style={{
+            width: '100%', background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 12, padding: '12px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userId || 'VA')}&background=8B5CF6&color=fff&size=100&rounded=true`} style={{ width: 32, height: 32, borderRadius: '50%' }} alt='User' />
+              <div style={{ textAlign: 'left', overflow: 'hidden' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: c.text, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: 140 }}>
+                  {userId || 'brejnevdiaz@gmail.com'}
+                </div>
+                <div style={{ fontSize: 11, color: c.textDim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{userTier}</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: c.text }}>Brejnev Diaz</div>
-              <div style={{ fontSize: 10, color: c.accent, fontWeight: 700, textTransform: "uppercase" }}>Fondateur & CEO</div>
+            <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke={c.textMuted} strokeWidth='2' style={{ transform: profileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d='m15 18-6-6 6-6'/></svg>
+          </button>
+
+          {profileMenuOpen && (
+            <div style={{
+              position: 'absolute', bottom: '100%', left: 0, width: '100%', marginBottom: 8,
+              background: c.surface, border: `1px solid ${c.border}`, borderRadius: 12, padding: '8px 0',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column'
+            }}>
+              <div style={{ padding: '8px 16px', borderBottom: `1px solid ${c.border}`, marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{userId || 'brejnevdiaz@gmail.com'}</div>
+                <div style={{ fontSize: 11, color: c.textMuted }}>Compte {userTier}</div>
+              </div>
+              
+              <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setProfileMenuOpen(false)}>
+                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>
+                Mon compte
+              </button>
+              <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { setShowUpgradeModal(true); setProfileMenuOpen(false); }}>
+                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect width='18' height='14' x='3' y='5' rx='2' ry='2'/><line x1='3' x2='21' y1='10' y2='10'/></svg>
+                Abonnements
+              </button>
+
+              <div style={{ height: 1, background: c.border, margin: '4px 0' }} />
+
+              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, color: c.textDim }}>Langue</span>
+                <select
+                  value={uiLang}
+                  onChange={(e) => setUiLang(e.target.value)}
+                  style={{
+                    background: c.bg, color: c.text, border: `1px solid ${c.border}`, borderRadius: 6,
+                    padding: "4px 8px", fontFamily: mono, fontSize: 11, fontWeight: 600, outline: "none", cursor: "pointer"
+                  }}
+                >
+                  <option value="fr">🇫🇷 FR</option>
+                  <option value="en">🇬🇧 EN</option>
+                  <option value="it">🇮🇹 IT</option>
+                </select>
+              </div>
+
+              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, color: c.textDim }}>Thème</span>
+                <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28,
+                  borderRadius: 6, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
+                  cursor: "pointer", transition: "all 0.2s"
+                }} title={theme === "dark" ? "Light mode" : "Dark mode"}>
+                  {theme === "dark" ? 
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
+                    : 
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                  }
+                </button>
+              </div>
+
+              <div style={{ height: 1, background: c.border, margin: '4px 0' }} />
+              
+              <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.error, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { setProfileMenuOpen(false); supabase.auth.signOut(); }}>
+                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><polyline points='16 17 21 12 16 7'/><line x1='21' x2='9' y1='12' y2='12'/></svg>
+                Se déconnecter
+              </button>
             </div>
-          </div>
-          <p style={{ fontSize: 11, color: c.textMuted, lineHeight: 1.4, margin: "0 0 6px 0" }}>
-            "Une idée, un bug ou besoin d'une feature ? Contacte-moi !"
-          </p>
-          <div style={{ display: "flex", gap: 8, fontSize: 10.5, color: c.textDim, fontFamily: mono, borderTop: `1px solid rgba(255,255,255,0.04)`, paddingTop: 8 }}>
-            <span>💬 @Brejnev_Diaz</span>
-          </div>
+          )}
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={() => supabase.auth.signOut()}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            width: "100%", padding: "9px 12px", marginTop: 10,
-            borderRadius: 8, border: `1px solid ${c.error}44`,
-            background: "transparent", color: c.error,
-            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: mono,
-            transition: "all 0.2s",
-          }}
-        >
-          ⎋ {uiLang === "fr" ? "Déconnexion" : uiLang === "it" ? "Esci" : "Log Out"}
-        </button>
       </div>
 
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
@@ -1574,39 +1627,6 @@ export default function ProspectionAgent() {
             {results.length > 0 && <div className="desktop-only"><Badge color={c.success} bg={c.successSoft}>Σ {stats.total}</Badge></div>}
             {emailsSent > 0 && <div className="desktop-only"><Badge color={c.emailBlue} bg={c.emailBlueSoft}>{t.sentCount(emailsSent)}</Badge></div>}
 
-            <select
-              value={uiLang}
-              onChange={(e) => setUiLang(e.target.value)}
-              style={{
-                background: c.bg,
-                color: c.text,
-                border: `1px solid ${c.border}`,
-                borderRadius: 8,
-                padding: "6px 10px",
-                fontFamily: mono,
-                fontSize: 12,
-                fontWeight: 600,
-                outline: "none",
-                cursor: "pointer",
-                marginLeft: 4
-              }}
-            >
-              <option value="fr">🇫🇷 FR</option>
-              <option value="en">🇬🇧 EN</option>
-              <option value="it">🇮🇹 IT</option>
-            </select>
-
-            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
-              display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32,
-              borderRadius: 8, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
-              cursor: "pointer", transition: "all 0.2s", marginLeft: 2
-            }} title={theme === "dark" ? "Light mode" : "Dark mode"} className="hover-lift">
-              {theme === "dark" ? 
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg> 
-                : 
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-              }
-            </button>
           </div>
         </div>
 
