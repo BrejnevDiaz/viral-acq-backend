@@ -517,21 +517,23 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
       </div>
 
       {/* AI Store Builder Banner */}
-      <div style={{ background: `linear-gradient(135deg, ${c.accent}15, ${c.accent2}15)`, border: `1px solid ${c.accent}55`, padding: "16px 24px", borderRadius: 16, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <div style={{ background: `linear-gradient(135deg, rgba(150,191,72,0.1), rgba(42,157,143,0.1))`, border: `1px solid rgba(150,191,72,0.4)`, padding: "16px 24px", borderRadius: 16, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #8b5cf6, #ec4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, boxShadow: "0 4px 12px rgba(236,72,153,0.3)" }}>🪄</div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #96bf48, #2a9d8f)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 4px 12px rgba(150,191,72,0.3)" }}>
+            <svg role="img" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="28" height="28"><path d="M19.789 4.148h-3.666c-1.391-2.951-4.004-4.148-4.004-4.148L9.04 2.89S7.345 3.394 6.83 5.485C6.314 7.574 6.314 7.574 6.314 7.574s-.701-.194-1.785-.194c-1.082 0-2.072.194-2.072.194l-1.42 14.156S.588 23.36 12 24c11.41-.64 10.963-2.27 10.963-2.27l1.246-13.882s-.146-2.5-4.42-3.7zM11.666 22.033S3.018 21.61.854 12.871l1.637-2.73s1.205-.17 2.195.275c.987.447 1.488 1.144 1.488 1.144s-2.316 2.455-1.127 5.762c1.192 3.308 4.288 3.596 6.069 3.596 1.78 0 4.88-.288 6.071-3.596 1.19-3.307-1.128-5.762-1.128-5.762s.501-.697 1.489-1.144c.99-.445 2.195-.275 2.195-.275l1.637 2.73c-2.164 8.74-10.814 9.162-10.814 9.162z"/></svg>
+          </div>
           <div>
             <h3 style={{ margin: "0 0 4px 0", fontSize: 16, fontWeight: 800, color: c.text }}>
-              {uiLang === "fr" ? "Débutant ? Créez votre boutique e-commerce avec l'IA" : uiLang === "en" ? "Beginner? Create your e-commerce store with AI" : "Principiante? Crea il tuo negozio e-commerce con l'IA"}
+              {uiLang === "fr" ? "Débutant ? Créez votre boutique Shopify avec l'IA" : uiLang === "en" ? "Beginner? Create your Shopify store with AI" : "Principiante? Crea il tuo negozio Shopify con l'IA"}
             </h3>
             <p style={{ margin: 0, fontSize: 13, color: c.textMuted }}>
-              {uiLang === "fr" ? "Générez une boutique clé en main optimisée pour la conversion en 1 clic." : uiLang === "en" ? "Generate a turnkey store optimized for conversion in 1 click." : "Genera un negozio chiavi in mano ottimizzato per la conversione in 1 clic."}
+              {uiLang === "fr" ? "Générez une boutique Shopify clé en main optimisée pour la conversion en 1 clic." : uiLang === "en" ? "Generate a turnkey Shopify store optimized for conversion in 1 click." : "Genera un negozio Shopify chiavi in mano ottimizzato per la conversione in 1 clic."}
             </p>
           </div>
         </div>
-        <button onClick={() => alert(uiLang === "fr" ? "L'IA de génération de boutique arrive très bientôt dans la Pro Suite !" : "AI Store Generation is coming very soon to the Pro Suite!")} style={{ background: `linear-gradient(90deg, ${c.accent}, ${c.accent2})`, border: "none", color: "#fff", padding: "10px 20px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 4px 12px rgba(236,72,153,0.3)", display: "flex", alignItems: "center", gap: 8, transition: "transform 0.2s" }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="none"}>
+        <button onClick={() => alert(uiLang === "fr" ? "L'IA de génération de boutique Shopify arrive très bientôt dans la Pro Suite !" : "AI Shopify Store Generation is coming very soon to the Pro Suite!")} style={{ background: `linear-gradient(90deg, #96bf48, #2a9d8f)`, border: "none", color: "#fff", padding: "10px 20px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 4px 12px rgba(150,191,72,0.3)", display: "flex", alignItems: "center", gap: 8, transition: "transform 0.2s" }} onMouseOver={e=>e.currentTarget.style.transform="scale(1.05)"} onMouseOut={e=>e.currentTarget.style.transform="none"}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          {uiLang === "fr" ? "Générer ma Boutique (IA)" : uiLang === "en" ? "Generate My Store (AI)" : "Genera il mio Negozio (IA)"}
+          {uiLang === "fr" ? "Générer ma Boutique Shopify" : uiLang === "en" ? "Generate Shopify Store" : "Genera Negozio Shopify"}
         </button>
       </div>
 
