@@ -879,6 +879,54 @@ app.post("/api/send-email", async (req, res) => {
   }
 });
 
+// ─── Contact Agency (Brand Portal) ──────────────────────────────────────────
+app.post("/api/contact-agency", async (req, res) => {
+  const { brandName, website, niche, budget, message } = req.body;
+
+  if (!brandName || !message) {
+    return res.status(400).json({ error: "Paramètres manquants: brandName, message" });
+  }
+
+  const gmailUser     = process.env.GMAIL_USER;
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+
+  if (!gmailUser || !gmailPassword || gmailPassword.includes("xxxx")) {
+    return res.status(500).json({ error: "Gmail non configuré" });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: gmailUser, pass: gmailPassword },
+    });
+
+    const subject = `🔥 Nouvelle Demande de Collaboration: ${brandName}`;
+    const bodyText = `
+Nom de la marque: ${brandName}
+Site Web: ${website || 'Non spécifié'}
+Niche: ${niche || 'Non spécifiée'}
+Budget estimé: ${budget || 'Non spécifié'}
+
+Objectifs et message:
+${message}
+    `;
+
+    const mailOptions = {
+      from: `"${brandName} via Portail" <${gmailUser}>`,
+      to: gmailUser, // Envoie le mail sur l'adresse de l'agence elle-même
+      subject,
+      text: bodyText,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Demande de collaboration envoyée: ${info.messageId}`);
+    res.json({ success: true, messageId: info.messageId });
+  } catch (err) {
+    console.error("Contact Agency Email Error:", err);
+    res.status(500).json({ error: "Échec de l'envoi de la demande" });
+  }
+});
+
 // ─── Gigs auto-mail notification for matching influencers ────────────────────
 app.post("/api/gigs/notify", async (req, res) => {
   const { gig, influencers } = req.body;
