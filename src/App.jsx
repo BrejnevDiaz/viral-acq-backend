@@ -350,6 +350,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 export default function ProspectionAgent() {
   const [theme, setTheme]               = useState("dark");
   const [uiLang, setUiLang]             = useState("fr");
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const [selNiches, setSelNiches]       = useState(["beauty", "food"]);
   const [selTarget, setSelTarget]       = useState("influencers");
   const [selPlatforms, setSelPlatforms] = useState(["web", "instagram"]);
@@ -380,6 +381,7 @@ export default function ProspectionAgent() {
   const [userRole, setUserRole]           = useState("user");
   const [userId, setUserId]               = useState(null);
   const [selectedSignupTier, setSelectedSignupTier] = useState("standard");
+  const [signupRole, setSignupRole] = useState("brand");
   const [showUpgradeModal, setShowUpgradeModal]     = useState(false);
   const [upgradeModalData, setUpgradeModalData]     = useState({ tab: "", title: "", reason: "" });
   const [isUpgradingSim, setIsUpgradingSim]         = useState(false);
@@ -2361,7 +2363,23 @@ export default function ProspectionAgent() {
         {/* Main page content body */}
         <div className="main-content" style={{ padding: 24, width: "100%", boxSizing: "border-box", flexGrow: 1 }}>
 
-        {currentTab === "adspy" ? (
+        
+        {userRole === 'creator' && currentTab !== 'talentagency' && currentTab !== 'resources' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#09090b', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', padding: 40 }}>
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{uiLang === 'fr' ? 'Espace réservé aux Marques' : 'Brand Only Area'}</h2>
+            <p style={{ color: '#A1A1AA', fontSize: 15, maxWidth: 400, lineHeight: 1.6, marginBottom: 32 }}>
+              {uiLang === 'fr' 
+                ? "En tant que Créateur UGC, cette section de recherche et d'espionnage ne vous est pas accessible. Votre espace de gestion des missions se trouve dans l'onglet Talents & Gigs."
+                : "As a UGC Creator, this research and spy section is locked. Your mission management workspace is in the Talents & Gigs tab."}
+            </p>
+            <button onClick={() => setCurrentTab('talentagency')} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              {uiLang === 'fr' ? 'Aller à mes missions' : 'Go to my missions'}
+            </button>
+          </div>
+        ) : currentTab === "adspy" ? (
           <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} />
         ) : currentTab === "productfinder" ? (
           <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} />
@@ -2849,7 +2867,8 @@ export default function ProspectionAgent() {
           .sidebar-container { display: flex !important; }
           .mobile-nav-bar { display: none !important; }
         }
-      `}</style>
+      `}  .hover-bg-light:hover { background: rgba(255,255,255,0.05) !important; }
+</style>
 
       {/* Global toast notification */}
       {appToast && (
