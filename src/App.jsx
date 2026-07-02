@@ -839,13 +839,13 @@ export default function ProspectionAgent() {
               }}>VA</div>
               <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>ViralAcquisition</span>
             </div>
-            <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
+            <div className="nav-menu-desktop" style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>Adspy</span>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Produit gagnant</span>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Sourcing CRM</span>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Matchmaking</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <div className="nav-menu-desktop" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <span style={{ fontSize: 14, color: '#A1A1AA', cursor: 'pointer' }}>French ▾</span>
               <button 
                 onClick={() => { setAuthMode('login'); setShowLoginModal(true); }}
@@ -1009,7 +1009,7 @@ export default function ProspectionAgent() {
           {/* ADSPY & PRODUIT GAGNANT */}
           <section id="adspy" style={{ maxWidth: 1100, margin: '120px auto 0 auto', padding: '0 24px', textAlign: 'center', position: 'relative' }}>
             <div id="produit-gagnant" style={{ position: 'absolute', top: -100 }}></div>
-            <h2 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Trouve ton prochain <span style={{ color: '#8B5CF6' }}>produit gagnant</span> en 3 clics</h2>
+            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Trouvez vos prochains <span style={{ color: '#8B5CF6' }}>talents UGC</span> en 3 clics</h2>
             <p style={{ fontSize: 18, color: '#A1A1AA', maxWidth: 700, margin: '0 auto 48px auto', lineHeight: 1.6 }}>Accède à 80M+ d'annonces et d'influenceurs. Analyse les tendances, observe tes concurrents et lance des campagnes qui convertissent vraiment.</p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 80 }}>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 30px rgba(139,92,246,0.3)' }}>Essayer gratuitement</button>
@@ -1282,8 +1282,8 @@ export default function ProspectionAgent() {
             </div>
 
             {/* TESTIMONIALS */}
-          <section style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Acquisition Pro</span></h2>
+          <section className="p-mobile-sm" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
+            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Acquisition Pro</span></h2>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }}>
                {[
                  { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est ViralAcquisition. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
