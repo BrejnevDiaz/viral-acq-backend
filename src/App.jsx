@@ -365,6 +365,15 @@ export default function ProspectionAgent() {
   const [backendOk, setBackendOk]       = useState(null);
   const [emailsSent, setEmailsSent]     = useState(0);
   const [expandedEmail, setExpandedEmail] = useState(null);
+
+  const location = useLocation();
+  const path = location.pathname;
+
+  if (path === '/cgv') return <LegalPage type="CGV" />;
+  if (path === '/mentions') return <LegalPage type="Legal" />;
+  if (path === '/privacy') return <LegalPage type="Privacy" />;
+  if (path.startsWith('/p/')) return <InfoPage title={decodeURIComponent(path.replace('/p/', ''))} />;
+
   const [isLoggedIn, setIsLoggedIn]       = useState(false);
   const [userTier, setUserTier]           = useState("free");
   const [userRole, setUserRole]           = useState("user");
