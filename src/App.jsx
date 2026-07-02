@@ -379,7 +379,7 @@ export default function ProspectionAgent() {
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);\n  const [showLegalModal, setShowLegalModal] = useState(false);\n  const [legalType, setLegalType] = useState("");
   const [authIntent, setAuthIntent] = useState("");
   const [researchMenuOpen, setResearchMenuOpen] = useState(true);
   const [redirectShop, setRedirectShop]   = useState(null);
