@@ -862,7 +862,7 @@ export default function ProspectionAgent() {
             <p style={{
               fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
             }}>
-              Découvrez les produits gagnants, analysez les boutiques e-commerce concurrentes, espionnez les meilleures créatives publicitaires et recrutez des influenceurs à fort impact sur Meta, TikTok, Pinterest et plus encore.
+              L'agence d'acquisition nouvelle génération : l'ultime plateforme de matchmaking. Recrutez les meilleurs influenceurs (le véritable Adecco de l'influence), analysez les stratégies marketing gagnantes et sourcez des créateurs à fort impact pour scaler votre marque.
             </p>
 
             <div style={{ display: 'flex', gap: 16 }}>
@@ -989,10 +989,10 @@ export default function ProspectionAgent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Repère les annonces <span style={{ color: '#8B5CF6' }}>performantes</span>
+                  L'Adecco de l'<span style={{ color: '#8B5CF6' }}>Influence Marketing</span>
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Identifie les tendances avant les autres. Filtre par réseau, engagement, activité et popularité pour trouver les créatives publicitaires qui génèrent des millions.
+                  Recrutez instantanément les créateurs de contenu parfaits pour votre marque. Notre système de Matchmaking avancé filtre par niche, engagement et audience pour vous connecter avec les influenceurs qui génèrent une acquisition virale massive.
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
@@ -1034,10 +1034,10 @@ export default function ProspectionAgent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Analyse les annonces avec des <span style={{ color: '#8B5CF6' }}>données clés</span>
+                  Pilotez vos campagnes et votre <span style={{ color: '#8B5CF6' }}>Sourcing CRM</span>
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Suis l'activité et les budgets, explore la page de l'annonce et accède aux infos essentielles de la boutique pour valider ton produit gagnant.
+                  Une véritable agence de marketing entre vos mains. Gérez votre portefeuille d'influenceurs via notre CRM, suivez les budgets alloués et analysez le ROI de chaque campagne pour optimiser votre rentabilité en temps réel.
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
