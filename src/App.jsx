@@ -841,7 +841,7 @@ export default function ProspectionAgent() {
                 width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: '0 0 20px rgba(139,92,246,0.4)'
               }}>VA</div>
-              <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>ViralAcquisition</span>
+              <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>Acquisition Pro</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>{uiLang === 'fr' ? 'Veille Concurrentielle' : 'Spy & Inspiration'}</span>
@@ -1019,7 +1019,7 @@ export default function ProspectionAgent() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', maxWidth: 350 }}>
                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                    <div>
-                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"ViralAcquisition est mon outil préféré pour trouver des concurrents et de nouveaux produits viraux."</p>
+                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"Acquisition Pro est mon outil préféré pour trouver des concurrents et de nouveaux produits viraux."</p>
                       <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Austin, <span style={{ color: '#8B5CF6' }}>+180k abonnés</span></div>
                    </div>
                 </div>
@@ -1447,7 +1447,7 @@ export default function ProspectionAgent() {
             <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Viral Acquisition</span></h2>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }}>
                {[
-                 { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est ViralAcquisition. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
+                 { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est Acquisition Pro. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
                  { name: "Jonathan", type: "Agence", text: "J'utilise ViralAcq depuis 2024 et ça a toujours été un essentiel de mon matchmaking. Trouver les bons créateurs est devenu un jeu d'enfant.", img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=400&q=80" },
                  { name: "Nawfel Ammar", type: "Créateur", text: "ViralAcq est un super outil pour les créateurs qui souhaitent trouver leur premier partenariat gagnant. Gérer ses contrats depuis une seule plateforme c'est un vrai gain de temps.", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=400&q=80" }
                ].map((t, i) => (
@@ -1524,10 +1524,10 @@ export default function ProspectionAgent() {
                 <img src="https://github.com/BrejnevDiaz.png" alt="Brejnev Diaz" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid #8B5CF6', marginBottom: 24, boxShadow: '0 10px 30px rgba(139,92,246,0.4)', position: 'relative', zIndex: 2 }} />
                 
                 <h2 style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: 8, position: 'relative', zIndex: 2 }}>Brejnev Diaz</h2>
-                <div style={{ fontSize: 16, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 32, position: 'relative', zIndex: 2 }}>Fondateur de ViralAcquisition (Agence)</div>
+                <div style={{ fontSize: 16, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 32, position: 'relative', zIndex: 2 }}>Fondateur de l'Agence Viral Acquisition</div>
                 
                 <p style={{ fontSize: 20, color: '#E4E4E7', lineHeight: 1.6, maxWidth: 700, margin: '0 auto', fontStyle: 'italic', fontWeight: 300, position: 'relative', zIndex: 2 }}>
-                  "Mon objectif avec ViralAcquisition est simple : supprimer toutes les frictions entre les marques e-commerce et les créateurs de contenu. Nous ne sommes pas juste un outil d'espionnage, nous sommes le pont qui permet de nouer des partenariats ultra-rentables et de disrupter le marché de l'influence."
+                  "Mon objectif avec Acquisition Pro est simple : supprimer toutes les frictions entre les marques e-commerce et les créateurs de contenu. Nous ne sommes pas juste un outil d'espionnage, nous sommes le pont qui permet de nouer des partenariats ultra-rentables et de disrupter le marché de l'influence."
                 </p>
               </div>
             </section>
@@ -1726,7 +1726,7 @@ export default function ProspectionAgent() {
              </div>
              
              <div style={{ textAlign: 'center', color: '#71717A', fontSize: 13, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 40 }}>
-                ViralAcquisition © 2026. Tous droits réservés.
+                Acquisition Pro by Viral Acquisition © 2026. Tous droits réservés.
              </div>
           </footer>
 
@@ -1779,7 +1779,7 @@ export default function ProspectionAgent() {
                   {legalType === 'Legal' && (
                     <>
                       <h3>Éditeur du site</h3>
-                      <p>Le site Acquisition Pro est édité par l'agence ViralAcquisition.</p>
+                      <p>Le site Acquisition Pro est édité par l'agence Viral Acquisition (fondée par Brejnev Diaz).</p>
                       <h3>Hébergement</h3>
                       <p>Ce site est hébergé sur Vercel Inc, San Francisco, CA.</p>
                       <h3>Contact</h3>
