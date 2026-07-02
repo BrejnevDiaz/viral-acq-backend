@@ -946,7 +946,7 @@ export default function ProspectionAgent() {
                        </div>
                        {/* Ad Card 4 (THE FACE) */}
                        <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(236,72,153,0.5)', position: 'relative', overflow: 'hidden', boxShadow: '0 0 20px rgba(236,72,153,0.2)' }}>
-                           <img src="https://github.com/BrejnevDiaz.png" alt="Creative Face" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95 }} />
+                           <img src="/founder.jpg" alt="Creative Face" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95 }} />
                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)' }}>
                                <div style={{ fontSize: 11, fontWeight: 'bold', color: '#fff' }}>Coaching Elite</div>
                                <div style={{ fontSize: 9, color: '#EC4899' }}>Top Performer</div>
@@ -1216,7 +1216,7 @@ export default function ProspectionAgent() {
                     <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444' }}></div>
                     <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B' }}></div>
                     <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10B981' }}></div>
-                    <div style={{ margin: '0 auto', fontSize: 12, color: '#52525B', fontWeight: 500 }}>viralacq.app/analyzer</div>
+                    <div style={{ margin: '0 auto', fontSize: 12, color: '#52525B', fontWeight: 500 }}>acquisition-pro.app/analyzer</div>
                   </div>
                   {/* Fake Content Area */}
                   <div style={{ padding: 32 }}>
@@ -1269,7 +1269,7 @@ export default function ProspectionAgent() {
 
             {/* TESTIMONIALS */}
           <section style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>ViralAcquisition</span></h2>
+            <h2 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Acquisition Pro</span></h2>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }}>
                {[
                  { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est ViralAcquisition. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
@@ -1349,7 +1349,7 @@ export default function ProspectionAgent() {
                 <img src="https://github.com/BrejnevDiaz.png" alt="Brejnev Diaz" style={{ width: 120, height: 120, borderRadius: '50%', objectFit: 'cover', border: '4px solid #8B5CF6', marginBottom: 24, boxShadow: '0 10px 30px rgba(139,92,246,0.4)', position: 'relative', zIndex: 2 }} />
                 
                 <h2 style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: 8, position: 'relative', zIndex: 2 }}>Brejnev Diaz</h2>
-                <div style={{ fontSize: 16, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 32, position: 'relative', zIndex: 2 }}>Fondateur de ViralAcquisition</div>
+                <div style={{ fontSize: 16, color: '#8B5CF6', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, marginBottom: 32, position: 'relative', zIndex: 2 }}>Fondateur de ViralAcquisition (Agence)</div>
                 
                 <p style={{ fontSize: 20, color: '#E4E4E7', lineHeight: 1.6, maxWidth: 700, margin: '0 auto', fontStyle: 'italic', fontWeight: 300, position: 'relative', zIndex: 2 }}>
                   "Mon objectif avec ViralAcquisition est simple : supprimer toutes les frictions entre les marques e-commerce et les créateurs de contenu. Nous ne sommes pas juste un outil d'espionnage, nous sommes le pont qui permet de nouer des partenariats ultra-rentables et de disrupter le marché de l'influence."
@@ -1363,10 +1363,10 @@ export default function ProspectionAgent() {
                 <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>Nous répondons à vos questions</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                    {[
-                     "À quoi sert ViralAcquisition ?",
-                     "L'abonnement est-il sans engagement ?",
-                     "Comment annuler mon abonnement ?",
-                     "Comment fonctionne le Matchmaking ?",
+                     "Comment fonctionne le Matchmaking avec les Créateurs ?",
+                     "Quels sont les avantages par rapport à une agence classique ?",
+                     "Puis-je gérer mes contrats légaux sur la plateforme ?",
+                     "Est-ce adapté si je débute en e-commerce ?",
                      "Quelle est la différence entre VIP Pro et VIP Elite ?"
                    ].map((q, i) => (
                       <details key={i} style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
@@ -1375,7 +1375,7 @@ export default function ProspectionAgent() {
                             <span style={{ color: '#8B5CF6', fontSize: 24 }}>›</span>
                          </summary>
                          <div style={{ padding: '0 24px 24px 24px', color: '#A1A1AA', fontSize: 15, lineHeight: 1.6 }}>
-                            ViralAcquisition est la plateforme ultime pour connecter les marques et les influenceurs. Notre technologie analyse des milliers de données pour garantir le partenariat le plus rentable.
+                            Notre IA analyse des milliers de données (engagement, audience, niche) pour vous connecter automatiquement avec les créateurs UGC et influenceurs les plus rentables pour votre marque. Finies les heures de recherche manuelle.
                          </div>
                       </details>
                    ))}
@@ -1452,33 +1452,33 @@ export default function ProspectionAgent() {
                    <div>
                       <h4 style={{ color: '#EC4899', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>Découvrez</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Influenceurs TikTok</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Coaching Elite</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Trouvez votre talent</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Matchmaking CRM</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Formation Acquisition</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Influenceurs TikTok</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Coaching Elite</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Trouvez votre talent</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Matchmaking CRM</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Formation Acquisition</a>
                       </div>
                    </div>
 
                    <div>
                       <h4 style={{ color: '#10B981', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>En savoir plus</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Meilleure agence</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Stratégie virale</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Comment démarrer ?</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Analyse de la concurrence</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Blog & Ressources</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Meilleure agence</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Stratégie virale</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Comment démarrer ?</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Analyse de la concurrence</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Blog & Ressources</a>
                       </div>
                    </div>
 
                    <div>
                       <h4 style={{ color: '#8B5CF6', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>Liens Pratiques (Légal)</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                         <a href="#" onClick={(e) => { e.preventDefault(); setAuthMode('login'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Connexion</a>
-                         <a href="#" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Inscription</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Conditions générales de vente (CGV)</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Politique de confidentialité</a>
-                         <a href="#" style={{ color: '#A1A1AA', fontSize: 14 }}>Mentions Légales</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('login'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Connexion</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Inscription</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Conditions générales de vente (CGV)</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Politique de confidentialité</a>
+                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Mentions Légales</a>
                       </div>
                    </div>
                 </div>
