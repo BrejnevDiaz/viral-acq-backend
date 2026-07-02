@@ -1021,7 +1021,7 @@ export default function ProspectionAgent() {
           </section>
 
           {/* MATCHMAKING & SOURCING SECTIONS */}
-          <section id="matchmaking" style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex'exDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
+          <section id="matchmaking" style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex', flexDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
             {/* Feature 1 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
