@@ -540,7 +540,7 @@ Signature :
                                 <InstaIcon />
                                 {t.followers >= 1000 ? `${(t.followers/1000).toFixed(1)}k` : t.followers}
                               </span>
-                              <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff" }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 4, color: c.text }}>
                                 <TikTokIcon />
                                 {t.tiktokFollowers ? (t.tiktokFollowers >= 1000 ? `${(t.tiktokFollowers/1000).toFixed(1)}k` : t.tiktokFollowers) : `${(t.followers * 1.5 / 1000).toFixed(1)}k`}
                               </span>
