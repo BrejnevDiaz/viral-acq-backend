@@ -1478,9 +1478,9 @@ export default function ProspectionAgent() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                          <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('login'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Connexion</a>
                          <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Inscription</a>
-                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Conditions générales de vente (CGV)</a>
-                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Politique de confidentialité</a>
-                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" style={{ color: '#A1A1AA', fontSize: 14 }}>Mentions Légales</a>
+                         <a href="#cgv" onClick={(e) => { e.preventDefault(); setLegalType('CGV'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Conditions générales de vente (CGV)</a>
+                         <a href="#privacy" onClick={(e) => { e.preventDefault(); setLegalType('Privacy'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Politique de confidentialité</a>
+                         <a href="#mentions" onClick={(e) => { e.preventDefault(); setLegalType('Legal'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Mentions Légales</a>
                       </div>
                    </div>
                 </div>
