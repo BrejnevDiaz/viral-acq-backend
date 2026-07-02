@@ -862,7 +862,7 @@ export default function ProspectionAgent() {
             <p style={{
               fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
             }}>
-              L'agence d'acquisition nouvelle génération : l'ultime plateforme de matchmaking. Recrutez les meilleurs influenceurs (le véritable Adecco de l'influence), analysez les stratégies marketing gagnantes et sourcez des créateurs à fort impact pour scaler votre marque.
+              L'agence d'acquisition nouvelle génération : l'ultime plateforme de matchmaking. Recrutez les meilleurs influenceurs (votre vivier d'influenceurs sur-mesure), analysez les stratégies marketing gagnantes et sourcez des créateurs à fort impact pour scaler votre marque.
             </p>
 
             <div style={{ display: 'flex', gap: 16 }}>
@@ -983,13 +983,12 @@ export default function ProspectionAgent() {
           </main>
 
           {/* Features Sections (Alternating) */}
-          <section style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex', flexDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
-            
+                    <section style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex', flexDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
             {/* Feature 1 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  L'Adecco de l'<span style={{ color: '#8B5CF6' }}>Influence Marketing</span>
+                  L'Agence de l'<span style={{ color: '#8B5CF6' }}>Influence Marketing</span>
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
                   Recrutez instantanément les créateurs de contenu parfaits pour votre marque. Notre système de Matchmaking avancé filtre par niche, engagement et audience pour vous connecter avec les influenceurs qui génèrent une acquisition virale massive.
@@ -1034,6 +1033,7 @@ export default function ProspectionAgent() {
                     </div>
                  </div>
               </div>
+            </div>
 
             {/* Feature 2 (Reversed) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
@@ -1116,6 +1116,7 @@ export default function ProspectionAgent() {
                     </div>
                  </div>
               </div>
+            </div>
 
           </section>
 
