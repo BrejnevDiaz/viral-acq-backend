@@ -2867,8 +2867,8 @@ export default function ProspectionAgent() {
           .sidebar-container { display: flex !important; }
           .mobile-nav-bar { display: none !important; }
         }
-      `}  .hover-bg-light:hover { background: rgba(255,255,255,0.05) !important; }
-</style>
+              .hover-bg-light:hover { background: rgba(255,255,255,0.05) !important; }
+      `}</style>
 
       {/* Global toast notification */}
       {appToast && (
