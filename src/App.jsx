@@ -866,29 +866,35 @@ export default function ProspectionAgent() {
             </p>
 
             <div style={{ display: 'flex', gap: 16 }}>
-              <button 
-                onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
-                style={{
-                  background: 'linear-gradient(90deg, #8B5CF6, #EC4899, #8B5CF6)',
-                  color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12,
-                  fontSize: 16, fontWeight: 700, cursor: 'pointer',
-                  boxShadow: '0 10px 30px rgba(236,72,153,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
-                }}
-                className="hover-lift hover-glow-intense"
-              >
-                Essayer gratuitement
-              </button>
-              <button style={{
-                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#fff', padding: '16px 32px', borderRadius: 12,
-                fontSize: 16, fontWeight: 600, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(10px)',
-                transition: 'background 0.2s'
-              }} className="hover-bg-white-10">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                Installer l'extension
-              </button>
+ 
+                <button 
+                  onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
+                  style={{
+                    background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)',
+                    color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12,
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 10px 30px rgba(139,92,246,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    display: 'flex', alignItems: 'center', gap: 8
+                  }}
+                  className="hover-lift hover-glow-intense"
+                >
+                  Trouver votre talent
+                </button>
+                <button 
+                  onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                    color: '#fff', padding: '16px 32px', borderRadius: 12,
+                    fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex', alignItems: 'center', gap: 8
+                  }} 
+                  className="hover-lift"
+                >
+                  Trouver un partenariat
+                </button>
+              
             </div>
 
             {/* Massive Hero Mockup */}
@@ -998,7 +1004,7 @@ export default function ProspectionAgent() {
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Essayer gratuitement
+                  Trouver votre talent
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(135deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}>
@@ -1049,7 +1055,7 @@ export default function ProspectionAgent() {
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Essayer gratuitement
+                  Trouver un talent
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(139,92,246,0.1)', display: 'flex', flexDirection: 'column' }}>
