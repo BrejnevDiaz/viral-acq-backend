@@ -1011,10 +1011,10 @@ export default function ProspectionAgent() {
                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', maxWidth: 350 }}>
-                   <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
+                   <img src="https://ui-avatars.com/api/?name=Brejnev+Diaz&background=8B5CF6&color=fff&size=150" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                    <div>
                       <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"J'utilise ViralAcq depuis des années. En 3 clics, je trouve des produits à fort potentiel pour ma marque."</p>
-                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Yomi Denzel, <span style={{ color: '#8B5CF6' }}>+1,4M abonnés</span></div>
+                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Brejnev Diaz, <span style={{ color: '#8B5CF6' }}>Fondateur</span></div>
                    </div>
                 </div>
             </div>
@@ -1163,7 +1163,7 @@ export default function ProspectionAgent() {
           
             {/* Feature 3 (Track Trends) */}
             <div id="shop-analyzer" style={{ paddingTop: 80 }}></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80 }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80 }}>
               <div style={{ flex: 1, maxWidth: 500 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>Trackez les marques tendances</h2>
                 <p style={{ fontSize: 18, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
