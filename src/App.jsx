@@ -1575,7 +1575,7 @@ export default function ProspectionAgent() {
                           </div>
                       </div>
                       
-                      <button onClick={() => { alert(uiLang === 'fr' ? "Redirection vers le calendrier de réservation (Calendly)..." : "Redirecting to booking calendar (Calendly)..."); }} className="hover-glow-intense" style={{ background: 'linear-gradient(90deg, #A78BFA, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
+                      <button onClick={() => window.open('https://viralacquisition.it/contact', '_blank')} className="hover-glow-intense" style={{ background: 'linear-gradient(90deg, #A78BFA, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
                           {uiLang === 'fr' ? "Réserver un appel avec l'Agence" : "Book a call with the Agency"}
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                       </button>
