@@ -846,7 +846,10 @@ export default function ProspectionAgent() {
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Matchmaking</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <span style={{ fontSize: 14, color: '#A1A1AA', cursor: 'pointer' }}>French ▾</span>
+              <select style={{ background: 'transparent', color: '#A1A1AA', border: 'none', fontSize: 14, cursor: 'pointer', outline: 'none' }}>
+                  <option value="fr" style={{ color: '#000' }}>French</option>
+                  <option value="en" style={{ color: '#000' }}>English</option>
+                </select>
               <button 
                 onClick={() => { setAuthMode('login'); setShowLoginModal(true); }}
                 style={{
@@ -1445,7 +1448,7 @@ export default function ProspectionAgent() {
           </section>
 
 <section className="p-mobile-sm" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
-            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Acquisition Pro</span></h2>
+            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Ce que les experts disent de <span style={{ color: '#8B5CF6' }}>Viral Acquisition</span></h2>
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }}>
                {[
                  { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est ViralAcquisition. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
