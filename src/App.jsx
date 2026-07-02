@@ -1542,7 +1542,7 @@ export default function ProspectionAgent() {
                       <div style={{ display: 'inline-block', padding: '6px 16px', background: 'rgba(139,92,246,0.1)', color: '#C4B5FD', borderRadius: 20, fontSize: 14, fontWeight: 700, marginBottom: 24, border: '1px solid rgba(139,92,246,0.3)', textTransform: 'uppercase', letterSpacing: 1 }}>{uiLang === 'fr' ? "Service Premium" : "Premium Service"}</div>
                       
                       <h2 className="text-mobile-h2" style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.1 }}>
-                          {uiLang === 'fr' ? <>Vous n'avez pas le temps ?<br/><span style={{ color: '#A78BFA' }}>Déléguez tout à l'Agence.</span></> : <>No time to manage?<br/><span style={{ color: '#A78BFA' }}>Delegate to our Agency.</span></>}
+                          {uiLang === 'fr' ? <>Besoin d'experts pour scaler ?<br/><span style={{ color: '#A78BFA' }}>Déléguez tout à l'Agence.</span></> : <>Ready to scale massively?<br/><span style={{ color: '#A78BFA' }}>Delegate to our Agency.</span></>}
                       </h2>
                       
                       <p className="text-mobile-p" style={{ color: '#A1A1AA', fontSize: 18, marginBottom: 40, lineHeight: 1.6 }}>
