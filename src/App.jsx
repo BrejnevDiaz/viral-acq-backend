@@ -941,24 +941,18 @@ export default function ProspectionAgent() {
                     <div style={{ display: 'flex', gap: 16, height: 160 }}>
                        {/* Ad Card 1 */}
                        <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(139,92,246,0.4)', position: 'relative', overflow: 'hidden' }}>
-                           <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}>
-                               <source src="https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4" type="video/mp4" />
-                           </video>
+                           <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
                            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 1.2M</div>
                            <div style={{ position: 'absolute', top: 8, right: 8, background: '#10B981', padding: '3px 8px', borderRadius: 4, fontSize: 9, color: '#fff', fontWeight: 'bold' }}>Active</div>
                        </div>
                        {/* Ad Card 2 */}
                        <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}>
-                               <source src="https://cdn.pixabay.com/video/2020/05/21/40003-424564858_small.mp4" type="video/mp4" />
-                           </video>
+                           <img src="https://images.unsplash.com/photo-1512413917887-8463c6591873?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
                            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 450K</div>
                        </div>
                        {/* Ad Card 3 */}
                        <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }}>
-                               <source src="https://cdn.pixabay.com/video/2019/11/12/29252-374395079_small.mp4" type="video/mp4" />
-                           </video>
+                           <img src="https://images.unsplash.com/photo-1512756290469-ec264b7fbf87?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
                            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 890K</div>
                        </div>
                        {/* Ad Card 4 (THE FACE) */}
@@ -974,9 +968,7 @@ export default function ProspectionAgent() {
                     <div style={{ display: 'flex', gap: 16, height: 160 }}>
                        {/* Ad Card 5 */}
                        <div style={{ width: '22%', background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }}>
-                               <source src="https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4" type="video/mp4" />
-                           </video>
+                           <img src="https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
                            <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 320K</div>
                        </div>
                        {/* Ad Card 6 */}
