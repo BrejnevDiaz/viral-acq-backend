@@ -621,7 +621,7 @@ Signature :
 
               <div style={{ display: "flex", gap: 12, fontSize: 12, color: c.text, marginBottom: 16, alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#E1306C" }}><InstaIcon /> {i.followers >= 1000 ? `${(i.followers/1000).toFixed(1)}k` : i.followers}</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#fff" }}><TikTokIcon /> {i.tiktokFollowers ? (i.tiktokFollowers >= 1000 ? `${(i.tiktokFollowers/1000).toFixed(1)}k` : i.tiktokFollowers) : `${(i.followers * 1.5 / 1000).toFixed(1)}k`}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, color: c.text }}><TikTokIcon /> {i.tiktokFollowers ? (i.tiktokFollowers >= 1000 ? `${(i.tiktokFollowers/1000).toFixed(1)}k` : i.tiktokFollowers) : `${(i.followers * 1.5 / 1000).toFixed(1)}k`}</div>
                 <div style={{ marginLeft: 8 }}>🔥 {i.engagement}% eng</div>
               </div>
               
