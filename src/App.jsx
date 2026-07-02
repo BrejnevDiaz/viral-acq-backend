@@ -1095,7 +1095,7 @@ export default function ProspectionAgent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Pilotez vos campagnes et votre <span style={{ color: '#8B5CF6' }}>Trouver une collab</span>
+                  Pilotez vos campagnes et votre <span style={{ color: '#8B5CF6' }}>Sourcing & CRM</span>
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
                   Une véritable agence de marketing entre vos mains. Gérez votre portefeuille d'influenceurs via notre CRM, suivez les budgets alloués et analysez le ROI de chaque campagne pour optimiser votre rentabilité en temps réel.
