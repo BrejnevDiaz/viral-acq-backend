@@ -1377,8 +1377,6 @@ export default function ProspectionAgent() {
                 <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>Nous répondons à vos questions</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                    {[
-                     "Comment fonctionne le Matchmaking avec les Créateurs ?",
-                     "Quels sont les avantages par rapport à une agence classique ?",
                      "Puis-je gérer mes contrats légaux sur la plateforme ?",
                      "Est-ce adapté si je débute en e-commerce ?",
                      "Quelle est la différence entre VIP Pro et VIP Elite ?"
