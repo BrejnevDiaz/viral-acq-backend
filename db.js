@@ -3,23 +3,29 @@ import path from "path";
 
 const LEADS_FILE = path.join(process.cwd(), "leads.json");
 
-export const saveLead = async (lead) => {
+// Chaque lead est tagué avec un ownerId (id Supabase de l'utilisateur).
+// Les leads existants sans ownerId deviennent invisibles via l'API (choix de
+// sécurité par défaut — pas de rattachement automatique à un compte).
+export const saveLead = async (ownerId, lead) => {
   let leads = [];
   try {
     if (fs.existsSync(LEADS_FILE)) {
       leads = JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8"));
     }
   } catch(e){}
-  
-  const idx = leads.findIndex(l => l.emailTo && l.emailTo === lead.emailTo);
+
+  const idx = leads.findIndex(l => l.ownerId === ownerId && l.emailTo && l.emailTo === lead.emailTo);
   if (idx >= 0) {
-    leads[idx] = { ...leads[idx], ...lead };
+    // Préserve l'ownerId de l'enregistrement existant (important pour le CRON)
+    leads[idx] = { ...leads[idx], ...lead, ownerId: leads[idx].ownerId };
   } else {
-    leads.push({ ...lead, sourcedAt: lead.sourcedAt || new Date().toISOString() });
+    leads.push({ ...lead, ownerId, sourcedAt: lead.sourcedAt || new Date().toISOString() });
   }
   fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2));
 };
 
+// Reste global (appelé par le CRON, sans contexte de requête) — chaque lead
+// retourné porte son propre ownerId, à repasser à saveLead lors de la relance.
 export const getLeadsToFollowUp = async () => {
   try {
     if (!fs.existsSync(LEADS_FILE)) return [];
@@ -36,15 +42,24 @@ export const getLeadsToFollowUp = async () => {
   }
 };
 
-export const getAllLeads = async () => {
+export const getAllLeads = async (ownerId) => {
   try {
     if (fs.existsSync(LEADS_FILE)) {
-      return JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8"));
+      const leads = JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8"));
+      return leads.filter(l => l.ownerId === ownerId);
     }
   } catch(e){}
   return [];
 };
 
-export const deleteLeads = async () => {
-  fs.writeFileSync(LEADS_FILE, "[]");
+// Ne supprime plus tout le fichier : uniquement les leads du user courant.
+export const deleteLeads = async (ownerId) => {
+  let leads = [];
+  try {
+    if (fs.existsSync(LEADS_FILE)) {
+      leads = JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8"));
+    }
+  } catch(e){}
+  const remaining = leads.filter(l => l.ownerId !== ownerId);
+  fs.writeFileSync(LEADS_FILE, JSON.stringify(remaining, null, 2));
 };

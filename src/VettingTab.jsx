@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { apiFetch } from "./utils/apiClient";
 
 const InstaIcon = () => (
   <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#E1306C" }}>
@@ -70,7 +71,7 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t, userId }) {
   const runDeepAnalysis = async () => {
     setAnalyzing(true);
     try {
-      const res = await fetch(`${API_URL}/api/vetting/analyze-deep`, {
+      const res = await apiFetch(`${API_URL}/api/vetting/analyze-deep`, {
         method: "POST", headers: {"Content-Type":"application/json"},
         body: JSON.stringify({ username: data.username, platform: data.platform })
       });
@@ -100,7 +101,7 @@ export default function VettingTab({ c, mono, API_URL, uiLang, t, userId }) {
     if (cleanUsername.startsWith("@")) cleanUsername = cleanUsername.substring(1);
 
     try {
-      const res = await fetch(`${API_URL}/api/vetting`, {
+      const res = await apiFetch(`${API_URL}/api/vetting`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: cleanUsername, platform, lang: uiLang })

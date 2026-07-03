@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { apiFetch } from "./utils/apiClient";
 
 // Pre-loaded high-converting winning dropshipping products
 const BASE_MOCK_PRODUCTS = [
@@ -417,7 +418,7 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/product-finder/search`, {
+      const response = await apiFetch(`${API_URL}/api/product-finder/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchTerm, category: selectedNiche, region: "eu" })

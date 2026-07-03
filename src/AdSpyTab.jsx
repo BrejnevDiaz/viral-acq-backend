@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { apiFetch } from "./utils/apiClient";
 
 // Pre-loaded high-quality demo creatives inspired by Minea
 const BASE_MOCK_ADS = [
@@ -486,7 +487,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
     if (e) e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/adspy/search`, {
+      const response = await apiFetch(`${API_URL}/api/adspy/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchTerm, niche: selectedNiche, platform: selectedPlatform })

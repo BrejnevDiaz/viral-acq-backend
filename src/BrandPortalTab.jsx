@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiFetch } from "./utils/apiClient";
 
 const PremiumBuildingIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="url(#premiumGradient)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "text-bottom", filter: "drop-shadow(0px 2px 6px rgba(236, 72, 153, 0.4))" }}>
@@ -32,7 +33,7 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
     setStatus('submitting');
     
     try {
-      const res = await fetch(`${API_URL}/api/contact-agency`, {
+      const res = await apiFetch(`${API_URL}/api/contact-agency`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

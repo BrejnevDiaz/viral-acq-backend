@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from "./utils/apiClient";
 
 const Card = ({ children, c }) => (
   <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
@@ -142,8 +143,8 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
   const fetchData = async () => {
     try {
-      const rBrand = await fetch(`${API_URL}/api/catalogue/brands`);
-      const rInf = await fetch(`${API_URL}/api/catalogue/influencers`);
+      const rBrand = await apiFetch(`${API_URL}/api/catalogue/brands`);
+      const rInf = await apiFetch(`${API_URL}/api/catalogue/influencers`);
       setBrands((await rBrand.json()).brands || []);
       setInfluencers((await rInf.json()).influencers || []);
       
@@ -161,7 +162,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
   const fetchMatches = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/catalogue/matches`).then(r => r.json());
+      const res = await apiFetch(`${API_URL}/api/catalogue/matches`).then(r => r.json());
       setValidatedMatches(res);
     } catch (e) {
       console.error(e);
@@ -176,7 +177,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     if (!brand || !influencer) return;
 
     try {
-      const res = await fetch(`${API_URL}/api/catalogue/matches`, {
+      const res = await apiFetch(`${API_URL}/api/catalogue/matches`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -201,7 +202,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     if (!pitchModal.recipientEmail || !pitchModal.email) return;
     setPitchModal(prev => ({ ...prev, sendingEmail: true }));
     try {
-      const res = await fetch(`${API_URL}/api/send-email`, {
+      const res = await apiFetch(`${API_URL}/api/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -228,7 +229,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   const deleteMatch = async (id) => {
     if (!window.confirm(uiLang === "fr" ? "Supprimer cet accord ?" : "Eliminare questo accordo?")) return;
     try {
-      await fetch(`${API_URL}/api/catalogue/matches/${id}`, { method: "DELETE" });
+      await apiFetch(`${API_URL}/api/catalogue/matches/${id}`, { method: "DELETE" });
       setValidatedMatches(prev => prev.filter(m => m.id !== id));
     } catch (err) {
       console.error(err);
@@ -237,7 +238,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
 
   const addBrand = async () => {
     if (!newBrand.name || !newBrand.niche) return;
-    await fetch(`${API_URL}/api/catalogue/brands`, {
+    await apiFetch(`${API_URL}/api/catalogue/brands`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newBrand)
     });
     setNewBrand({ name: '', website: '', niche: '', budget: '', description: '' });
@@ -245,13 +246,13 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   };
 
   const deleteBrand = async (id) => {
-    await fetch(`${API_URL}/api/catalogue/brands/${id}`, { method: "DELETE" });
+    await apiFetch(`${API_URL}/api/catalogue/brands/${id}`, { method: "DELETE" });
     fetchData();
   };
 
   const addInfluencer = async () => {
     if (!newInfluencer.username || !newInfluencer.niche) return;
-    await fetch(`${API_URL}/api/catalogue/influencers`, {
+    await apiFetch(`${API_URL}/api/catalogue/influencers`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(newInfluencer)
     });
     syncToRoster(newInfluencer);
@@ -260,14 +261,14 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
   };
 
   const deleteInfluencer = async (id) => {
-    await fetch(`${API_URL}/api/catalogue/influencers/${id}`, { method: "DELETE" });
+    await apiFetch(`${API_URL}/api/catalogue/influencers/${id}`, { method: "DELETE" });
     fetchData();
   };
 
   const generatePitch = async () => {
     setPitchModal({ ...pitchModal, loading: true, email: '' });
     try {
-      const res = await fetch(`${API_URL}/api/catalogue/generate-pitch`, {
+      const res = await apiFetch(`${API_URL}/api/catalogue/generate-pitch`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: pitchModal.mode,

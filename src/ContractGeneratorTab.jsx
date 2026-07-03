@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
+import { apiFetch } from "./utils/apiClient";
 
 const Card = ({ children, c, style = {} }) => (
   <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 24, marginBottom: 16, boxShadow: `0 8px 24px rgba(0,0,0,0.1)`, ...style }}>
@@ -496,7 +497,7 @@ Signature : Brejnev Diaz (Signé)
 
     // Emails are best-effort — contract is always saved regardless
     const sendOne = (to, subject, body) =>
-      fetch(`${EMAIL_BASE}/api/send-email`, {
+      apiFetch(`${EMAIL_BASE}/api/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to, subject, body, brandName: previewContract.brandName }),

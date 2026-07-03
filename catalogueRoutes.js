@@ -1,8 +1,12 @@
 import express from 'express';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
+import { requireAuth, requireRole } from './authMiddleware.js';
 
 const router = express.Router();
+
+// Toutes les routes du catalogue sont réservées aux comptes 'brand' (admin passe).
+router.use(requireAuth, requireRole('brand'));
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 if (!existsSync(DATA_DIR)) {
@@ -31,23 +35,26 @@ const writeJSON = (file, data) => {
 // MARQUES (BRANDS)
 // ==========================================
 router.get('/brands', (req, res) => {
-  res.json(readJSON(brandsFile));
+  res.json(readJSON(brandsFile).filter(b => b.ownerId === req.user.id));
 });
 
 router.post('/brands', (req, res) => {
   const { name, website, niche, budget, description } = req.body;
   if (!name || !niche) return res.status(400).json({ error: 'Name and niche required' });
   const brands = readJSON(brandsFile);
-  const newBrand = { id: Date.now().toString(), name, website, niche, budget, description, createdAt: new Date().toISOString() };
+  const newBrand = { id: Date.now().toString(), ownerId: req.user.id, name, website, niche, budget, description, createdAt: new Date().toISOString() };
   brands.push(newBrand);
   writeJSON(brandsFile, brands);
   res.json(newBrand);
 });
 
 router.delete('/brands/:id', (req, res) => {
-  let brands = readJSON(brandsFile);
-  brands = brands.filter(b => b.id !== req.params.id);
-  writeJSON(brandsFile, brands);
+  const brands = readJSON(brandsFile);
+  const target = brands.find(b => b.id === req.params.id);
+  if (!target || target.ownerId !== req.user.id) {
+    return res.status(403).json({ error: 'Accès refusé — cette ressource ne vous appartient pas' });
+  }
+  writeJSON(brandsFile, brands.filter(b => b.id !== req.params.id));
   res.json({ success: true });
 });
 
@@ -55,23 +62,26 @@ router.delete('/brands/:id', (req, res) => {
 // INFLUENCEURS SIGNES (INFLUENCERS)
 // ==========================================
 router.get('/influencers', (req, res) => {
-  res.json(readJSON(influencersFile));
+  res.json(readJSON(influencersFile).filter(i => i.ownerId === req.user.id));
 });
 
 router.post('/influencers', (req, res) => {
   const { username, platform, niche, followers, engagement, avatar } = req.body;
   if (!username || !platform) return res.status(400).json({ error: 'Username and platform required' });
   const influencers = readJSON(influencersFile);
-  const newInfluencer = { id: Date.now().toString(), username, platform, niche, followers, engagement, avatar, createdAt: new Date().toISOString() };
+  const newInfluencer = { id: Date.now().toString(), ownerId: req.user.id, username, platform, niche, followers, engagement, avatar, createdAt: new Date().toISOString() };
   influencers.push(newInfluencer);
   writeJSON(influencersFile, influencers);
   res.json(newInfluencer);
 });
 
 router.delete('/influencers/:id', (req, res) => {
-  let influencers = readJSON(influencersFile);
-  influencers = influencers.filter(i => i.id !== req.params.id);
-  writeJSON(influencersFile, influencers);
+  const influencers = readJSON(influencersFile);
+  const target = influencers.find(i => i.id === req.params.id);
+  if (!target || target.ownerId !== req.user.id) {
+    return res.status(403).json({ error: 'Accès refusé — cette ressource ne vous appartient pas' });
+  }
+  writeJSON(influencersFile, influencers.filter(i => i.id !== req.params.id));
   res.json({ success: true });
 });
 
@@ -133,7 +143,7 @@ Le but est de proposer une collaboration sponsorisée entre cette marque et notr
 // ACCORDS VALIDES (MATCHES)
 // ==========================================
 router.get('/matches', (req, res) => {
-  res.json(readJSON(matchesFile));
+  res.json(readJSON(matchesFile).filter(m => m.ownerId === req.user.id));
 });
 
 router.post('/matches', (req, res) => {
@@ -142,6 +152,7 @@ router.post('/matches', (req, res) => {
   const matches = readJSON(matchesFile);
   const newMatch = {
     id: Date.now().toString(),
+    ownerId: req.user.id,
     brand,
     influencer,
     relationship,
@@ -155,9 +166,12 @@ router.post('/matches', (req, res) => {
 });
 
 router.delete('/matches/:id', (req, res) => {
-  let matches = readJSON(matchesFile);
-  matches = matches.filter(m => m.id !== req.params.id);
-  writeJSON(matchesFile, matches);
+  const matches = readJSON(matchesFile);
+  const target = matches.find(m => m.id === req.params.id);
+  if (!target || target.ownerId !== req.user.id) {
+    return res.status(403).json({ error: 'Accès refusé — cette ressource ne vous appartient pas' });
+  }
+  writeJSON(matchesFile, matches.filter(m => m.id !== req.params.id));
   res.json({ success: true });
 });
 

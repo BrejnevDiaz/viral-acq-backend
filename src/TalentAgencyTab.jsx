@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { apiFetch } from "./utils/apiClient";
 
 // Real influencer talents scoured from https://viralacquisition.it/talents
 const MOCK_TALENTS = [
@@ -318,7 +319,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     if (cleanUsername.startsWith("@")) cleanUsername = cleanUsername.substring(1);
 
     try {
-      const res = await fetch(`${API_URL}/api/vetting`, {
+      const res = await apiFetch(`${API_URL}/api/vetting`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: cleanUsername, platform: newTalent.platform, lang: uiLang })
       });
@@ -400,7 +401,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
 
     if (matchingTalents.length > 0) {
       console.log(`✉️ Envoi de notifications à ${matchingTalents.length} créateurs...`);
-      fetch(`${API_URL}/api/gigs/notify`, {
+      apiFetch(`${API_URL}/api/gigs/notify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gig: item, influencers: matchingTalents })

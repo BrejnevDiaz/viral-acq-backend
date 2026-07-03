@@ -6,8 +6,9 @@ import nodemailer from "nodemailer";
 import cron from "node-cron";
 import { ApifyClient } from 'apify-client';
 import { saveLead, getLeadsToFollowUp, getAllLeads, deleteLeads } from "./db.js";
-import { startCampaign, campaignState } from "./campaignManager.js";
+import { startCampaign, getCampaignState } from "./campaignManager.js";
 import { supabase } from "./supabaseClient.js";
+import { requireBrand, requireAnyUser } from "./authMiddleware.js";
 import catalogueRoutes from "./catalogueRoutes.js";
 
 // ─── Load .env ───────────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ const setCached = async (key, payload, ttlHours = 6) => {
 };
 
 // ─── STEP 1 : Tavily Search ───────────────────────────────────────────────────
-app.post("/api/google-search", async (req, res) => {
+app.post("/api/google-search", ...requireBrand, async (req, res) => {
   const { query, num = 8, platform = "web" } = req.body;
   const key = process.env.TAVILY_API_KEY;
 
@@ -129,7 +130,7 @@ app.post("/api/google-search", async (req, res) => {
 // Sources : Tavily découvre les URLs → oEmbed enrichit (thumbnail réel, titre réel)
 // → Apify facebook-ads-library-scraper en fallback si peu de résultats.
 // Cache Supabase 6 heures.
-app.post("/api/adspy/search", async (req, res) => {
+app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
   const { query = "", niche = "all", platform = "all" } = req.body;
   const tavilyKey  = process.env.TAVILY_API_KEY;
   const apifyToken = process.env.APIFY_API_TOKEN;
@@ -284,7 +285,7 @@ app.post("/api/adspy/search", async (req, res) => {
 });
 
 // ─── STEP 2 : Claude Haiku — Score & Extract ─────────────────────────────────
-app.post("/api/score-brand", async (req, res) => {
+app.post("/api/score-brand", ...requireBrand, async (req, res) => {
   const { brand } = req.body;
   const key = process.env.ANTHROPIC_API_KEY;
 
@@ -411,7 +412,7 @@ Rispondi SOLO con JSON: {"score":<60-99>,"size":"Startup|Emerging|Small|Medium",
 });
 
 // ─── STEP 3 : Claude Haiku — Génération email personnalisé ──────────────────
-app.post("/api/generate-email", async (req, res) => {
+app.post("/api/generate-email", ...requireBrand, async (req, res) => {
   const { brand, emailLang = "it" } = req.body || {};
   if (!brand || typeof brand.name !== "string" || !brand.name.trim()) {
     return res.status(400).json({ error: "Champ requis manquant : brand.name" });
@@ -561,7 +562,7 @@ app.get("/api/image-proxy", async (req, res) => {
   }
 });
 
-app.post("/api/vetting/analyze-deep", async (req, res) => {
+app.post("/api/vetting/analyze-deep", ...requireBrand, async (req, res) => {
   const { username, platform } = req.body || {};
   if (!username || !platform) {
     return res.status(400).json({ error: "Champs requis manquants : username, platform" });
@@ -601,10 +602,11 @@ Réponds en français, avec un ton professionnel et direct.`;
   }
 });
 
-app.get("/api/vetting/history", async (req, res) => {
+app.get("/api/vetting/history", ...requireBrand, async (req, res) => {
   if (!supabase) return res.json({ history: [] });
   try {
-    const { data, error } = await supabase.from("vetting_history").select("*").order("created_at", { ascending: false }).limit(20);
+    // Nécessite la colonne user_id (migration SQL à exécuter dans Supabase)
+    const { data, error } = await supabase.from("vetting_history").select("*").eq("user_id", req.user.id).order("created_at", { ascending: false }).limit(20);
     if (error) {
       console.error("Erreur GET /api/vetting/history:", error);
       return res.status(500).json({ error: "Database error" });
@@ -616,7 +618,7 @@ app.get("/api/vetting/history", async (req, res) => {
 });
 
 // 🚀 STEP 4 : Nodemailer - Envoi email via Gmail SMTP 📧
-app.post("/api/vetting", async (req, res) => {
+app.post("/api/vetting", ...requireBrand, async (req, res) => {
   const { username, platform, lang = 'fr' } = req.body;
   if (!username) return res.status(400).json({ error: lang === 'en' ? "Missing username" : (lang === 'it' ? "Username mancante" : "Nom d'utilisateur manquant") });
 
@@ -735,6 +737,7 @@ app.post("/api/vetting", async (req, res) => {
 
     if (supabase) {
       supabase.from("vetting_history").insert({
+        user_id: req.user.id,
         username: username,
         platform: platform,
         followers: followers,
@@ -789,9 +792,9 @@ app.post("/api/vetting", async (req, res) => {
   }
 });
 
-  app.delete("/api/leads", async (req, res) => {
+  app.delete("/api/leads", ...requireBrand, async (req, res) => {
     try {
-      await deleteLeads();
+      await deleteLeads(req.user.id);
       res.json({ success: true });
     } catch (e) {
       console.error("Erreur DELETE /api/leads:", e);
@@ -799,7 +802,7 @@ app.post("/api/vetting", async (req, res) => {
     }
   });
 
-app.post("/api/send-email", async (req, res) => {
+app.post("/api/send-email", ...requireBrand, async (req, res) => {
   const { to, subject, body, brandName } = req.body;
 
   if (!to || !subject || !body) {
@@ -858,7 +861,7 @@ app.post("/api/send-email", async (req, res) => {
 
     // CRM : Sauvegarde dans Supabase / locale
     try {
-      await saveLead({
+      await saveLead(req.user.id, {
         emailTo: to,
         brandName,
         emailStatus: "sent",
@@ -932,7 +935,7 @@ ${message}
 });
 
 // ─── Gigs auto-mail notification for matching influencers ────────────────────
-app.post("/api/gigs/notify", async (req, res) => {
+app.post("/api/gigs/notify", ...requireBrand, async (req, res) => {
   const { gig, influencers } = req.body;
 
   if (!gig || !influencers || !Array.isArray(influencers)) {
@@ -1023,16 +1026,16 @@ app.get("/health", (_, res) => {
 });
 
 // ─── CRM ──────────────────────────────────────────────────────────────────────
-app.get("/api/leads", async (req, res) => {
+app.get("/api/leads", ...requireBrand, async (req, res) => {
   try {
-    const leads = await getAllLeads();
+    const leads = await getAllLeads(req.user.id);
     return res.json({ leads: leads.reverse() });
   } catch (err) {
     res.json({ leads: [] });
   }
 });
 
-app.post("/api/leads", async (req, res) => {
+app.post("/api/leads", ...requireBrand, async (req, res) => {
   try {
     const lead = req.body;
     const dbLead = {
@@ -1051,7 +1054,7 @@ app.post("/api/leads", async (req, res) => {
       reasoning: lead.reasoning || "Imported from AdSpy",
       sourcedAt: new Date().toISOString()
     };
-    await saveLead(dbLead);
+    await saveLead(req.user.id, dbLead);
     res.json({ success: true, lead: dbLead });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1059,17 +1062,18 @@ app.post("/api/leads", async (req, res) => {
 });
 
 // ─── BACKGROUND QUEUES ────────────────────────────────────────────────────────
-app.post("/api/campaigns/start", (req, res) => {
-  if (campaignState.isRunning) {
+app.post("/api/campaigns/start", ...requireBrand, (req, res) => {
+  const state = getCampaignState(req.user.id);
+  if (state.isRunning) {
     return res.status(400).json({ error: "Une campagne est déjà en cours." });
   }
   // Lance la fonction asynchrone sans bloquer la réponse
-  startCampaign(req.body);
+  startCampaign(req.body, req.user.id, req.user.token);
   res.json({ success: true, message: "Campagne démarrée en arrière-plan." });
 });
 
-app.get("/api/campaigns/status", (req, res) => {
-  res.json(campaignState);
+app.get("/api/campaigns/status", ...requireBrand, (req, res) => {
+  res.json(getCampaignState(req.user.id));
 });
 
 // ─── CRON JOB : Relance Automatique (Follow-up à J+3) ──────────────────────
@@ -1088,7 +1092,7 @@ cron.schedule("0 10 * * *", async () => {
     for (const lead of leadsToFollowUp) {
       // Pour l'instant on marque juste le lead dans la base de données
       // Tu pourras brancher la logique nodemailer ici plus tard !
-      await saveLead({ ...lead, followUpSent: true, followUpDate: new Date().toISOString() });
+      await saveLead(lead.ownerId, { ...lead, followUpSent: true, followUpDate: new Date().toISOString() });
       console.log(`   ✅ Relance marquée comme envoyée pour ${lead.emailTo}`);
     }
   } catch (err) {
@@ -1099,7 +1103,7 @@ cron.schedule("0 10 * * *", async () => {
 // ─── Product Finder — Produits tendance réels (Tavily + Apify AliExpress + Claude)
 // Tavily découvre les URLs produits → Apify scrape AliExpress → Claude normalise/score.
 // Cache Supabase 24 heures.
-app.post("/api/product-finder/search", async (req, res) => {
+app.post("/api/product-finder/search", ...requireBrand, async (req, res) => {
   const { query = "", category = "all", region = "eu" } = req.body;
   const tavilyKey    = process.env.TAVILY_API_KEY;
   const apifyToken   = process.env.APIFY_API_TOKEN;
@@ -1256,7 +1260,7 @@ Réponds UNIQUEMENT avec le JSON, rien d'autre.`
 // ─── Shop Analyzer — Analyse Shopify réelle (products.json + app detection + Tavily + Claude)
 // Shopify /products.json est public → scraping HTML pour apps → Tavily signaux trafic/ads.
 // Cache Supabase 12 heures.
-app.post("/api/shop-analyzer/analyze", async (req, res) => {
+app.post("/api/shop-analyzer/analyze", ...requireBrand, async (req, res) => {
   const { domain = "" } = req.body;
   const tavilyKey    = process.env.TAVILY_API_KEY;
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -1435,8 +1439,8 @@ Données :
 });
 
 // ─── Talent Agency placeholders (roster géré via Supabase directement côté frontend) ──
-app.get( "/api/talent-agency/roster",  (_, res) => res.json({ talents: [] }));
-app.post("/api/talent-agency/add",     (_, res) => res.json({ success: true }));
+app.get( "/api/talent-agency/roster",  ...requireAnyUser, (_, res) => res.json({ talents: [] }));
+app.post("/api/talent-agency/add",     ...requireAnyUser, (_, res) => res.json({ success: true }));
 
 app.listen(PORT, () => {
   const tavily    = process.env.TAVILY_API_KEY && process.env.TAVILY_API_KEY !== "TON_API_KEY_TAVILY";

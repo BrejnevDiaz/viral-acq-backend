@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { apiFetch } from "./utils/apiClient";
 
 // Mock database of hot trending e-commerce Shopify shops
 const MOCK_SHOPS = [
@@ -539,7 +540,7 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/shop-analyzer/analyze`, {
+      const response = await apiFetch(`${API_URL}/api/shop-analyzer/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain })
