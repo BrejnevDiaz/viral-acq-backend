@@ -1,4 +1,4 @@
-export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfoModal, setShowInfoModal, infoContent, setInfoContent, showLegalModal, setShowLegalModal, legalType, setLegalType }) {
+export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfoModal, setShowInfoModal, infoContent, setInfoContent, showLegalModal, setShowLegalModal, legalType, setLegalType, uiLang }) {
   return (
     <>
           {/* FOOTER */}
@@ -7,9 +7,9 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
                 <div style={{ maxWidth: 300 }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #8B5CF6, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff' }}>VA</div>
-                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Viral Acquisition</span>
+                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Acquisition Pro</span>
                    </div>
-                   <p style={{ color: '#A1A1AA', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>La plateforme d'élite qui connecte marques ambitieuses et créateurs à fort impact — espionnage concurrentiel, matchmaking IA, et CRM, réunis en un seul outil.</p>
+                   <p style={{ color: '#A1A1AA', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>{uiLang === 'fr' ? "La plateforme d'élite qui connecte marques ambitieuses et créateurs à fort impact — espionnage concurrentiel, matchmaking IA, et CRM, réunis en un seul outil." : uiLang === 'it' ? "La piattaforma d'élite che connette brand ambiziosi e creatori ad alto impatto — analisi competitiva, matchmaking IA e CRM, tutto in uno." : "The elite platform connecting ambitious brands and high-impact creators — competitive intelligence, AI matchmaking, and CRM, all in one tool."}</p>
                    <div style={{ display: 'flex', gap: 16 }}>
                       <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>in</div>
                       <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>IG</div>
@@ -18,11 +18,11 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
 
                 <div style={{ display: 'flex', gap: 80, flexWrap: 'wrap' }}>
                    <div>
-                      <h4 style={{ color: '#EC4899', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>Découvrez</h4>
+                      <h4 style={{ color: '#EC4899', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>{uiLang === 'fr' ? 'Découvrez' : uiLang === 'it' ? 'Scopri' : 'Discover'}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Influenceurs TikTok' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Influenceurs TikTok</a>
+                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: uiLang === 'fr' ? 'Influenceurs TikTok' : uiLang === 'it' ? 'Influencer TikTok' : 'TikTok Influencers' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Influenceurs TikTok</a>
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Coaching Elite' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Coaching Elite</a>
-                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Trouvez votre talent' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Trouvez votre talent</a>
+                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: uiLang === 'fr' ? 'Trouvez votre talent' : uiLang === 'it' ? 'Trova il tuo talento' : 'Find your talent' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Trouvez votre talent</a>
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Matchmaking CRM' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Matchmaking CRM</a>
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Formation Acquisition' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Formation Acquisition</a>
                       </div>
@@ -35,7 +35,7 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Stratégie virale' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Stratégie virale</a>
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Comment démarrer ?' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Comment démarrer ?</a>
                          <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Analyse de la concurrence' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Analyse de la concurrence</a>
-                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: 'Blog & Ressources' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Blog & Ressources</a>
+                         <a href="#info" onClick={(e) => { e.preventDefault(); setInfoContent({ title: uiLang === 'fr' ? 'Blog & Ressources' : uiLang === 'it' ? 'Blog & Risorse' : 'Blog & Resources' }); setShowInfoModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Blog & Ressources</a>
                       </div>
                    </div>
 
@@ -46,7 +46,7 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
                          <a href="#signup" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Inscription</a>
                          <a href="#cgv" onClick={(e) => { e.preventDefault(); setLegalType('CGV'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Conditions générales de vente (CGV)</a>
                          <a href="#privacy" onClick={(e) => { e.preventDefault(); setLegalType('Privacy'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Politique de confidentialité</a>
-                         <a href="#mentions" onClick={(e) => { e.preventDefault(); setLegalType('Legal'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Mentions Légales</a>
+                         <a href="#mentions" onClick={(e) => { e.preventDefault(); setLegalType('Legal'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>{uiLang === 'fr' ? 'Mentions Légales' : uiLang === 'it' ? 'Note Legali' : 'Legal Notice'}</a>
                       </div>
                    </div>
                 </div>
@@ -80,7 +80,7 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
               <div style={{ background: '#18181B', padding: 40, borderRadius: 24, width: '100%', maxWidth: 800, maxHeight: '80vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
                 <button onClick={() => setShowLegalModal(false)} style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer' }}>×</button>
                 <h2 style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginBottom: 24 }}>
-                  {legalType === 'CGV' ? 'Conditions Générales de Vente' : legalType === 'Privacy' ? 'Politique de Confidentialité' : 'Mentions Légales'}
+                  {legalType === 'CGV' ? 'Conditions Générales de Vente' : legalType === 'Privacy' ? (uiLang === 'fr' ? 'Politique de Confidentialité' : uiLang === 'it' ? 'Informativa sulla Privacy' : 'Privacy Policy') : (uiLang === 'fr' ? 'Mentions Légales' : uiLang === 'it' ? 'Note Legali' : 'Legal Notice')}
                 </h2>
                 <div style={{ color: '#A1A1AA', lineHeight: 1.6, fontSize: 15 }}>
                   {legalType === 'CGV' && (

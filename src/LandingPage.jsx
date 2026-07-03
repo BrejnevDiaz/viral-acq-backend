@@ -43,19 +43,19 @@ export default function LandingPage({
           <LandingHero uiLang={uiLang} setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
 
           {/* Features Sections (Alternating) */}
-          <LandingFeatures setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
+          <LandingFeatures setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} uiLang={uiLang} />
 
           {/* SECTION CRÉATEURS / INFLUENCEURS */}
           <LandingCreators setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} uiLang={uiLang} />
 
           {/* INSPIRATION MARQUES, TÉMOIGNAGES, BENTO & FONDATEUR */}
-          <LandingSocialProof setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
+          <LandingSocialProof setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} uiLang={uiLang} />
 
           {/* AGENCE DONE-FOR-YOU, FAQ & ACADÉMIE */}
           <LandingAgencyFAQAcademy uiLang={uiLang} setShowContactModal={setShowContactModal} setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
 
           {/* FOOTER + Info/Legal Modals */}
-          <LandingFooter setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} showInfoModal={showInfoModal} setShowInfoModal={setShowInfoModal} infoContent={infoContent} setInfoContent={setInfoContent} showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal} legalType={legalType} setLegalType={setLegalType} />
+          <LandingFooter setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} showInfoModal={showInfoModal} setShowInfoModal={setShowInfoModal} infoContent={infoContent} setInfoContent={setInfoContent} showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal} legalType={legalType} setLegalType={setLegalType} uiLang={uiLang} />
 
           {/* Internal Agency Contact Modal (fix: rendu dans la branche Landing, où se trouve son déclencheur) */}
           <ContactModal uiLang={uiLang} showContactModal={showContactModal} setShowContactModal={setShowContactModal} contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus} />

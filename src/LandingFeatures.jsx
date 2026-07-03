@@ -1,4 +1,4 @@
-export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
+export default function LandingFeatures({ setAuthMode, setShowLoginModal, uiLang }) {
   return (
     <>
           {/* Features Sections (Alternating) */}
@@ -7,10 +7,10 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
           {/* ADSPY & PRODUIT GAGNANT */}
           <section id="adspy" style={{ maxWidth: 1100, margin: '120px auto 0 auto', padding: '0 24px', textAlign: 'center', position: 'relative' }}>
             <div id="produit-gagnant" style={{ position: 'absolute', top: -100 }}></div>
-            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Recrutez l'élite des <span style={{ color: '#8B5CF6' }}>créateurs UGC</span> en 3 clics chrono</h2>
-            <p style={{ fontSize: 18, color: '#A1A1AA', maxWidth: 700, margin: '0 auto 48px auto', lineHeight: 1.6 }}>Accédez à plus de 80 millions d'annonces et d'influenceurs analysés en continu. Décryptez les tendances en temps réel, surveillez vos concurrents ligne par ligne, et lancez des campagnes taillées pour convertir — pas pour deviner.</p>
+            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>{uiLang === 'fr' ? <>Recrutez l'élite des <span style={{ color: '#8B5CF6' }}>créateurs UGC</span> en 3 clics chrono</> : uiLang === 'it' ? <>Recluta l'élite dei <span style={{ color: '#8B5CF6' }}>creatori UGC</span> in 3 clic netti</> : <>Recruit elite <span style={{ color: '#8B5CF6' }}>UGC creators</span> in just 3 clicks</>}</h2>
+            <p style={{ fontSize: 18, color: '#A1A1AA', maxWidth: 700, margin: '0 auto 48px auto', lineHeight: 1.6 }}>{uiLang === 'fr' ? "Accédez à plus de 80 millions d'annonces et d'influenceurs analysés en continu. Décryptez les tendances en temps réel, surveillez vos concurrents ligne par ligne, et lancez des campagnes taillées pour générer des ventes — ne jouez plus aux devinettes avec votre budget." : uiLang === 'it' ? "Accedi a oltre 80 milioni di annunci e influencer analizzati continuamente. Decifra le tendenze in tempo reale, spia i tuoi concorrenti e lancia campagne studiate per generare vendite — non indovinare più con il tuo budget." : "Access over 80 million ads and influencers analyzed continuously. Decode trends in real-time, monitor competitors line-by-line, and launch campaigns built to generate sales — stop guessing with your ad budget."}</p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 80 }}>
-                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 30px rgba(139,92,246,0.3)' }}>Explorer l'AdSpy gratuitement →</button>
+                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 30px rgba(139,92,246,0.3)' }}>{uiLang === 'fr' ? "Explorer l'AdSpy gratuitement →" : uiLang === 'it' ? "Esplora AdSpy Gratis →" : "Explore AdSpy for Free →"}</button>
             </div>
             
             {/* The Social Proof avatars under Adspy (Yomi & Austin style) */}
@@ -18,15 +18,15 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', maxWidth: 350 }}>
                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                    <div>
-                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"Acquisition Pro est mon outil préféré pour trouver des concurrents et de nouveaux produits viraux."</p>
-                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Austin, <span style={{ color: '#8B5CF6' }}>+180k abonnés</span></div>
+                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>{uiLang === 'fr' ? '"Acquisition Pro est mon arme secrète pour voler les stratégies gagnantes de mes concurrents et trouver mes produits viraux."' : uiLang === 'it' ? '"Acquisition Pro è la mia arma segreta per rubare le strategie vincenti ai concorrenti e trovare prodotti virali."' : '"Acquisition Pro is my secret weapon to steal winning strategies from competitors and find viral products."'}</p>
+                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>{uiLang === 'fr' ? <>Austin, <span style={{ color: '#8B5CF6' }}>+180k abonnés</span></> : uiLang === 'it' ? <>Austin, <span style={{ color: '#8B5CF6' }}>+180k iscritti</span></> : <>Austin, <span style={{ color: '#8B5CF6' }}>+180k subscribers</span></>}</div>
                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', maxWidth: 350 }}>
                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                    <div>
-                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"J'utilise Acquisition Pro pour recruter mes créateurs. En 3 clics, je trouve des influenceurs à fort potentiel pour ma marque."</p>
-                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Thomas, <span style={{ color: '#8B5CF6' }}>Marque E-com</span></div>
+                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>{uiLang === 'fr' ? '"J\'utilise Acquisition Pro pour sourcer mes créateurs. En 3 clics, je trouve des influenceurs extrêmement rentables pour ma marque."' : uiLang === 'it' ? '"Uso Acquisition Pro per trovare creatori. In 3 clic, trovo influencer estremamente redditizi per il mio brand."' : '"I use Acquisition Pro to source creators. In 3 clicks, I find extremely profitable influencers for my brand."'}</p>
+                      <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>{uiLang === 'fr' ? <>Thomas, <span style={{ color: '#8B5CF6' }}>Marque E-com</span></> : uiLang === 'it' ? <>Thomas, <span style={{ color: '#8B5CF6' }}>Brand E-com</span></> : <>Thomas, <span style={{ color: '#8B5CF6' }}>E-com Brand</span></>}</div>
                    </div>
                 </div>
             </div>
@@ -38,17 +38,17 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  L'IA qui <span style={{ color: '#8B5CF6' }}>Recrute vos Créateurs</span> à votre Place
+                  {uiLang === 'fr' ? <>L'IA qui <span style={{ color: '#8B5CF6' }}>Recrute vos Créateurs</span> à votre Place</> : uiLang === 'it' ? <>L'IA che <span style={{ color: '#8B5CF6' }}>Recluta Creatori</span> per Te</> : <>The AI that <span style={{ color: '#8B5CF6' }}>Recruits Creators</span> for You</>}
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Arrêtez de chercher, laissez l'IA trouver. Notre moteur de Matchmaking analyse niche, engagement réel et qualité d'audience pour vous connecter — en quelques minutes — avec les créateurs capables de faire exploser votre acquisition.
+                  {uiLang === 'fr' ? "Arrêtez de chercher, laissez notre IA faire le travail. Notre moteur analyse la niche, le véritable engagement et l'audience pour vous matcher — en quelques minutes — avec les créateurs qui feront exploser votre acquisition." : uiLang === 'it' ? "Smetti di cercare, lascia lavorare l'IA. Il nostro motore analizza nicchia e coinvolgimento per abbinarti in pochi minuti con creatori che faranno esplodere la tua acquisizione." : "Stop searching, let our AI do the work. Our engine analyzes niche, real engagement, and audience to match you — in minutes — with creators who will skyrocket your acquisition."}
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Lancer le Matchmaking IA →
+                  {uiLang === 'fr' ? "Lancer le Matchmaking IA →" : uiLang === 'it' ? "Avvia il Matchmaking IA →" : "Launch AI Matchmaking →"}
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(135deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}>
@@ -90,17 +90,17 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Votre <span style={{ color: '#8B5CF6' }}>Agence Marketing</span>, Intégrée à votre CRM
+                  {uiLang === 'fr' ? <>Votre <span style={{ color: '#8B5CF6' }}>Agence Marketing</span>, Intégrée au CRM</> : uiLang === 'it' ? <>La Tua <span style={{ color: '#8B5CF6' }}>Agenzia Marketing</span>, Integrata nel CRM</> : <>Your <span style={{ color: '#8B5CF6' }}>Marketing Agency</span>, Built into your CRM</>}
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Pilotez chaque collaboration comme une vraie agence — sans les honoraires d'agence. Centralisez votre portefeuille de créateurs, suivez chaque euro dépensé et mesurez le ROI de chaque campagne en temps réel pour ne plus jamais investir à l'aveugle.
+                  {uiLang === 'fr' ? "Gérez chaque collaboration comme une vraie agence d'élite — sans payer d'honoraires. Centralisez votre portefeuille, trackez chaque euro dépensé, et scalez le ROI de vos campagnes en temps réel pour ne plus jamais investir à l'aveugle." : uiLang === 'it' ? "Gestisci le collaborazioni come un'agenzia d'élite — senza pagarne le tariffe. Centralizza i tuoi creatori, traccia la spesa e scala il ROI delle campagne in tempo reale per non investire mai più alla cieca." : "Manage collaborations like an elite agency — without the agency fees. Centralize your portfolio, track every dollar spent, and scale campaign ROI in real-time so you never invest blindly again."}
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Piloter mon CRM & Sourcing →
+                  {uiLang === 'fr' ? "Piloter mon CRM & Sourcing →" : uiLang === 'it' ? "Gestisci CRM & Sourcing →" : "Run my CRM & Sourcing →"}
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(139,92,246,0.1)', display: 'flex', flexDirection: 'column' }}>
@@ -177,9 +177,9 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div id="shop-analyzer" style={{ paddingTop: 80 }}></div>
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80 }}>
               <div style={{ flex: 1, maxWidth: 500 }}>
-                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>Espionnez les Marques qui Cartonnent — Avant Tout le Monde</h2>
+                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>{uiLang === 'fr' ? "Espionnez les Marques qui Cartonnent — Avant Tout le Monde" : uiLang === 'it' ? "Spia i Brand che Spaccano — Prima di Tutti" : "Spy on Brands that Crush It — Before Anyone Else"}</h2>
                 <p style={{ fontSize: 18, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Engagement, vues, meilleures campagnes, créateurs utilisés : disséquez la stratégie de n'importe quelle marque de votre secteur et reproduisez ce qui marche vraiment — au lieu de réinventer la roue à perte.
+                  {uiLang === 'fr' ? "Engagement, vues, top campagnes, influenceurs utilisés : disséquez la stratégie exacte de n'importe quel concurrent et copiez ce qui encaisse de l'argent — au lieu de réinventer la roue à perte." : uiLang === 'it' ? "Coinvolgimento, visualizzazioni, campagne top: seziona l'esatta strategia dei concorrenti e copia ciò che porta soldi — invece di reinventare la ruota in perdita." : "Engagement, views, top campaigns, influencers used: dissect the exact strategy of any competitor and copy what prints money — instead of reinventing the wheel at a loss."}
                 </p>
                 <button 
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
@@ -192,7 +192,7 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
                   }}
                   className="hover-lift hover-glow-intense"
                 >
-                  Analyser une marque concurrente →
+                  {uiLang === 'fr' ? "Analyser une marque concurrente →" : uiLang === 'it' ? "Analizza un brand concorrente →" : "Analyze a competing brand →"}
                 </button>
               </div>
 

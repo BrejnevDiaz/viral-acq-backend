@@ -7,17 +7,17 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
               fontSize: 'clamp(48px, 6vw, 76px)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-2px',
               maxWidth: 900, margin: '0 0 24px 0'
             }}>
-              {uiLang === 'fr' ? <>L'Arme Secrète des<br/></> : <>The Secret Weapon for<br/></>}
+              {uiLang === 'fr' ? <>L'Arme Secrète des<br/></> : uiLang === 'it' ? <>L'Arma Segreta per i<br/></> : <>The Secret Weapon for<br/></>}
               <span style={{
                 background: 'linear-gradient(90deg, #a78bfa, #f472b6, #fb923c)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 display: 'inline-block', filter: 'drop-shadow(0 0 30px rgba(167,139,250,0.3))'
-              }}>{uiLang === 'fr' ? "Marques qui Dominent leur Marché" : "Brands That Dominate Their Market"}</span>
+              }}>{uiLang === 'fr' ? "Marques qui Dominent leur Marché" : uiLang === 'it' ? "Brand che Dominano il Mercato" : "Brands That Dominate Their Market"}</span>
             </h1>
             <p style={{
               fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
             }}>
-              {uiLang === 'fr' ? "La plateforme d'élite réservée aux marques qui refusent la médiocrité. Espionnez les stratégies publicitaires de vos concurrents, recrutez en exclusivité les créateurs UGC les plus performants, et transformez chaque euro investi en croissance explosive — avant que vos concurrents n'y pensent." : "The elite platform built for brands that refuse to settle for average. Spy on your competitors' winning ad strategies, exclusively recruit the highest-performing UGC creators, and turn every dollar spent into explosive growth — before your competitors get there first."}
+              {uiLang === 'fr' ? "La plateforme d'élite réservée aux marques qui refusent la médiocrité. Espionnez les publicités de vos concurrents, recrutez les meilleurs créateurs UGC, et transformez chaque euro en croissance explosive — avant qu'il ne soit trop tard." : uiLang === 'it' ? "La piattaforma d'élite riservata ai brand che rifiutano la mediocrità. Spia le pubblicità dei tuoi concorrenti, recluta i migliori creatori UGC e trasforma ogni euro in una crescita esplosiva — prima che sia troppo tardi." : "The elite platform built for brands that refuse to settle for average. Spy on your competitors' winning ads, recruit the best UGC creators, and turn every dollar spent into explosive growth — before it's too late."}
             </p>
 
             <div style={{ display: 'flex', gap: 16 }}>
@@ -34,7 +34,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                   }}
                   className="hover-lift hover-glow-intense"
                 >
-                  Je suis une Marque — Scaler Maintenant →
+                  {uiLang === 'fr' ? 'Je suis une Marque — Scaler Maintenant →' : uiLang === 'it' ? 'Sono un Brand — Scala Ora →' : 'I am a Brand — Scale Now →'}
                 </button>
                 <button 
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
@@ -47,7 +47,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                   }} 
                   className="hover-lift"
                 >
-                  Je suis Créateur — Rejoindre Gratuitement →
+                  {uiLang === 'fr' ? 'Je suis Créateur — Rejoindre Gratuitement →' : uiLang === 'it' ? 'Sono un Creatore — Unisciti Gratis →' : 'I am a Creator — Join for Free →'}
                 </button>
               
             </div>

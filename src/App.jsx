@@ -173,7 +173,7 @@ export default function ProspectionAgent() {
     if (userTier === "standard" && results.length >= 10) {
       openUpgradeModal({
         tab: "acquisition",
-        title: uiLang === "fr" ? "Limite de Sourcing CRM Atteinte" : "Sourcing CRM Limit Reached",
+        title: uiLang === "fr" ? "Limite de Sourcing CRM Atteinte" : uiLang === "it" ? "Limite Sourcing CRM Raggiunto" : "Sourcing CRM Limit Reached",
         reason: uiLang === "fr"
           ? "Le forfait Standard limite votre Sourcing CRM à 10 prospects qualifiés. Passez au niveau VIP Pro ou VIP Elite pour importer des leads en illimité !"
           : "The Standard plan limits your Sourcing CRM to 10 qualified prospects. Upgrade to VIP Pro or VIP Elite to unlock unlimited lead imports!"
@@ -183,7 +183,7 @@ export default function ProspectionAgent() {
 
     setResults(prev => {
       if (prev.some(x => x.name === lead.name && x.platformId === lead.platformId)) {
-        showAppToast(uiLang === "fr" ? "Ce lead a déjà été importé !" : "Questo lead è già stato importato!", "warning");
+        showAppToast(uiLang === "fr" ? "Ce lead a déjà été importé !" : uiLang === "it" ? "Questo lead è già stato importato!" : "This lead has already been imported!", "warning");
         return prev;
       }
       const updated = [lead, ...prev];
@@ -300,14 +300,14 @@ export default function ProspectionAgent() {
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{uiLang === 'fr' ? 'Espace réservé aux Marques' : 'Brand Only Area'}</h2>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{uiLang === 'fr' ? 'Espace réservé aux Marques' : uiLang === 'it' ? 'Area riservata ai Brand' : 'Brand Only Area'}</h2>
             <p style={{ color: '#A1A1AA', fontSize: 15, maxWidth: 400, lineHeight: 1.6, marginBottom: 32 }}>
               {uiLang === 'fr' 
                 ? "En tant que Créateur UGC, cette section de recherche et d'espionnage ne vous est pas accessible. Votre espace de gestion des missions se trouve dans l'onglet Talents & Gigs."
                 : "As a UGC Creator, this research and spy section is locked. Your mission management workspace is in the Talents & Gigs tab."}
             </p>
             <button onClick={() => setCurrentTab('talentagency')} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-              {uiLang === 'fr' ? 'Aller à mes missions' : 'Go to my missions'}
+              {uiLang === 'fr' ? 'Aller à mes missions' : uiLang === 'it' ? 'Vai alle mie missioni' : 'Go to my missions'}
             </button>
           </div>
         ) : currentTab === "adspy" ? (
@@ -357,7 +357,7 @@ export default function ProspectionAgent() {
               }}>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", border: `3px solid ${c.accent}22`, borderTopColor: c.accent, animation: "spin 1s linear infinite", marginBottom: 20 }}></div>
                 <h3 style={{ fontSize: 18, color: "#fff", fontWeight: 700, margin: "0 0 8px 0" }}>
-                  {uiLang === "fr" ? "Traitement de l'abonnement..." : "Processing secure subscription..."}
+                  {uiLang === "fr" ? "Traitement de l'abonnement..." : uiLang === "it" ? "Elaborazione dell'abbonamento..." : "Processing secure subscription..."}
                 </h3>
                 <p style={{ fontSize: 13, color: c.textDim, fontFamily: mono, margin: 0 }}>
                   🔐 Stripe Secure Checkout Simulation
@@ -374,10 +374,10 @@ export default function ProspectionAgent() {
               }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: c.successSoft, display: "flex", alignItems: "center", justifyContent: "center", color: c.success, fontSize: 32, marginBottom: 20, border: `2px solid ${c.success}` }}>✓</div>
                 <h3 style={{ fontSize: 20, color: "#fff", fontWeight: 800, margin: "0 0 8px 0" }}>
-                  {uiLang === "fr" ? "Abonnement Activé ! 🎉" : "Subscription Activated! 🎉"}
+                  {uiLang === "fr" ? "Abonnement Activé ! 🎉" : uiLang === "it" ? "Abbonamento Attivato! 🎉" : "Subscription Activated! 🎉"}
                 </h3>
                 <p style={{ fontSize: 13, color: c.textMuted, margin: 0 }}>
-                  {uiLang === "fr" ? "Bienvenue dans le club premium de ViralAcq Pro !" : "Welcome to the premium suite of ViralAcq Pro!"}
+                  {uiLang === "fr" ? "Bienvenue dans le club premium d'Acquisition Pro !" : uiLang === "it" ? "Benvenuto nel club premium di Acquisition Pro!" : "Welcome to the premium suite of Acquisition Pro!"}
                 </p>
               </div>
             )}
@@ -402,7 +402,7 @@ export default function ProspectionAgent() {
                   <span style={{ fontSize: 10, background: c.accent2Soft, color: c.accent2, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Pro</span>
                   <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: "#fff" }}>VIP Pro Plan</h4>
                   <p style={{ margin: 0, fontSize: 11.5, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 2 Coachings Live & 2 Blogs par mois." : "Full workspace access + 2 Live Coachings & 2 case study blogs/mo."}
+                    {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 2 Coachings Live & 2 Blogs par mois." : uiLang === "it" ? "Accesso illimitato (Spy, CRM, Sourcing) + 2 Coaching Live & 2 Blog al mese." : "Full workspace access + 2 Live Coachings & 2 case study blogs/mo."}
                   </p>
                 </div>
                 <div style={{ marginTop: 16 }}>
@@ -422,7 +422,7 @@ export default function ProspectionAgent() {
                   <span style={{ fontSize: 10, background: c.successSoft, color: c.success, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Elite</span>
                   <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: "#fff" }}>VIP Elite Plan</h4>
                   <p style={{ margin: 0, fontSize: 11.5, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "Accès illimité à TOUTE l'application e-commerce + Coaching Vidéo Hebdomadaire & Blog en illimité." : "Total e-commerce access + Weekly Video Coaching & unlimited strategy blog."}
+                    {uiLang === "fr" ? "Accès illimité à TOUTE l'application e-commerce + Coaching Vidéo Hebdomadaire & Blog en illimité." : uiLang === "it" ? "Accesso totale all'app e-commerce + Video Coaching Settimanale e Blog illimitato." : "Total e-commerce access + Weekly Video Coaching & unlimited strategy blog."}
                   </p>
                 </div>
                 <div style={{ marginTop: 16 }}>

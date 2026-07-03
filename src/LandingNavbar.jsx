@@ -16,15 +16,16 @@ export default function LandingNavbar({ uiLang, setUiLang, setAuthMode, setShowL
               <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>Acquisition Pro</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>{uiLang === 'fr' ? 'Espionner mes Concurrents' : 'Spy on Competitors'}</span>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Recruter des Créateurs' : 'Recruit Top Talent'}</span>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Espace Créateurs' : 'Creators Hub'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>{uiLang === 'fr' ? 'Espionner mes Concurrents' : uiLang === 'it' ? 'Spia i Concorrenti' : 'Spy on Competitors'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Recruter des Créateurs' : uiLang === 'it' ? 'Recluta Creatori' : 'Recruit Top Talent'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Espace Créateurs' : uiLang === 'it' ? 'Area Creatori' : 'Creators Hub'}</span>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Sourcing & CRM</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <select value={uiLang} onChange={(e) => setUiLang(e.target.value)} style={{ background: 'transparent', color: '#A1A1AA', border: 'none', fontSize: 14, cursor: 'pointer', outline: 'none' }}>
-                  <option value="fr" style={{ color: '#000' }}>French</option>
+                  <option value="fr" style={{ color: '#000' }}>Français</option>
                   <option value="en" style={{ color: '#000' }}>English</option>
+                  <option value="it" style={{ color: '#000' }}>Italiano</option>
                 </select>
               <button
                 onClick={() => { setAuthMode('login'); setShowLoginModal(true); }}
@@ -35,7 +36,7 @@ export default function LandingNavbar({ uiLang, setUiLang, setAuthMode, setShowL
                 }}
                 className="hover-bg-white-10"
               >
-                {uiLang === 'fr' ? 'Connexion' : 'Login'}
+                {uiLang === 'fr' ? 'Connexion' : uiLang === 'it' ? 'Accedi' : 'Login'}
               </button>
             </div>
           </nav>

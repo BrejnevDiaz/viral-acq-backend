@@ -70,7 +70,7 @@ export default function LandingAgencyFAQAcademy({ uiLang, setShowContactModal, s
 
           <section style={{ background: 'linear-gradient(180deg, rgba(139,92,246,0.15) 0%, transparent 100%)', padding: '120px 24px' }}>
              <div style={{ maxWidth: 800, margin: '0 auto' }}>
-                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>Vos Questions, Nos Réponses — Sans Détour</h2>
+                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>{uiLang === 'fr' ? "Vos Questions, Nos Réponses — Sans Détour" : uiLang === 'it' ? "Le tue Domande, le Nostre Risposte — Senza Giri di Parole" : "Your Questions, Our Answers — Straight Up"}</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                    {[
                      {
@@ -107,26 +107,26 @@ export default function LandingAgencyFAQAcademy({ uiLang, setShowContactModal, s
                 <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, background: 'rgba(236,72,153,0.2)', filter: 'blur(100px)', borderRadius: '50%' }}></div>
                 
                 <div style={{ flex: 1, zIndex: 10 }}>
-                   <h2 style={{ fontSize: 24, color: '#EC4899', fontWeight: 800, marginBottom: 16 }}>Apprenez à Lancer une Campagne qui Convertit dès Aujourd'hui</h2>
-                   <h3 style={{ fontSize: 48, color: '#fff', fontWeight: 800, lineHeight: 1.1, marginBottom: 32, letterSpacing: '-1px' }}>Accédez Gratuitement à Notre Formation Complète (+10h)</h3>
+                   <h2 style={{ fontSize: 24, color: '#EC4899', fontWeight: 800, marginBottom: 16 }}>{uiLang === 'fr' ? "Apprenez à Lancer une Campagne qui Convertit dès Aujourd'hui" : uiLang === 'it' ? "Impara a Lanciare una Campagna che Converte da Oggi" : "Learn to Launch a Converting Campaign Today"}</h2>
+                   <h3 style={{ fontSize: 48, color: '#fff', fontWeight: 800, lineHeight: 1.1, marginBottom: 32, letterSpacing: '-1px' }}>{uiLang === 'fr' ? "Accédez Gratuitement à Notre Formation Complète (+10h)" : uiLang === 'it' ? "Accedi Gratis al nostro Corso Completo (+10h)" : "Get Free Access to our Full Training (+10h)"}</h3>
                    <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                      background: 'linear-gradient(90deg, #EC4899, #8B5CF6)', color: '#fff', border: 'none',
                      padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer',
                      boxShadow: '0 10px 30px rgba(236,72,153,0.3)', transition: 'transform 0.2s'
                    }} className="hover-lift">
-                     Débloquer la Formation Gratuite →
+                     {uiLang === 'fr' ? "Débloquer la Formation Gratuite →" : uiLang === 'it' ? "Sblocca il Corso Gratuito →" : "Unlock Free Training →"}
                    </button>
                 </div>
                 
                 <div style={{ flex: 1, zIndex: 10, position: 'relative' }}>
                    <div style={{ background: '#18181B', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)', padding: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-                      <h4 style={{ color: '#fff', fontSize: 18, marginBottom: 24 }}>Sommaire</h4>
+                      <h4 style={{ color: '#fff', fontSize: 18, marginBottom: 24 }}>{uiLang === 'fr' ? 'Sommaire' : uiLang === 'it' ? 'Sommario' : 'Syllabus'}</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                          {[
-                           { t: "À regarder avant de se lancer", dur: "12m 34s", p: 100 },
-                           { t: "Tout savoir sur le Matchmaking", dur: "30m 22s", p: 60 },
-                           { t: "La méthode Virale", dur: "9m 15s", p: 0 },
-                           { t: "Décrypter l'engagement TikTok", dur: "25m 47s", p: 0 }
+                           { t: uiLang === 'fr' ? "À regarder avant de se lancer" : uiLang === 'it' ? "Da guardare prima di iniziare" : "Watch before you start", dur: "12m 34s", p: 100 },
+                           { t: uiLang === 'fr' ? "Tout savoir sur le Matchmaking" : uiLang === 'it' ? "Tutto sul Matchmaking" : "Everything about Matchmaking", dur: "30m 22s", p: 60 },
+                           { t: uiLang === 'fr' ? "La méthode Virale" : uiLang === 'it' ? "Il metodo Virale" : "The Viral method", dur: "9m 15s", p: 0 },
+                           { t: uiLang === 'fr' ? "Décrypter l'engagement TikTok" : uiLang === 'it' ? "Decifrare l'engagement su TikTok" : "Decoding TikTok engagement", dur: "25m 47s", p: 0 }
                          ].map((v, i) => (
                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                               <div style={{ width: 24, height: 24, borderRadius: '50%', background: v.p === 100 ? '#10B981' : 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>{v.p === 100 ? '✓' : ''}</div>
