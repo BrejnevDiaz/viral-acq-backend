@@ -15,6 +15,7 @@ export default function LandingPage({
   emailInput, setEmailInput,
   passInput, setPassInput,
   handleAuth,
+  authLoading, authError,
   showContactModal, setShowContactModal,
   contactFormStatus, setContactFormStatus,
   showInfoModal, setShowInfoModal,
@@ -48,7 +49,7 @@ export default function LandingPage({
           <LandingCreators setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} uiLang={uiLang} />
 
           {/* INSPIRATION MARQUES, TÉMOIGNAGES, BENTO & FONDATEUR */}
-          <LandingSocialProof />
+          <LandingSocialProof setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
 
           {/* AGENCE DONE-FOR-YOU, FAQ & ACADÉMIE */}
           <LandingAgencyFAQAcademy uiLang={uiLang} setShowContactModal={setShowContactModal} setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
@@ -60,7 +61,7 @@ export default function LandingPage({
           <ContactModal uiLang={uiLang} showContactModal={showContactModal} setShowContactModal={setShowContactModal} contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus} />
 
           {/* Auth Modal overlay (Glassmorphism) */}
-          <AuthModal showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal} authMode={authMode} setAuthMode={setAuthMode} emailInput={emailInput} setEmailInput={setEmailInput} passInput={passInput} setPassInput={setPassInput} handleAuth={handleAuth} />
+          <AuthModal showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal} authMode={authMode} setAuthMode={setAuthMode} emailInput={emailInput} setEmailInput={setEmailInput} passInput={passInput} setPassInput={setPassInput} handleAuth={handleAuth} authLoading={authLoading} authError={authError} />
         </div>
   );
 }

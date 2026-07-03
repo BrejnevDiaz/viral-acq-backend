@@ -64,7 +64,7 @@ export default function ContactModal({ uiLang, showContactModal, setShowContactM
                       <input type="text" required placeholder="Ex: Sephora" style={{ width: "100%", padding: 14, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 15, outline: "none" }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: "block", fontSize: 13, color: "#A1A1AA", fontWeight: 600, marginBottom: 8 }}>URL de la boutique</label>
+                      <label style={{ display: "block", fontSize: 13, color: "#A1A1AA", fontWeight: 600, marginBottom: 8 }}>{uiLang === 'fr' ? 'URL de la boutique' : 'Store URL'}</label>
                       <input type="url" placeholder="https://" style={{ width: "100%", padding: 14, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 15, outline: "none" }} />
                     </div>
                   </div>
@@ -83,7 +83,7 @@ export default function ContactModal({ uiLang, showContactModal, setShowContactM
                     <textarea required placeholder={uiLang === 'fr' ? "Qu'attendez-vous de l'agence ?" : "What do you expect from the agency?"} rows="3" style={{ width: "100%", padding: 14, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 15, outline: "none", resize: "none" }} />
                   </div>
                   <button type="submit" className="hover-glow-intense" style={{ width: "100%", padding: 16, borderRadius: 8, border: "none", background: "linear-gradient(90deg, #8B5CF6, #EC4899)", color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", marginTop: 8 }}>
-                    {uiLang === 'fr' ? 'Demander mon Analyse Gratuite' : 'Request my Free Analysis'}
+                    {uiLang === 'fr' ? 'Demander mon Analyse Gratuite — Réponse sous 24h →' : 'Request my Free Analysis — Reply Within 24h →'}
                   </button>
                 </form>
               )}

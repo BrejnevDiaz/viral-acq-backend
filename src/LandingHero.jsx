@@ -7,17 +7,17 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
               fontSize: 'clamp(48px, 6vw, 76px)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-2px',
               maxWidth: 900, margin: '0 0 24px 0'
             }}>
-              L'ère de<br/>
-              <span style={{ 
-                background: 'linear-gradient(90deg, #a78bfa, #f472b6, #fb923c)', 
+              {uiLang === 'fr' ? <>L'Arme Secrète des<br/></> : <>The Secret Weapon for<br/></>}
+              <span style={{
+                background: 'linear-gradient(90deg, #a78bfa, #f472b6, #fb923c)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 display: 'inline-block', filter: 'drop-shadow(0 0 30px rgba(167,139,250,0.3))'
-              }}>l'Acquisition Virale & Spy</span>
+              }}>{uiLang === 'fr' ? "Marques qui Dominent leur Marché" : "Brands That Dominate Their Market"}</span>
             </h1>
             <p style={{
               fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
             }}>
-              {uiLang === 'fr' ? "L'agence d'acquisition nouvelle génération : l'ultime plateforme de matchmaking. Recrutez les meilleurs influenceurs (votre vivier d'influenceurs sur-mesure), analysez les stratégies marketing gagnantes et sourcez des créateurs à fort impact pour scaler votre marque." : "The next-gen acquisition agency: the ultimate matchmaking platform. Recruit the best influencers, analyze winning marketing strategies, and source high-impact creators to scale your brand."}
+              {uiLang === 'fr' ? "La plateforme d'élite réservée aux marques qui refusent la médiocrité. Espionnez les stratégies publicitaires de vos concurrents, recrutez en exclusivité les créateurs UGC les plus performants, et transformez chaque euro investi en croissance explosive — avant que vos concurrents n'y pensent." : "The elite platform built for brands that refuse to settle for average. Spy on your competitors' winning ad strategies, exclusively recruit the highest-performing UGC creators, and turn every dollar spent into explosive growth — before your competitors get there first."}
             </p>
 
             <div style={{ display: 'flex', gap: 16 }}>
@@ -34,7 +34,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                   }}
                   className="hover-lift hover-glow-intense"
                 >
-                  Trouver votre talent
+                  Je suis une Marque — Scaler Maintenant →
                 </button>
                 <button 
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
@@ -47,7 +47,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                   }} 
                   className="hover-lift"
                 >
-                  Trouver une collaboration
+                  Je suis Créateur — Rejoindre Gratuitement →
                 </button>
               
             </div>

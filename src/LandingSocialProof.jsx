@@ -1,11 +1,11 @@
-export default function LandingSocialProof() {
+export default function LandingSocialProof({ setAuthMode, setShowLoginModal }) {
   return (
     <>
           {/* NOUVELLE SECTION : INSPIRATION MARQUES */}
           <section className="p-mobile-sm" style={{ maxWidth: 1200, margin: '100px auto', padding: '0 24px', position: 'relative' }}>
               <div className="text-center-mobile" style={{ textAlign: 'center', marginBottom: 60 }}>
-                  <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Inspirez-vous des <span style={{ color: '#F43F5E' }}>géants de votre niche</span></h2>
-                  <p className="text-mobile-p" style={{ color: '#A1A1AA', fontSize: 20, maxWidth: 700, margin: '0 auto', lineHeight: 1.6 }}>Pourquoi réinventer la roue ? Analysez les publicités et campagnes des plus grandes marques de votre secteur et reproduisez leur succès.</p>
+                  <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Volez les Stratégies des <span style={{ color: '#F43F5E' }}>Géants de votre Niche</span></h2>
+                  <p className="text-mobile-p" style={{ color: '#A1A1AA', fontSize: 20, maxWidth: 700, margin: '0 auto', lineHeight: 1.6 }}>Pourquoi payer le prix de vos propres erreurs ? Disséquez les publicités et campagnes des plus grandes marques de votre secteur, et reproduisez leur succès dès votre premier lancement.</p>
               </div>
 
               <div className="flex-col-mobile" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32, alignItems: 'center' }}>
@@ -49,19 +49,26 @@ export default function LandingSocialProof() {
                   <div className="w-full-mobile text-center-mobile" style={{ paddingLeft: '10%' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                           <div>
-                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Décelez les tendances avant les autres</h3>
+                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Décelez les Tendances Avant Tout le Monde</h3>
                               <p style={{ color: '#A1A1AA', fontSize: 16, lineHeight: 1.6 }}>Découvrez exactement quels formats vidéos performent pour vos concurrents. Arrêtez de deviner et basez votre créativité sur des données concrètes.</p>
                           </div>
                           
                           <div>
-                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Créez des briefs parfaits</h3>
+                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Créez des Briefs Irréprochables en 2 Minutes</h3>
                               <p style={{ color: '#A1A1AA', fontSize: 16, lineHeight: 1.6 }}>Sauvegardez les meilleures publicités de votre secteur dans un Moodboard et partagez-les en un clic avec vos créateurs pour leur montrer exactement ce que vous attendez.</p>
                           </div>
                           
                           <div>
-                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Adaptez les stratégies gagnantes</h3>
+                              <h3 className="text-mobile-h3" style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>Copiez les Stratégies qui Génèrent des Millions de Vues</h3>
                               <p style={{ color: '#A1A1AA', fontSize: 16, lineHeight: 1.6 }}>Ce qui marche pour Gymshark ou Sephora peut marcher pour vous. Analysez leurs hooks (accroches), leurs appels à l'action et la durée de leurs vidéos.</p>
                           </div>
+                          <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
+                            background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', color: '#fff', border: 'none',
+                            padding: '14px 28px', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 8px 25px rgba(139,92,246,0.3)', marginTop: 8, alignSelf: 'flex-start'
+                          }} className="hover-lift">
+                            Espionner mes concurrents →
+                          </button>
                       </div>
                   </div>
 
@@ -73,8 +80,8 @@ export default function LandingSocialProof() {
             <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 24, scrollbarWidth: 'none' }}>
                {[
                  { name: "Lucas Bivert", type: "Marque E-com", text: "Mon outil favori pour la recherche d'influenceurs, c'est Acquisition Pro. C'est devenu un indispensable pour mon équipe et moi dans notre sourcing.", img: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=400&q=80" },
-                 { name: "Jonathan", type: "Agence", text: "J'utilise ViralAcq depuis 2024 et ça a toujours été un essentiel de mon matchmaking. Trouver les bons créateurs est devenu un jeu d'enfant.", img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=400&q=80" },
-                 { name: "Nawfel Ammar", type: "Créateur", text: "ViralAcq est un super outil pour les créateurs qui souhaitent trouver leur premier partenariat gagnant. Gérer ses contrats depuis une seule plateforme c'est un vrai gain de temps.", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=400&q=80" }
+                 { name: "Jonathan", type: "Agence", text: "J'utilise Acquisition Pro depuis 2024 et ça a toujours été un essentiel de mon matchmaking. Trouver les bons créateurs est devenu un jeu d'enfant.", img: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=400&q=80" },
+                 { name: "Nawfel Ammar", type: "Créateur", text: "Acquisition Pro est un super outil pour les créateurs qui souhaitent trouver leur premier partenariat gagnant. Gérer ses contrats depuis une seule plateforme, c'est un vrai gain de temps.", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=400&q=80" }
                ].map((item, i) => (
                  <div key={i} style={{ flex: '0 0 350px', height: 450, borderRadius: 20, position: 'relative', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
                     <img src={item.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -90,8 +97,8 @@ export default function LandingSocialProof() {
 
           {/* GRID FEATURES (BENTO) */}
           <section style={{ maxWidth: 1000, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 32, fontWeight: 800, color: '#8B5CF6', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Stop aux doutes</h2>
-            <h3 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Recrutez ce qui marche vraiment</h3>
+            <h2 style={{ fontSize: 32, fontWeight: 800, color: '#8B5CF6', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Fini le Recrutement au Hasard</h2>
+            <h3 style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 60, letterSpacing: '-1px' }}>Recrutez Uniquement ce qui Convertit</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
                <div style={{ background: '#111', borderRadius: 20, padding: 32, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
@@ -133,9 +140,18 @@ export default function LandingSocialProof() {
                         </div>
                      </div>
                   </div>
-                  <h4 style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Accède à nos offres</h4>
-                  <p style={{ fontSize: 14, color: '#A1A1AA', margin: 0 }}>Profitez d'avantages exclusifs sur les outils essentiels pour réussir en influence.</p>
+                  <h4 style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Accédez à nos offres</h4>
+                  <p style={{ fontSize: 14, color: '#A1A1AA', margin: 0 }}>Profitez d'avantages exclusifs, réservés aux membres VIP Pro et Elite, sur les outils essentiels pour dominer votre marché.</p>
                </div>
+            </div>
+            <div style={{ marginTop: 48 }}>
+              <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
+                background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', color: '#fff', border: 'none',
+                padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(139,92,246,0.3)'
+              }} className="hover-lift hover-glow-intense">
+                Accéder à toutes les fonctionnalités →
+              </button>
             </div>
           </section>
 

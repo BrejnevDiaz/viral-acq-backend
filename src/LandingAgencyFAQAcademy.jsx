@@ -45,7 +45,7 @@ export default function LandingAgencyFAQAcademy({ uiLang, setShowContactModal, s
                       </div>
                       
                       <button onClick={() => setShowContactModal(true)} className="hover-glow-intense" style={{ background: 'linear-gradient(90deg, #A78BFA, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
-                          {uiLang === 'fr' ? "Réserver un appel avec l'Agence" : "Book a call with the Agency"}
+                          {uiLang === 'fr' ? "Réserver mon Appel Stratégique →" : "Book My Strategy Call →"}
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                       </button>
                   </div>
@@ -70,20 +70,29 @@ export default function LandingAgencyFAQAcademy({ uiLang, setShowContactModal, s
 
           <section style={{ background: 'linear-gradient(180deg, rgba(139,92,246,0.15) 0%, transparent 100%)', padding: '120px 24px' }}>
              <div style={{ maxWidth: 800, margin: '0 auto' }}>
-                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>Nous répondons à vos questions</h2>
+                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 60, letterSpacing: '-1px' }}>Vos Questions, Nos Réponses — Sans Détour</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                    {[
-                     "Puis-je gérer mes contrats légaux sur la plateforme ?",
-                     "Est-ce adapté si je débute en e-commerce ?",
-                     "Quelle est la différence entre VIP Pro et VIP Elite ?"
-                   ].map((q, i) => (
+                     {
+                       q: "Puis-je gérer mes contrats légaux sur la plateforme ?",
+                       a: "Oui. Acquisition Pro inclut un générateur de contrats intégré directement dans le CRM : renseignez la marque, le créateur et les conditions de la collaboration, et un contrat juridique prêt à l'emploi est généré automatiquement — prêt pour signature électronique, sans juriste ni allers-retours par email."
+                     },
+                     {
+                       q: "Est-ce adapté si je débute en e-commerce ?",
+                       a: "Absolument. La majorité de nos utilisateurs démarrent avec le forfait Gratuit et notre Académie intégrée (+10h de formation offerte) pour maîtriser les bases du sourcing et du matchmaking avant de scaler. Vous montez en compétence à votre rythme, sans risquer un centime avant d'être prêt à passer au niveau supérieur."
+                     },
+                     {
+                       q: "Quelle est la différence entre VIP Pro et VIP Elite ?",
+                       a: "Les deux forfaits donnent un accès total à la plateforme (AdSpy, CRM, Matchmaking, Vetting, Contrats). VIP Pro (49€/mois) inclut 2 séances de coaching et 2 articles de blog premium par mois. VIP Elite (99€/mois) est pensé pour les marques qui veulent scaler vite : coaching hebdomadaire et blog illimité, pour ne jamais rater une stratégie gagnante."
+                     }
+                   ].map((item, i) => (
                       <details key={i} style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01))', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}>
                          <summary style={{ padding: 24, fontSize: 16, fontWeight: 600, color: '#E4E4E7', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            {q}
+                            {item.q}
                             <span style={{ color: '#8B5CF6', fontSize: 24 }}>›</span>
                          </summary>
                          <div style={{ padding: '0 24px 24px 24px', color: '#A1A1AA', fontSize: 15, lineHeight: 1.6 }}>
-                            Notre IA analyse des milliers de données (engagement, audience, niche) pour vous connecter automatiquement avec les créateurs UGC et influenceurs les plus rentables pour votre marque. Finies les heures de recherche manuelle.
+                            {item.a}
                          </div>
                       </details>
                    ))}
@@ -98,14 +107,14 @@ export default function LandingAgencyFAQAcademy({ uiLang, setShowContactModal, s
                 <div style={{ position: 'absolute', top: -100, right: -100, width: 400, height: 400, background: 'rgba(236,72,153,0.2)', filter: 'blur(100px)', borderRadius: '50%' }}></div>
                 
                 <div style={{ flex: 1, zIndex: 10 }}>
-                   <h2 style={{ fontSize: 24, color: '#EC4899', fontWeight: 800, marginBottom: 16 }}>Apprends à lancer ta première campagne</h2>
-                   <h3 style={{ fontSize: 48, color: '#fff', fontWeight: 800, lineHeight: 1.1, marginBottom: 32, letterSpacing: '-1px' }}>Accède à une formation de +10h gratuitement</h3>
+                   <h2 style={{ fontSize: 24, color: '#EC4899', fontWeight: 800, marginBottom: 16 }}>Apprenez à Lancer une Campagne qui Convertit dès Aujourd'hui</h2>
+                   <h3 style={{ fontSize: 48, color: '#fff', fontWeight: 800, lineHeight: 1.1, marginBottom: 32, letterSpacing: '-1px' }}>Accédez Gratuitement à Notre Formation Complète (+10h)</h3>
                    <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                      background: 'linear-gradient(90deg, #EC4899, #8B5CF6)', color: '#fff', border: 'none',
                      padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer',
                      boxShadow: '0 10px 30px rgba(236,72,153,0.3)', transition: 'transform 0.2s'
                    }} className="hover-lift">
-                     Commencer la formation
+                     Débloquer la Formation Gratuite →
                    </button>
                 </div>
                 

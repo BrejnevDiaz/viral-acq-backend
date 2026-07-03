@@ -7,9 +7,9 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
                 <div style={{ maxWidth: 300 }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #8B5CF6, #EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#fff' }}>VA</div>
-                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>ViralAcquisition</span>
+                     <span style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Viral Acquisition</span>
                    </div>
-                   <p style={{ color: '#A1A1AA', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>L'ultime plateforme de matchmaking et d'acquisition marketing pour marques et créateurs.</p>
+                   <p style={{ color: '#A1A1AA', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>La plateforme d'élite qui connecte marques ambitieuses et créateurs à fort impact — espionnage concurrentiel, matchmaking IA, et CRM, réunis en un seul outil.</p>
                    <div style={{ display: 'flex', gap: 16 }}>
                       <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>in</div>
                       <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}>IG</div>
@@ -42,8 +42,8 @@ export default function LandingFooter({ setAuthMode, setShowLoginModal, showInfo
                    <div>
                       <h4 style={{ color: '#8B5CF6', fontSize: 14, fontWeight: 700, marginBottom: 24, textTransform: 'uppercase' }}>Liens Pratiques (Légal)</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('login'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Connexion</a>
-                         <a href="https://viralacquisition.it/" target="_blank" rel="noopener noreferrer" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14 }}>Inscription</a>
+                         <a href="#login" onClick={(e) => { e.preventDefault(); setAuthMode('login'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Connexion</a>
+                         <a href="#signup" onClick={(e) => { e.preventDefault(); setAuthMode('signup'); setShowLoginModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Inscription</a>
                          <a href="#cgv" onClick={(e) => { e.preventDefault(); setLegalType('CGV'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Conditions générales de vente (CGV)</a>
                          <a href="#privacy" onClick={(e) => { e.preventDefault(); setLegalType('Privacy'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Politique de confidentialité</a>
                          <a href="#mentions" onClick={(e) => { e.preventDefault(); setLegalType('Legal'); setShowLegalModal(true); }} style={{ color: '#A1A1AA', fontSize: 14, cursor: 'pointer' }}>Mentions Légales</a>

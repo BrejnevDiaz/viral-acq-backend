@@ -11,8 +11,8 @@ export default function LandingCreators({ setAuthMode, setShowLoginModal, uiLang
                   {/* Left: Text & Benefits */}
                   <div className="w-full-mobile text-center-mobile" style={{ flex: 1, zIndex: 10 }}>
                       <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(16,185,129,0.1)', color: '#10B981', borderRadius: 20, fontSize: 14, fontWeight: 700, marginBottom: 24, border: '1px solid rgba(16,185,129,0.2)' }}>{uiLang === 'fr' ? 'ESPACE CRÉATEURS & UGC' : 'CREATORS & UGC HUB'}</div>
-                      <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.1 }}>{uiLang === 'fr' ? 'Monétisez votre audience. ' : 'Monetize your audience. '}<br/><span style={{ color: '#10B981' }}>{uiLang === 'fr' ? 'Zéro commission.' : 'Zero commission.'}</span></h2>
-                      <p className="text-mobile-p" style={{ color: '#A1A1AA', fontSize: 18, marginBottom: 40, lineHeight: 1.6 }}>{uiLang === 'fr' ? "Rejoignez le réseau privé d'Acquisition Pro et laissez notre IA vous connecter directement avec les meilleures marques de votre niche. Fini les négociations interminables." : "Join the exclusive Acquisition Pro network and let our AI connect you directly with the best brands in your niche. No more endless negotiations."}</p>
+                      <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.1 }}>{uiLang === 'fr' ? 'Monétisez votre audience. ' : 'Monetize your audience. '}<br/><span style={{ color: '#10B981' }}>{uiLang === 'fr' ? 'Sans intermédiaire, sans commission.' : 'No middleman, zero commission.'}</span></h2>
+                      <p className="text-mobile-p" style={{ color: '#A1A1AA', fontSize: 18, marginBottom: 40, lineHeight: 1.6 }}>{uiLang === 'fr' ? "Rejoignez le réseau privé et sélectif d'Acquisition Pro : notre IA vous connecte directement avec les marques les plus solvables de votre niche — sans DM à rallonge, sans négociations interminables, sans intermédiaire qui prend sa part." : "Join Acquisition Pro's private, curated creator network: our AI connects you directly with the best-paying brands in your niche — no endless DMs, no drawn-out negotiations, no middleman taking a cut."}</p>
                       
                       <div className="text-left-mobile" style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 40 }}>
                           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
@@ -47,7 +47,7 @@ export default function LandingCreators({ setAuthMode, setShowLoginModal, uiLang
                       </div>
                       
                       <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} className="hover-lift" style={{ background: '#10B981', color: '#000', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 30px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
-                          {uiLang === 'fr' ? 'Devenir Créateur Partenaire' : 'Become a Partner Creator'}
+                          {uiLang === 'fr' ? 'Rejoindre le Réseau — 100% Gratuit' : 'Join the Network — 100% Free'}
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                       </button>
                   </div>

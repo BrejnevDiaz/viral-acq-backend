@@ -16,9 +16,9 @@ export default function LandingNavbar({ uiLang, setUiLang, setAuthMode, setShowL
               <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px' }}>Acquisition Pro</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500, color: '#A1A1AA' }}>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>{uiLang === 'fr' ? 'Veille Concurrentielle' : 'Spy & Inspiration'}</span>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Trouver vos talents' : 'Find Talents'}</span>
-              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Trouver une collab' : 'Creators Hub'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', color: '#fff' }}>{uiLang === 'fr' ? 'Espionner mes Concurrents' : 'Spy on Competitors'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Recruter des Créateurs' : 'Recruit Top Talent'}</span>
+              <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">{uiLang === 'fr' ? 'Espace Créateurs' : 'Creators Hub'}</span>
               <span onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ cursor: 'pointer', transition: 'color 0.2s' }} className="hover-white">Sourcing & CRM</span>
             </div>
             <div className="nav-menu-desktop" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
@@ -35,7 +35,7 @@ export default function LandingNavbar({ uiLang, setUiLang, setAuthMode, setShowL
                 }}
                 className="hover-bg-white-10"
               >
-                Login
+                {uiLang === 'fr' ? 'Connexion' : 'Login'}
               </button>
             </div>
           </nav>

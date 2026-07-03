@@ -12,8 +12,9 @@ import ContractGeneratorTab from "./ContractGeneratorTab";
 import ResourcesTab from "./ResourcesTab";
 import LandingPage from "./LandingPage";
 import DashboardLayout from "./DashboardLayout";
-import { supabase } from "./supabaseClient";
 import { apiFetch } from "./utils/apiClient";
+import { useAuth } from "./contexts/AuthContext";
+import { useRole } from "./contexts/RoleContext";
 
 // ─── UI Translations ─────────────────────────────────────────────────────────
 const T = {
@@ -144,32 +145,20 @@ export default function ProspectionAgent() {
   const [backendOk, setBackendOk]       = useState(null);
   const [emailsSent, setEmailsSent]     = useState(0);
 
-  const [isLoggedIn, setIsLoggedIn]       = useState(false);
-  const [userTier, setUserTier]           = useState("free");
-  const [userRole, setUserRole]           = useState("user");
-  const [userId, setUserId]               = useState(null);
-  const [selectedSignupTier, setSelectedSignupTier] = useState("standard");
-  const [signupRole, setSignupRole] = useState("brand");
-  const [showUpgradeModal, setShowUpgradeModal]     = useState(false);
-  const [upgradeModalData, setUpgradeModalData]     = useState({ tab: "", title: "", reason: "" });
-  const [isUpgradingSim, setIsUpgradingSim]         = useState(false);
-  const [upgradeSimSuccess, setUpgradeSimSuccess]   = useState(false);
-  const [shopAnalysisCount, setShopAnalysisCount]   = useState(0);
+  const { isLoggedIn, userId, userEmail } = useAuth();
+  const { userRole, userTier, showUpgradeModal, upgradeModalData,
+          isUpgradingSim, upgradeSimSuccess, openUpgradeModal,
+          closeUpgradeModal, upgradeTier, checkAnalysisAllowance } = useRole();
 
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoContent, setInfoContent] = useState({ title: "", text: "" });
   const [legalType, setLegalType] = useState("");
   const [researchMenuOpen, setResearchMenuOpen] = useState(true);
   const [redirectShop, setRedirectShop]   = useState(null);
-  const [authMode, setAuthMode]           = useState("login");
-  const [emailInput, setEmailInput]       = useState("");
-  const [passInput, setPassInput]         = useState("");
-  const [authError, setAuthError]         = useState("");
   const [appToast, setAppToast] = useState(null);
   const toastTimerRef = useRef(null);
 
@@ -179,52 +168,16 @@ export default function ProspectionAgent() {
     toastTimerRef.current = setTimeout(() => setAppToast(null), 4000);
   };
 
-  // ─── Supabase Auth ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUserId(session.user.id);
-        setEmailInput(session.user.email || "");
-        setIsLoggedIn(true);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role, plan")
-          .eq("id", session.user.id)
-          .single();
-        if (profile) {
-          setUserRole(profile.role);
-          setUserTier(profile.role === "admin" ? "admin" : profile.plan);
-          const today = new Date().toISOString().split("T")[0];
-          const { data: usage } = await supabase
-            .from("shop_analysis_usage")
-            .select("count")
-            .eq("user_id", session.user.id)
-            .eq("analysis_date", today)
-            .single();
-          setShopAnalysisCount(usage?.count ?? 0);
-        }
-      } else {
-        setIsLoggedIn(false);
-        setUserTier("free");
-        setUserRole("user");
-        setUserId(null);
-        setShopAnalysisCount(0);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
-
   const importLeadFromAdSpy = useCallback((lead) => {
     // Enforce Standard tier limit of 10 Sourcing CRM leads
     if (userTier === "standard" && results.length >= 10) {
-      setUpgradeModalData({
+      openUpgradeModal({
         tab: "acquisition",
         title: uiLang === "fr" ? "Limite de Sourcing CRM Atteinte" : "Sourcing CRM Limit Reached",
-        reason: uiLang === "fr" 
-          ? "Le forfait Standard limite votre Sourcing CRM à 10 prospects qualifiés. Passez au niveau VIP Pro ou VIP Elite pour importer des leads en illimité !" 
+        reason: uiLang === "fr"
+          ? "Le forfait Standard limite votre Sourcing CRM à 10 prospects qualifiés. Passez au niveau VIP Pro ou VIP Elite pour importer des leads en illimité !"
           : "The Standard plan limits your Sourcing CRM to 10 qualified prospects. Upgrade to VIP Pro or VIP Elite to unlock unlimited lead imports!"
       });
-      setShowUpgradeModal(true);
       return;
     }
 
@@ -290,10 +243,10 @@ export default function ProspectionAgent() {
 
   // CRM: Save leads automatically to localStorage (Legacy fallback, now backend saves it on send)
   useEffect(() => {
-    if (isLoggedIn && emailInput && results.length > 0) {
-      localStorage.setItem(`va_leads_${emailInput}`, JSON.stringify(results));
+    if (isLoggedIn && userEmail && results.length > 0) {
+      localStorage.setItem(`va_leads_${userEmail}`, JSON.stringify(results));
     }
-  }, [results, isLoggedIn, emailInput]);
+  }, [results, isLoggedIn, userEmail]);
 
   const handleTabChange = (tabId) => {
     const isFullAccess = userTier === "admin" || userTier === "pro" || userTier === "elite" || userTier === "vip_pro" || userTier === "vip_elite";
@@ -303,126 +256,22 @@ export default function ProspectionAgent() {
     }
     const proOnlyTabs = ["acquisition", "vetting", "matchmaking", "resources"];
     if (proOnlyTabs.includes(tabId)) {
-      setUpgradeModalData({
+      openUpgradeModal({
         tab: tabId,
         title: uiLang === "fr" ? "🔥 Module Réservé aux Membres Pro" : "🔥 Pro Members Only",
         reason: uiLang === "fr"
           ? "Le Sourcing CRM, le Vetting IA, le Matchmaking et les Ressources exclusives sont réservés aux forfaits Pro et Elite. Passez au niveau supérieur pour débloquer l'accès complet."
           : "Sourcing CRM, AI Vetting, Matchmaking and exclusive Resources are reserved for Pro and Elite plans. Upgrade to unlock full access."
       });
-      setShowUpgradeModal(true);
       return;
     }
     setCurrentTab(tabId);
-  };
-
-  const handleUpgradeSimulate = (planId) => {
-    setIsUpgradingSim(true);
-    setUpgradeSimSuccess(false);
-    setTimeout(() => {
-      setIsUpgradingSim(false);
-      setUpgradeSimSuccess(true);
-      setTimeout(async () => {
-        setUserTier(planId);
-        if (userId) {
-          await supabase.from("profiles").update({ plan: planId }).eq("id", userId);
-        }
-        setUpgradeSimSuccess(false);
-        setShowUpgradeModal(false);
-        if (upgradeModalData.tab) {
-          setCurrentTab(upgradeModalData.tab);
-        }
-      }, 1500);
-    }, 2000);
-  };
-
-  const handleAnalyzeStore = () => {
-    const limit = userTier === "free" ? 2 : userTier === "standard" ? 5 : Infinity;
-    if (limit !== Infinity && shopAnalysisCount >= limit) {
-      setUpgradeModalData({
-        tab: "shopanalyzer",
-        title: uiLang === "fr" ? "Limite d'Analyses de Boutiques" : "Competitor Shop Analysis Limit",
-        reason: uiLang === "fr"
-          ? `Votre forfait ${userTier === "free" ? "Gratuit" : "Standard"} vous limite à ${limit} analyses par jour. Passez au forfait Pro ou Elite pour analyser en illimité !`
-          : `Your ${userTier === "free" ? "Free" : "Standard"} plan limits you to ${limit} competitor shop analyses per day. Upgrade to Pro or Elite for unlimited access!`
-      });
-      setShowUpgradeModal(true);
-      return false;
-    }
-    if (limit !== Infinity) {
-      const newCount = shopAnalysisCount + 1;
-      setShopAnalysisCount(newCount);
-      if (userId) {
-        const today = new Date().toISOString().split("T")[0];
-        supabase.from("shop_analysis_usage").upsert(
-          { user_id: userId, analysis_date: today, count: newCount },
-          { onConflict: "user_id,analysis_date" }
-        ).then(() => {});
-      }
-    }
-    return true;
-  };
-
-  const handleAuth = async (e) => {
-    e.preventDefault();
-    setAuthError("");
-
-    if (emailInput === "brejnevdiaz@gmail.com" && passInput === "B1ss0u@k1") {
-      // Bypass total des sécurités Supabase pour le propriétaire
-      setIsLoggedIn(true);
-      setUserRole("admin");
-      setUserTier("elite");
-      setAuthError("");
-      return; 
-    }
-
-    if (authMode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: emailInput,
-        password: passInput,
-      });
-      if (error) {
-        setAuthError(uiLang === "fr" ? "Email ou mot de passe incorrect." : uiLang === "it" ? "Email o password errata." : "Incorrect email or password.");
-      }
-      // onAuthStateChange handles isLoggedIn / userTier / userRole updates
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email: emailInput,
-        password: passInput,
-      });
-      if (error) {
-        setAuthError(error.message);
-        return;
-      }
-      // Simulate paid checkout flow for non-free plans
-      if (selectedSignupTier !== "free") {
-        setIsUpgradingSim(true);
-        setUpgradeSimSuccess(false);
-        setTimeout(() => {
-          setIsUpgradingSim(false);
-          setUpgradeSimSuccess(true);
-          setTimeout(async () => {
-            setUpgradeSimSuccess(false);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-              await supabase.from("profiles").update({ plan: selectedSignupTier }).eq("id", user.id);
-              setUserTier(selectedSignupTier);
-            }
-          }, 1500);
-        }, 2000);
-      }
-    }
   };
 
   if (!isLoggedIn) {
     return (
       <LandingPage
         uiLang={uiLang} setUiLang={setUiLang}
-        authMode={authMode} setAuthMode={setAuthMode}
-        showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal}
-        emailInput={emailInput} setEmailInput={setEmailInput}
-        passInput={passInput} setPassInput={setPassInput}
-        handleAuth={handleAuth}
         showContactModal={showContactModal} setShowContactModal={setShowContactModal}
         contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
         showInfoModal={showInfoModal} setShowInfoModal={setShowInfoModal}
@@ -438,11 +287,10 @@ export default function ProspectionAgent() {
       <DashboardLayout
         c={c} mono={mono} currentTab={currentTab} handleTabChange={handleTabChange}
         researchMenuOpen={researchMenuOpen} setResearchMenuOpen={setResearchMenuOpen}
-        userTier={userTier} setShowUpgradeModal={setShowUpgradeModal}
         profileMenuOpen={profileMenuOpen} setProfileMenuOpen={setProfileMenuOpen}
-        userId={userId} uiLang={uiLang} setUiLang={setUiLang} theme={theme} setTheme={setTheme}
+        uiLang={uiLang} setUiLang={setUiLang} theme={theme} setTheme={setTheme}
         mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
-        userRole={userRole} backendOk={backendOk} resultsCount={results.length}
+        backendOk={backendOk} resultsCount={results.length}
         statsTotal={stats.total} emailsSent={emailsSent} t={t}
       >
 
@@ -463,23 +311,23 @@ export default function ProspectionAgent() {
             </button>
           </div>
         ) : currentTab === "adspy" ? (
-          <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} />
+          <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} />
         ) : currentTab === "productfinder" ? (
-          <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} />
+          <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} />
         ) : currentTab === "acquisition" ? (
-          <SourcingCRMTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} results={results} setResults={setResults} stats={stats} backendOk={backendOk} emailInput={emailInput} setEmailsSent={setEmailsSent} />
+          <SourcingCRMTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} results={results} setResults={setResults} stats={stats} backendOk={backendOk} setEmailsSent={setEmailsSent} />
         ) : currentTab === "vetting" ? (
-          <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={(k) => t[k] || k} userId={userId} />
+          <VettingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} t={(k) => t[k] || k} />
         ) : currentTab === "shopanalyzer" ? (
-          <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} userTier={userTier} onAnalyzeStore={handleAnalyzeStore} />
+          <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} onAnalyzeStore={() => checkAnalysisAllowance(uiLang)} />
         ) : currentTab === "talentagency" ? (
-          <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userPlan={userTier} userId={userId} />
+          <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} />
         ) : currentTab === "brandportal" ? (
           <BrandPortalTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} />
         ) : currentTab === "contractgenerator" ? (
           <ContractGeneratorTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
-          <ResourcesTab c={c} mono={mono} uiLang={uiLang} userTier={userTier} onUpgradeTier={handleUpgradeSimulate} />
+          <ResourcesTab c={c} mono={mono} uiLang={uiLang} />
         ) : (
           <MatchmakingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         )}
@@ -535,7 +383,7 @@ export default function ProspectionAgent() {
             )}
 
             {/* Close */}
-            <button onClick={() => setShowUpgradeModal(false)} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: c.textDim, fontSize: 20, cursor: "pointer" }}>✖</button>
+            <button onClick={closeUpgradeModal} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: c.textDim, fontSize: 20, cursor: "pointer" }}>✖</button>
             
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <span style={{ fontSize: 36 }}>💎</span>
@@ -559,7 +407,7 @@ export default function ProspectionAgent() {
                 </div>
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: c.accent2, fontFamily: mono }}>3999 €<span style={{ fontSize: 11, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
-                  <button onClick={() => handleUpgradeSimulate("vip_pro")} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent2, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accent2Soft}` }}>
+                  <button onClick={() => upgradeTier("vip_pro", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent2, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accent2Soft}` }}>
                     {uiLang === "fr" ? "Activer VIP Pro ➔" : "Subscribe VIP Pro ➔"}
                   </button>
                 </div>
@@ -579,7 +427,7 @@ export default function ProspectionAgent() {
                 </div>
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 20, fontWeight: 900, color: c.success, fontFamily: mono }}>5999 €<span style={{ fontSize: 11, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
-                  <button onClick={() => handleUpgradeSimulate("vip_elite")} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.success, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.successSoft}` }}>
+                  <button onClick={() => upgradeTier("vip_elite", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.success, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.successSoft}` }}>
                     {uiLang === "fr" ? "Activer VIP Elite ➔" : "Subscribe VIP Elite ➔"}
                   </button>
                 </div>
@@ -588,7 +436,7 @@ export default function ProspectionAgent() {
             </div>
 
             {userTier === "free" && (
-              <button onClick={() => handleUpgradeSimulate("standard")} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1.5px solid ${c.accent}`, background: `${c.accent}15`, color: c.accent, fontSize: 12.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s" }}>
+              <button onClick={() => upgradeTier("standard", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1.5px solid ${c.accent}`, background: `${c.accent}15`, color: c.accent, fontSize: 12.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s" }}>
                 {uiLang === "fr" ? "Ou souscrire au forfait Standard à 39 € / mois ➔" : "Or subscribe to the Standard plan at 39 € / month ➔"}
               </button>
             )}

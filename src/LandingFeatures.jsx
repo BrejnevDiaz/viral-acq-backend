@@ -7,10 +7,10 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
           {/* ADSPY & PRODUIT GAGNANT */}
           <section id="adspy" style={{ maxWidth: 1100, margin: '120px auto 0 auto', padding: '0 24px', textAlign: 'center', position: 'relative' }}>
             <div id="produit-gagnant" style={{ position: 'absolute', top: -100 }}></div>
-            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Trouvez vos prochains <span style={{ color: '#8B5CF6' }}>talents UGC</span> en 3 clics</h2>
-            <p style={{ fontSize: 18, color: '#A1A1AA', maxWidth: 700, margin: '0 auto 48px auto', lineHeight: 1.6 }}>Accède à 80M+ d'annonces et d'influenceurs. Analyse les tendances, observe tes concurrents et lance des campagnes qui convertissent vraiment.</p>
+            <h2 className="text-mobile-h2" style={{ fontSize: 48, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px' }}>Recrutez l'élite des <span style={{ color: '#8B5CF6' }}>créateurs UGC</span> en 3 clics chrono</h2>
+            <p style={{ fontSize: 18, color: '#A1A1AA', maxWidth: 700, margin: '0 auto 48px auto', lineHeight: 1.6 }}>Accédez à plus de 80 millions d'annonces et d'influenceurs analysés en continu. Décryptez les tendances en temps réel, surveillez vos concurrents ligne par ligne, et lancez des campagnes taillées pour convertir — pas pour deviner.</p>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginBottom: 80 }}>
-                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 30px rgba(139,92,246,0.3)' }}>Essayer gratuitement</button>
+                <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{ background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 30px rgba(139,92,246,0.3)' }}>Explorer l'AdSpy gratuitement →</button>
             </div>
             
             {/* The Social Proof avatars under Adspy (Yomi & Austin style) */}
@@ -25,7 +25,7 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'left', maxWidth: 350 }}>
                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.1)' }} />
                    <div>
-                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"J'utilise ViralAcq pour recruter mes créateurs. En 3 clics, je trouve des influenceurs à fort potentiel pour ma marque."</p>
+                      <p style={{ fontSize: 13, color: '#A1A1AA', margin: '0 0 8px 0', lineHeight: 1.4 }}>"J'utilise Acquisition Pro pour recruter mes créateurs. En 3 clics, je trouve des influenceurs à fort potentiel pour ma marque."</p>
                       <div style={{ fontSize: 12, fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', letterSpacing: 1 }}>Thomas, <span style={{ color: '#8B5CF6' }}>Marque E-com</span></div>
                    </div>
                 </div>
@@ -38,17 +38,17 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  L'Agence de l'<span style={{ color: '#8B5CF6' }}>Influence Marketing</span>
+                  L'IA qui <span style={{ color: '#8B5CF6' }}>Recrute vos Créateurs</span> à votre Place
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Recrutez instantanément les créateurs de contenu parfaits pour votre marque. Notre système de Matchmaking avancé filtre par niche, engagement et audience pour vous connecter avec les influenceurs qui génèrent une acquisition virale massive.
+                  Arrêtez de chercher, laissez l'IA trouver. Notre moteur de Matchmaking analyse niche, engagement réel et qualité d'audience pour vous connecter — en quelques minutes — avec les créateurs capables de faire exploser votre acquisition.
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Trouver votre talent
+                  Lancer le Matchmaking IA →
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(135deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}>
@@ -90,17 +90,17 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
               <div style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
-                  Pilotez vos campagnes et votre <span style={{ color: '#8B5CF6' }}>Sourcing & CRM</span>
+                  Votre <span style={{ color: '#8B5CF6' }}>Agence Marketing</span>, Intégrée à votre CRM
                 </h2>
                 <p style={{ fontSize: 16, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Une véritable agence de marketing entre vos mains. Gérez votre portefeuille d'influenceurs via notre CRM, suivez les budgets alloués et analysez le ROI de chaque campagne pour optimiser votre rentabilité en temps réel.
+                  Pilotez chaque collaboration comme une vraie agence — sans les honoraires d'agence. Centralisez votre portefeuille de créateurs, suivez chaque euro dépensé et mesurez le ROI de chaque campagne en temps réel pour ne plus jamais investir à l'aveugle.
                 </p>
                 <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} style={{
                   background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)', color: '#fff', border: 'none',
                   padding: '12px 28px', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 25px rgba(139,92,246,0.3)', transition: 'transform 0.2s'
                 }} className="hover-lift">
-                  Trouver un talent
+                  Piloter mon CRM & Sourcing →
                 </button>
               </div>
               <div style={{ flex: 1, height: 450, background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5), 0 0 40px rgba(139,92,246,0.1)', display: 'flex', flexDirection: 'column' }}>
@@ -177,9 +177,9 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
             <div id="shop-analyzer" style={{ paddingTop: 80 }}></div>
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80 }}>
               <div style={{ flex: 1, maxWidth: 500 }}>
-                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>Trackez les marques tendances</h2>
+                <h2 style={{ fontSize: 42, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>Espionnez les Marques qui Cartonnent — Avant Tout le Monde</h2>
                 <p style={{ fontSize: 18, color: '#A1A1AA', lineHeight: 1.6, marginBottom: 32 }}>
-                  Accédez aux infos sur l'engagement, les vues, les meilleures campagnes et les influenceurs utilisés pour reproduire les stratégies virales qui fonctionnent.
+                  Engagement, vues, meilleures campagnes, créateurs utilisés : disséquez la stratégie de n'importe quelle marque de votre secteur et reproduisez ce qui marche vraiment — au lieu de réinventer la roue à perte.
                 </p>
                 <button 
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
@@ -192,7 +192,7 @@ export default function LandingFeatures({ setAuthMode, setShowLoginModal }) {
                   }}
                   className="hover-lift hover-glow-intense"
                 >
-                  Analyser une marque
+                  Analyser une marque concurrente →
                 </button>
               </div>
 

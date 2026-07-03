@@ -1,4 +1,4 @@
-export default function AuthModal({ showLoginModal, setShowLoginModal, authMode, setAuthMode, emailInput, setEmailInput, passInput, setPassInput, handleAuth }) {
+export default function AuthModal({ showLoginModal, setShowLoginModal, authMode, setAuthMode, emailInput, setEmailInput, passInput, setPassInput, handleAuth, authLoading, authError }) {
   return (
     <>
           {/* Auth Modal overlay (Glassmorphism) */}
@@ -33,10 +33,10 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                       margin: '0 auto 20px auto', boxShadow: '0 0 20px rgba(139,92,246,0.5)'
                     }}>VA</div>
                     <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 8px 0', color: '#fff' }}>
-                      {authMode === "signup" ? "CRÉEZ VOTRE COMPTE." : "BON RETOUR."}
+                      {authMode === "signup" ? "CRÉEZ VOTRE COMPTE VIP." : "CONTENT DE VOUS REVOIR."}
                     </h2>
                     <p style={{ color: '#A1A1AA', fontSize: 14 }}>
-                      Rejoignez l'élite de l'Acquisition Virale.
+                      Rejoignez les marques et créateurs qui dominent déjà leur marché.
                     </p>
                   </div>
 
@@ -65,13 +65,21 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                         }}
                       />
                     </div>
-                    <button type="submit" disabled={false} style={{
+                    {authError && (
+                      <div style={{
+                        color: '#F87171', fontSize: 13, background: 'rgba(248,113,113,0.1)',
+                        border: '1px solid rgba(248,113,113,0.2)', borderRadius: 8, padding: '10px 14px'
+                      }}>
+                        {authError}
+                      </div>
+                    )}
+                    <button type="submit" disabled={authLoading} style={{
                       width: '100%', padding: 16, borderRadius: 10, border: 'none',
                       background: 'linear-gradient(90deg, #8B5CF6, #EC4899)', color: '#fff', fontSize: 16, fontWeight: 700,
-                      cursor: false ? 'not-allowed' : 'pointer', opacity: false ? 0.7 : 1,
+                      cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1,
                       marginTop: 10, boxShadow: '0 8px 25px rgba(236,72,153,0.3)'
                     }}>
-                      {false ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
+                      {authLoading ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
                     </button>
                   </form>
                   <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#A1A1AA' }}>
@@ -86,17 +94,17 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                 <div style={{ flex: 1.2, background: 'rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.05)', padding: 60, display: 'flex', flexDirection: 'column' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#8B5CF6', fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 16 }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                      {authMode === "signup" ? "ÉTAPE 2 : CHOISISSEZ VOTRE FORFAIT" : "DÉBLOQUEZ TOUTES LES FONCTIONNALITÉS"}
+                      {authMode === "signup" ? "ÉTAPE 2 : CHOISISSEZ VOTRE NIVEAU D'ACCÈS" : "DÉBLOQUEZ L'ACCÈS COMPLET"}
                    </div>
                    <p style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.6, marginBottom: 32 }}>
-                      Les abonnements disposent d'accès de fonctionnalités et de données différents.
+                      Chaque forfait débloque un niveau d'accès différent à l'AdSpy, au CRM et au Matchmaking IA — plus vous montez en gamme, plus vite vous scalez.
                    </p>
                    
                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, flex: 1 }}>
                       {/* Plan: Free */}
                       <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>GRATUIT (TRIAL)</div>
-                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Vetting IA et ressources basiques uniquement.</p>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>ACCÈS GRATUIT</div>
+                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Vetting IA et ressources de base. Idéal pour démarrer sans risque — passez à un forfait payant dès que vous êtes prêt à débloquer l'AdSpy et le CRM complet.</p>
                          <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /à vie</span></div>
                       </div>
                       {/* Plan: Standard */}
