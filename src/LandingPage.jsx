@@ -45,7 +45,7 @@ export default function LandingPage({
           <LandingFeatures setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
 
           {/* SECTION CRÉATEURS / INFLUENCEURS */}
-          <LandingCreators setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} />
+          <LandingCreators setAuthMode={setAuthMode} setShowLoginModal={setShowLoginModal} uiLang={uiLang} />
 
           {/* INSPIRATION MARQUES, TÉMOIGNAGES, BENTO & FONDATEUR */}
           <LandingSocialProof />
