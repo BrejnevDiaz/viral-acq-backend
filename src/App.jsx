@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import VettingTab from "./VettingTab";
 import MatchmakingTab from "./MatchmakingTab";
 import SourcingCRMTab from "./SourcingCRMTab";
@@ -10,7 +10,12 @@ import TalentAgencyTab from "./TalentAgencyTab";
 import BrandPortalTab from "./BrandPortalTab";
 import ContractGeneratorTab from "./ContractGeneratorTab";
 import ResourcesTab from "./ResourcesTab";
+import VideoMarketplaceTab from "./VideoMarketplaceTab";
+import ChatbotWidget from "./ChatbotWidget";
 import LandingPage from "./LandingPage";
+import FooterInfoPage from "./FooterInfoPage";
+import BlogPage from "./BlogPage";
+import { FOOTER_PAGE_ROUTES } from "./footerPagesContent";
 import DashboardLayout from "./DashboardLayout";
 import { apiFetch } from "./utils/apiClient";
 import { useAuth } from "./contexts/AuthContext";
@@ -135,7 +140,8 @@ const sans = "'DM Sans','Segoe UI',system-ui,sans-serif";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export default function ProspectionAgent() {
-  const [theme, setTheme]               = useState("dark");
+  const location = useLocation();
+  const [theme, setTheme]               = useState("light");
   const [uiLang, setUiLang]             = useState("fr");
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -145,20 +151,27 @@ export default function ProspectionAgent() {
   const [backendOk, setBackendOk]       = useState(null);
   const [emailsSent, setEmailsSent]     = useState(0);
 
-  const { isLoggedIn, userId, userEmail } = useAuth();
+  const { 
+    isLoggedIn, userId, userEmail,
+    authMode, setAuthMode, 
+    showLoginModal, setShowLoginModal,
+    emailInput, setEmailInput, 
+    passInput, setPassInput,
+    handleAuth, authLoading, authError 
+  } = useAuth();
   const { userRole, userTier, showUpgradeModal, upgradeModalData,
           isUpgradingSim, upgradeSimSuccess, openUpgradeModal,
-          closeUpgradeModal, upgradeTier, checkAnalysisAllowance } = useRole();
+          closeUpgradeModal, upgradeTier, checkAnalysisAllowance,
+          requestTabAccess } = useRole();
 
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
-  const [infoContent, setInfoContent] = useState({ title: "", text: "" });
   const [legalType, setLegalType] = useState("");
   const [researchMenuOpen, setResearchMenuOpen] = useState(true);
   const [redirectShop, setRedirectShop]   = useState(null);
+  const [pendingIntentTab, setPendingIntentTab] = useState(null);
   const [appToast, setAppToast] = useState(null);
   const toastTimerRef = useRef(null);
 
@@ -249,36 +262,103 @@ export default function ProspectionAgent() {
   }, [results, isLoggedIn, userEmail]);
 
   const handleTabChange = (tabId) => {
-    const isFullAccess = userTier === "admin" || userTier === "pro" || userTier === "elite" || userTier === "vip_pro" || userTier === "vip_elite";
-    if (isFullAccess) {
-      setCurrentTab(tabId);
-      return;
-    }
-    const proOnlyTabs = ["acquisition", "vetting", "matchmaking", "resources"];
-    if (proOnlyTabs.includes(tabId)) {
-      openUpgradeModal({
-        tab: tabId,
-        title: uiLang === "fr" ? "🔥 Module Réservé aux Membres Pro" : "🔥 Pro Members Only",
-        reason: uiLang === "fr"
-          ? "Le Sourcing CRM, le Vetting IA, le Matchmaking et les Ressources exclusives sont réservés aux forfaits Pro et Elite. Passez au niveau supérieur pour débloquer l'accès complet."
-          : "Sourcing CRM, AI Vetting, Matchmaking and exclusive Resources are reserved for Pro and Elite plans. Upgrade to unlock full access."
-      });
-      return;
-    }
+    if (!requestTabAccess(tabId, uiLang)) return;
     setCurrentTab(tabId);
   };
 
+  // Chat widget "Unlock VIP Elite" CTA: visitors who aren't logged in yet go
+  // straight to signup; logged-in users see the in-app upgrade modal instead.
+  const openEliteSignup = () => { setAuthMode("signup"); setShowLoginModal(true); };
+
+  // Landing page CTAs tied to a specific feature (AdSpy, Matchmaking, CRM...)
+  // remember that intent so login/signup lands the user directly on the
+  // matching dashboard tab instead of the generic default.
+  const openAuthWithIntent = (tabId, mode = "signup") => {
+    setPendingIntentTab(tabId);
+    setAuthMode(mode);
+    setShowLoginModal(true);
+  };
+
+  useEffect(() => {
+    if (isLoggedIn && pendingIntentTab) {
+      // Route through handleTabChange (not setCurrentTab directly) so a
+      // free-tier signup landing on a gated tab still hits requestTabAccess
+      // and gets the upgrade modal instead of silently seeing gated content.
+      handleTabChange(pendingIntentTab);
+      setPendingIntentTab(null);
+    }
+  }, [isLoggedIn, pendingIntentTab]);
+
+  // Public marketing pages linked from the Footer — accessible via a real URL.
+  // Gated on !isLoggedIn: once a login/signup succeeds from one of these pages,
+  // the URL doesn't change, so without this check the render would keep
+  // returning the same public page forever instead of falling through to the
+  // Dashboard below — leaving the Auth modal looking stuck/unresponsive.
+  if (!isLoggedIn && location.pathname === "/blog-ressources") {
+    return (
+      <>
+        <BlogPage
+          uiLang={uiLang} setUiLang={setUiLang}
+          authMode={authMode} setAuthMode={setAuthMode}
+          showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal}
+          openAuthWithIntent={openAuthWithIntent}
+          emailInput={emailInput} setEmailInput={setEmailInput}
+          passInput={passInput} setPassInput={setPassInput}
+          handleAuth={handleAuth}
+          authLoading={authLoading} authError={authError}
+          showContactModal={showContactModal} setShowContactModal={setShowContactModal}
+          contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
+          showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal}
+          legalType={legalType} setLegalType={setLegalType}
+        />
+        <ChatbotWidget uiLang={uiLang} API_URL={API_URL} onUpgradeClick={openEliteSignup} />
+      </>
+    );
+  }
+
+  const footerPageKey = !isLoggedIn ? FOOTER_PAGE_ROUTES.find(slug => location.pathname === `/${slug}`) : null;
+  if (footerPageKey) {
+    return (
+      <>
+        <FooterInfoPage
+          pageKey={footerPageKey}
+          uiLang={uiLang} setUiLang={setUiLang}
+          authMode={authMode} setAuthMode={setAuthMode}
+          showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal}
+          openAuthWithIntent={openAuthWithIntent}
+          emailInput={emailInput} setEmailInput={setEmailInput}
+          passInput={passInput} setPassInput={setPassInput}
+          handleAuth={handleAuth}
+          authLoading={authLoading} authError={authError}
+          showContactModal={showContactModal} setShowContactModal={setShowContactModal}
+          contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
+          showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal}
+          legalType={legalType} setLegalType={setLegalType}
+        />
+        <ChatbotWidget uiLang={uiLang} API_URL={API_URL} onUpgradeClick={openEliteSignup} />
+      </>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
-      <LandingPage
-        uiLang={uiLang} setUiLang={setUiLang}
-        showContactModal={showContactModal} setShowContactModal={setShowContactModal}
-        contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
-        showInfoModal={showInfoModal} setShowInfoModal={setShowInfoModal}
-        infoContent={infoContent} setInfoContent={setInfoContent}
-        showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal}
-        legalType={legalType} setLegalType={setLegalType}
-      />
+      <>
+        <LandingPage
+          uiLang={uiLang} setUiLang={setUiLang}
+          authMode={authMode} setAuthMode={setAuthMode}
+          showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal}
+          openAuthWithIntent={openAuthWithIntent}
+          emailInput={emailInput} setEmailInput={setEmailInput}
+          passInput={passInput} setPassInput={setPassInput}
+          handleAuth={handleAuth}
+          authLoading={authLoading} authError={authError}
+          showContactModal={showContactModal} setShowContactModal={setShowContactModal}
+          contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
+          showLegalModal={showLegalModal} setShowLegalModal={setShowLegalModal}
+          legalType={legalType} setLegalType={setLegalType}
+        />
+        <ChatbotWidget uiLang={uiLang} API_URL={API_URL} onUpgradeClick={openEliteSignup} />
+      </>
     );
   }
 
@@ -295,7 +375,7 @@ export default function ProspectionAgent() {
       >
 
         
-        {userRole === 'creator' && currentTab !== 'talentagency' && currentTab !== 'resources' ? (
+        {userRole === 'creator' && currentTab !== 'talentagency' && currentTab !== 'resources' && currentTab !== 'videomarketplace' ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#09090b', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', padding: 40 }}>
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -321,13 +401,15 @@ export default function ProspectionAgent() {
         ) : currentTab === "shopanalyzer" ? (
           <ShopAnalyzerTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} redirectShop={redirectShop} setRedirectShop={setRedirectShop} onAnalyzeStore={() => checkAnalysisAllowance(uiLang)} />
         ) : currentTab === "talentagency" ? (
-          <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} />
+          <TalentAgencyTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} onImportLead={importLeadFromAdSpy} userId={userId} />
         ) : currentTab === "brandportal" ? (
           <BrandPortalTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} />
         ) : currentTab === "contractgenerator" ? (
           <ContractGeneratorTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} />
+        ) : currentTab === "videomarketplace" ? (
+          <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} />
         ) : (
           <MatchmakingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         )}
@@ -391,23 +473,43 @@ export default function ProspectionAgent() {
               <p style={{ fontSize: 13.5, color: c.textMuted, margin: 0, lineHeight: 1.5 }}>{upgradeModalData.reason}</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-              
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+
+              {/* Plus card option */}
+              <div style={{
+                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.accent}44`, borderRadius: 16, padding: 16,
+                display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
+              }}>
+                <div>
+                  <span style={{ fontSize: 10, background: c.accentSoft, color: c.accent, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Plus</span>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>Plan Plus</h4>
+                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
+                    {uiLang === "fr" ? "AdSpy complet pour le dropshipping + CRM 20 leads." : uiLang === "it" ? "AdSpy completo per il dropshipping + CRM 20 lead." : "Full AdSpy for dropshipping + 20-lead CRM."}
+                  </p>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent, fontFamily: mono }}>69 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <button onClick={() => upgradeTier("plus", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accentSoft}` }}>
+                    {uiLang === "fr" ? "Activer Plus ➔" : "Subscribe Plus ➔"}
+                  </button>
+                </div>
+              </div>
+
               {/* VIP Pro card option */}
               <div style={{
-                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.accent2}44`, borderRadius: 16, padding: 18,
+                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.accent2}44`, borderRadius: 16, padding: 16,
                 display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.accent2Soft, color: c.accent2, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Pro</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: "#fff" }}>VIP Pro Plan</h4>
-                  <p style={{ margin: 0, fontSize: 11.5, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 2 Coachings Live & 2 Blogs par mois." : uiLang === "it" ? "Accesso illimitato (Spy, CRM, Sourcing) + 2 Coaching Live & 2 Blog al mese." : "Full workspace access + 2 Live Coachings & 2 case study blogs/mo."}
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>VIP Pro Plan</h4>
+                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
+                    {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blogs par mois." : uiLang === "it" ? "Accesso illimitato (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blog al mese." : "Full workspace access + 1 Live Coaching & 2 case study blogs/mo."}
                   </p>
                 </div>
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: c.accent2, fontFamily: mono }}>3999 €<span style={{ fontSize: 11, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
-                  <button onClick={() => upgradeTier("vip_pro", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent2, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accent2Soft}` }}>
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent2, fontFamily: mono }}>99 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <button onClick={() => upgradeTier("vip_pro", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent2, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accent2Soft}` }}>
                     {uiLang === "fr" ? "Activer VIP Pro ➔" : "Subscribe VIP Pro ➔"}
                   </button>
                 </div>
@@ -415,19 +517,19 @@ export default function ProspectionAgent() {
 
               {/* VIP Elite card option */}
               <div style={{
-                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.success}44`, borderRadius: 16, padding: 18,
+                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.success}44`, borderRadius: 16, padding: 16,
                 display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.successSoft, color: c.success, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Elite</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: "#fff" }}>VIP Elite Plan</h4>
-                  <p style={{ margin: 0, fontSize: 11.5, color: c.textDim, lineHeight: 1.4 }}>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>VIP Elite Plan</h4>
+                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
                     {uiLang === "fr" ? "Accès illimité à TOUTE l'application e-commerce + Coaching Vidéo Hebdomadaire & Blog en illimité." : uiLang === "it" ? "Accesso totale all'app e-commerce + Video Coaching Settimanale e Blog illimitato." : "Total e-commerce access + Weekly Video Coaching & unlimited strategy blog."}
                   </p>
                 </div>
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: c.success, fontFamily: mono }}>5999 €<span style={{ fontSize: 11, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
-                  <button onClick={() => upgradeTier("vip_elite", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.success, color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.successSoft}` }}>
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.success, fontFamily: mono }}>299 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <button onClick={() => upgradeTier("vip_elite", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.success, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.successSoft}` }}>
                     {uiLang === "fr" ? "Activer VIP Elite ➔" : "Subscribe VIP Elite ➔"}
                   </button>
                 </div>
@@ -463,6 +565,16 @@ export default function ProspectionAgent() {
           {appToast.message}
         </div>
       )}
+
+      <ChatbotWidget uiLang={uiLang} userTier={userTier} API_URL={API_URL} onUpgradeClick={() => openUpgradeModal({
+        tab: "chatbot",
+        title: uiLang === "fr" ? "👑 Coach IA Mindeo Blueprint" : uiLang === "it" ? "👑 Coach IA Mindeo Blueprint" : "👑 Mindeo Blueprint AI Coach",
+        reason: uiLang === "fr"
+          ? "Le coaching e-commerce avancé par IA est réservé au forfait VIP Elite. Passez au niveau supérieur pour débloquer des réponses stratégiques illimitées."
+          : uiLang === "it"
+          ? "Il coaching e-commerce avanzato tramite IA è riservato al piano VIP Elite. Passa al livello superiore per sbloccare risposte strategiche illimitate."
+          : "Advanced AI-powered e-commerce coaching is reserved for the VIP Elite plan. Upgrade to unlock unlimited strategic answers."
+      })} />
     </>
   );
 }

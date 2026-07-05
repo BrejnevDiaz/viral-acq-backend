@@ -72,7 +72,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     influencer: { username: "diariatou_sow", followers: "72K", engagement: "6.2%", profileUrl: "https://instagram.com/diariatou_sow" },
     pitch: "Bonjour ! Sephora souhaite vous proposer une collaboration exclusive pour notre nouvelle gamme de soins...",
     relationship: "warm",
-    createdAt: new Date().toISOString()
+    validatedAt: new Date().toISOString()
   }
 ]);
 
@@ -110,9 +110,10 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       {
         id: "CG_MOCK_23910",
         brandName: "Sephora",
-        influencerHandle: "diariatou_sow",
+        influencerUsername: "diariatou_sow",
+        niche: "Beauté",
         content: "CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)\n\nRéf: CG_MOCK_23910\n\n...",
-        status: "signed_both",
+        status: "signed",
         createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
         brandEmail: "contact@sephora.fr",
         influencerEmail: "contact@diariatou.com",
@@ -121,6 +122,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
     ];
   });
   const [contractModal, setContractModal] = useState({ isOpen: false, match: null, generating: false, contract: null });
+  const [sendPanel, setSendPanel] = useState({ isOpen: false, channel: "email", message: "", recipientEmail: "", sending: false });
   const [mmToast, setMmToast] = useState(null);
   const [pendingDeleteContractId, setPendingDeleteContractId] = useState(null);
 
@@ -402,6 +404,63 @@ Signature :
     setContracts(prev => prev.map(ct => ct.id === id ? { ...ct, status } : ct));
   };
 
+  // ── Send generated contract to the influencer, with an explanatory message ──
+  const contractIntroMessage = (match, lang) => {
+    const username = match?.influencer?.username || "";
+    const brandName = match?.brand?.name || "";
+    const templates = {
+      fr: `Bonjour ${username},\n\nExcellente nouvelle : ${brandName} souhaite officialiser sa collaboration avec vous ! 🎉\n\nVous trouverez ci-joint le contrat de partenariat détaillant les livrables, la rémunération et les délais de cette collaboration. Merci de le relire attentivement et de nous faire savoir si vous avez la moindre question avant signature.\n\nAu plaisir de créer du contenu ensemble !\nL'équipe ${brandName}, via Acquisition Pro`,
+      en: `Hi ${username},\n\nGreat news: ${brandName} would like to officially move forward with a collaboration with you! 🎉\n\nPlease find attached the partnership contract detailing deliverables, compensation, and timelines. Feel free to reach out with any questions before signing.\n\nLooking forward to creating great content together!\nThe ${brandName} team, via Acquisition Pro`,
+      it: `Ciao ${username},\n\nOttima notizia: ${brandName} vuole ufficializzare la collaborazione con te! 🎉\n\nIn allegato trovi il contratto di collaborazione con dettagli su consegne, compenso e tempistiche. Scrivici pure se hai domande prima di firmare.\n\nNon vediamo l'ora di creare contenuti insieme!\nIl team ${brandName}, via Acquisition Pro`,
+    };
+    return templates[lang] || templates.fr;
+  };
+
+  const openSendPanel = () => {
+    if (!contractModal.match) return;
+    setSendPanel({
+      isOpen: true, channel: "email",
+      message: contractIntroMessage(contractModal.match, uiLang),
+      recipientEmail: contractModal.match.influencer?.email || contractModal.match.email || "",
+      sending: false
+    });
+  };
+
+  const sendContractByEmail = async () => {
+    if (!sendPanel.recipientEmail || !contractModal.contract) return;
+    setSendPanel(prev => ({ ...prev, sending: true }));
+    try {
+      const res = await apiFetch(`${API_URL}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: sendPanel.recipientEmail,
+          subject: uiLang === "fr" ? `Contrat de collaboration — ${contractModal.match.brand.name}` : uiLang === "it" ? `Contratto di collaborazione — ${contractModal.match.brand.name}` : `Collaboration contract — ${contractModal.match.brand.name}`,
+          body: `${sendPanel.message}\n\n──────────\n\n${contractModal.contract}`
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Erreur réseau");
+      setSendPanel(prev => ({ ...prev, sending: false, isOpen: false }));
+      showToast(data.simulated
+        ? "📭 Email simulé — Gmail non configuré sur le serveur."
+        : (uiLang === "fr" ? "✅ Contrat envoyé à l'influenceur par email !" : uiLang === "it" ? "✅ Contratto inviato via email!" : "✅ Contract emailed to the creator!"));
+    } catch (err) {
+      setSendPanel(prev => ({ ...prev, sending: false }));
+      showToast(`Erreur d'envoi: ${err.message}`, "error");
+    }
+  };
+
+  const closeContractModal = () => {
+    setContractModal({ isOpen: false, match: null, generating: false, contract: null });
+    setSendPanel({ isOpen: false, channel: "email", message: "", recipientEmail: "", sending: false });
+  };
+
+  const copyContractForSocial = () => {
+    navigator.clipboard.writeText(`${sendPanel.message}\n\n──────────\n\n${contractModal.contract}`);
+    showToast(uiLang === "fr" ? "📋 Message + contrat copiés — colle-les dans ta conversation Instagram/TikTok !" : uiLang === "it" ? "📋 Messaggio + contratto copiati — incollali nella tua conversazione Instagram/TikTok!" : "📋 Message + contract copied — paste them into your Instagram/TikTok conversation!");
+  };
+
 
   // Combine influencers + roster for dropdown rendering
   const getCombinedInfluencers = () => {
@@ -635,8 +694,47 @@ Signature :
         </div>
       </div>
 
+      {/* ══════ SECTION CATALOGUE VIP — INFLUENCEURS PRIORITAIRES ══════ */}
+      <div style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
+        <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 4, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>{<div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, #eab308, #f59e0b)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 4px 12px rgba(234,179,8,0.3)" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>} {uiLang === "fr" ? "Catalogue VIP — Influenceurs Prioritaires" : uiLang === "it" ? "Catalogo VIP — Influencer Prioritari" : "VIP Catalog — Priority Influencers"} ({agencyTalents.length})</h3>
+        <p style={{ color: c.textMuted, margin: "0 0 20px 0", fontSize: 13.5 }}>
+          {uiLang === "fr" ? "Le roster exclusif de l'agence — accédez à vos talents prioritaires sans quitter le Matchmaking." : uiLang === "it" ? "Il roster esclusivo dell'agenzia — accedi ai tuoi talent prioritari senza lasciare il Matchmaking." : "The agency's exclusive roster — reach your priority talents without leaving Matchmaking."}
+        </p>
+
+        {agencyTalents.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "40px 10px", color: c.textDim, fontSize: 13.5, fontStyle: "italic" }}>
+            {uiLang === "fr" ? "Aucun talent dans le roster VIP pour le moment. Ajoutez un influenceur ci-dessus ou depuis l'onglet Talents & Gigs pour le voir apparaître ici." : uiLang === "it" ? "Nessun talent nel roster VIP al momento. Aggiungi un influencer qui sopra o dalla scheda Talents & Gigs per vederlo apparire qui." : "No talent in the VIP roster yet. Add an influencer above or from the Talents & Gigs tab to see it appear here."}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+            {agencyTalents.map(talent => (
+              <div key={talent.id} className="hover-card-dark" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, position: "relative" }}>
+                <div style={{ position: "absolute", top: 12, right: 12, fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, color: talent.status === "pending" ? c.warning : c.success, background: talent.status === "pending" ? c.warningBg : c.successSoft }}>
+                  {talent.status === "pending" ? (uiLang === "fr" ? "En attente" : uiLang === "it" ? "In attesa" : "Pending") : (uiLang === "fr" ? "Actif" : uiLang === "it" ? "Attivo" : "Active")}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                  <img src={talent.avatar || `https://ui-avatars.com/api/?name=${talent.username.replace('@','')}&background=8B5CF6&color=fff&size=50&rounded=true`} alt={talent.username} style={{ width: 40, height: 40, borderRadius: "50%", border: `1px solid ${c.border}`, objectFit: "cover" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: "bold", color: c.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>@{talent.username.replace('@','')}</div>
+                    <div style={{ fontSize: 11.5, color: c.textMuted }}>{uiLang === "fr" ? "Niche" : uiLang === "it" ? "Nicchia" : "Niche"}: <span style={{ color: "#eab308" }}>{talent.niche}</span></div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 12, fontSize: 12, color: c.text, marginBottom: 16, alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#E1306C" }}><InstaIcon /> {talent.followers >= 1000 ? `${(talent.followers/1000).toFixed(1)}k` : talent.followers}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, color: c.text }}><TikTokIcon /> {talent.tiktokFollowers ? (talent.tiktokFollowers >= 1000 ? `${(talent.tiktokFollowers/1000).toFixed(1)}k` : talent.tiktokFollowers) : `${(talent.followers * 1.5 / 1000).toFixed(1)}k`}</div>
+                  <div style={{ marginLeft: 8 }}>🔥 {String(talent.engagement).replace('%', '')}% eng</div>
+                </div>
+                <Button onClick={() => openMatchModal(talent, 'influencer')} bg={`linear-gradient(90deg, #eab308, #f59e0b)`} color="#fff" small style={{ width: "100%", padding: "10px", fontSize: 13 }}>🪄 {uiLang === "fr" ? "Matcher avec une Marque" : uiLang === "it" ? "Abbina a un Brand" : "Match with a Brand"}</Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ══════ SECTION ACCORDS VALIDÉS & SIGNÉS ══════ */}
-      <div className="glass-panel" style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
+      <div style={{ marginTop: 40, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
         <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>{<div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, #10b981, #059669)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", boxShadow: "0 4px 12px rgba(16,185,129,0.3)" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
           </div>} Accords Validés & Signés ({validatedMatches.length})</h3>
@@ -687,7 +785,7 @@ Signature :
       </div>
 
       {/* ══════ SECTION GESTION DES CONTRATS ══════ */}
-      <div className="glass-panel" style={{ marginTop: 24, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
+      <div style={{ marginTop: 24, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, padding: 24, boxShadow: `0 8px 32px rgba(0,0,0,0.15)` }}>
         <h3 className="outfit" style={{ fontSize: 17, color: c.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontWeight: 800 }}>📋 Gestion des Contrats ({contracts.length})</h3>
         
         {contracts.length === 0 ? (
@@ -705,7 +803,7 @@ Signature :
               };
               const st = statusColors[ct.status] || statusColors.draft;
               return (
-                <div key={ct.id} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, position: "relative" }}>
+                <div key={ct.id} className="hover-card-dark" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 12, padding: 16, position: "relative" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                     <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 700, background: st.bg, color: st.color, textTransform: "uppercase" }}>{st.label}</span>
                     <span style={{ fontSize: 10, color: c.textDim, fontFamily: mono }}>{new Date(ct.createdAt).toLocaleDateString('fr-FR')}</span>
@@ -806,8 +904,15 @@ Signature :
                 const isBrandToInf = pitchModal.mode === "brand_to_influencer";
                 const combinedInfs = isBrandToInf ? getCombinedInfluencers() : [];
                 const brandNiche = (isBrandToInf && pitchModal.source) ? (pitchModal.source.niche?.toLowerCase() || "") : "";
-                const matchInfs = combinedInfs.filter(i => i.niche && (i.niche.toLowerCase().includes(brandNiche) || brandNiche.includes(i.niche.toLowerCase())));
-                const otherInfs = combinedInfs.filter(i => !matchInfs.includes(i));
+                // Influencers this exact brand has already validated a match with before —
+                // surfaced first so the brand can quickly re-engage a known creator.
+                const alreadyValidatedUsernames = (isBrandToInf && pitchModal.source)
+                  ? new Set(validatedMatches.filter(m => m.brand?.name === pitchModal.source.name).map(m => m.influencer?.username))
+                  : new Set();
+                const validatedInfs = combinedInfs.filter(i => alreadyValidatedUsernames.has(i.username));
+                const remainingInfs = combinedInfs.filter(i => !alreadyValidatedUsernames.has(i.username));
+                const matchInfs = remainingInfs.filter(i => i.niche && (i.niche.toLowerCase().includes(brandNiche) || brandNiche.includes(i.niche.toLowerCase())));
+                const otherInfs = remainingInfs.filter(i => !matchInfs.includes(i));
 
                 return (
                   <>
@@ -840,9 +945,14 @@ Signature :
                           }}
                           style={selectStyle(c)}
                         >
-                          <option value="" style={optionStyle}>Sélectionnez...</option>
+                          <option value="" style={optionStyle}>{uiLang === "fr" ? "Sélectionnez..." : uiLang === "it" ? "Seleziona..." : "Select..."}</option>
                           {isBrandToInf ? (
                             <>
+                              {validatedInfs.length > 0 && (
+                                <optgroup label={`✓ ${uiLang === "fr" ? "Déjà validés avec" : uiLang === "it" ? "Già validati con" : "Already validated with"} ${pitchModal.source.name}`}>
+                                  {validatedInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés</option>)}
+                                </optgroup>
+                              )}
                               {matchInfs.length > 0 && (
                                 <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
                                   {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
@@ -962,7 +1072,7 @@ Signature :
       {contractModal.isOpen && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1001, padding: 20, animation: "fadeIn 0.3s ease-out" }}>
           <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, padding: 30, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
-            <button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
+            <button onClick={closeContractModal} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textMuted, cursor: "pointer", fontSize: 20 }}>✖</button>
             
             <h2 style={{ margin: "0 0 16px 0", fontSize: 20, color: c.text }}> Contrat de Collaboration</h2>
             
@@ -983,13 +1093,55 @@ Signature :
                     fontFamily: "'JetBrains Mono','Fira Code',monospace", boxSizing: "border-box"
                   }}
                 />
-                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
                   {contractModal.match && (
                     <Button onClick={saveContract} bg={`linear-gradient(90deg, ${c.accent}, ${c.accent2})`} color="#fff">💾 Sauvegarder le Contrat</Button>
                   )}
+                  {contractModal.match && (
+                    <Button onClick={openSendPanel} bg={`linear-gradient(90deg, #10B981, #059669)`} color="#fff">📤 {uiLang === "fr" ? "Envoyer à l'influenceur" : uiLang === "it" ? "Invia al creator" : "Send to creator"}</Button>
+                  )}
                   <Button onClick={() => { navigator.clipboard.writeText(contractModal.contract); showToast("📋 Contrat copié !"); }} bg={c.success} color="#fff" small>📋 Copier</Button>
-                  <Button onClick={() => setContractModal({ isOpen: false, match: null, generating: false, contract: null })} bg={c.border} color={c.text} small>Fermer</Button>
+                  <Button onClick={closeContractModal} bg={c.border} color={c.text} small>Fermer</Button>
                 </div>
+
+                {sendPanel.isOpen && (
+                  <div style={{ marginTop: 20, padding: 18, borderRadius: 12, border: `1.5px solid ${c.accent}55`, background: c.bg }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: c.text, marginBottom: 12 }}>
+                      {uiLang === "fr" ? "✉️ Message d'accompagnement" : uiLang === "it" ? "✉️ Messaggio di accompagnamento" : "✉️ Cover message"}
+                    </div>
+                    <textarea
+                      value={sendPanel.message}
+                      onChange={e => setSendPanel(prev => ({ ...prev, message: e.target.value }))}
+                      style={{ width: "100%", minHeight: 140, fontSize: 13, color: c.text, background: c.card, border: `1px solid ${c.border}`, borderRadius: 8, padding: 12, lineHeight: 1.5, resize: "vertical", outline: "none", boxSizing: "border-box", marginBottom: 12 }}
+                    />
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      <button onClick={() => setSendPanel(prev => ({ ...prev, channel: "email" }))} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${sendPanel.channel === "email" ? c.accent : c.border}`, background: sendPanel.channel === "email" ? `${c.accent}15` : "transparent", color: c.text, fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+                        📧 {uiLang === "fr" ? "Par email" : uiLang === "it" ? "Via email" : "By email"}
+                      </button>
+                      <button onClick={() => setSendPanel(prev => ({ ...prev, channel: "social" }))} style={{ flex: 1, padding: "10px", borderRadius: 8, border: `1.5px solid ${sendPanel.channel === "social" ? c.accent : c.border}`, background: sendPanel.channel === "social" ? `${c.accent}15` : "transparent", color: c.text, fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
+                        📱 {uiLang === "fr" ? "Via ses réseaux" : uiLang === "it" ? "Via i suoi social" : "Via their socials"}
+                      </button>
+                    </div>
+
+                    {sendPanel.channel === "email" ? (
+                      <>
+                        <Input placeholder={uiLang === "fr" ? "Email de l'influenceur" : uiLang === "it" ? "Email del creator" : "Creator's email"} value={sendPanel.recipientEmail} onChange={e => setSendPanel(prev => ({ ...prev, recipientEmail: e.target.value }))} c={c} />
+                        <Button onClick={sendContractByEmail} disabled={!sendPanel.recipientEmail || sendPanel.sending} bg={`linear-gradient(90deg, #10B981, #059669)`} color="#fff">
+                          {sendPanel.sending ? "..." : `📤 ${uiLang === "fr" ? "Envoyer par email" : uiLang === "it" ? "Invia via email" : "Send by email"}`}
+                        </Button>
+                      </>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Button onClick={copyContractForSocial} bg={`linear-gradient(90deg, #10B981, #059669)`} color="#fff">📋 {uiLang === "fr" ? "Copier pour DM" : uiLang === "it" ? "Copia per DM" : "Copy for DM"}</Button>
+                        {contractModal.match?.influencer?.profileUrl && (
+                          <a href={contractModal.match.influencer.profileUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                            <Button onClick={() => {}} bg={c.border} color={c.text} small>🔗 {uiLang === "fr" ? "Ouvrir son profil" : uiLang === "it" ? "Apri il profilo" : "Open their profile"}</Button>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : null}
           </div>

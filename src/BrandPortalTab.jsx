@@ -67,7 +67,8 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
       message: "Décrivez vos objectifs (UGC, Notoriété, Conversion) *",
       submit: "Envoyer la demande à l'Agence",
       success: "✅ Demande envoyée avec succès ! Notre équipe (Brejnev Diaz) vous contactera sous 24h.",
-      submitting: "Envoi en cours..."
+      submitting: "Envoi en cours...",
+      selectPlaceholder: "Sélectionnez..."
     },
     en: {
       title: "Brand & Collaboration Portal",
@@ -80,7 +81,8 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
       message: "Describe your goals (UGC, Brand Awareness, Conversion) *",
       submit: "Send Request to Agency",
       success: "✅ Request sent successfully! Our team (Brejnev Diaz) will contact you within 24h.",
-      submitting: "Sending..."
+      submitting: "Sending...",
+      selectPlaceholder: "Select..."
     },
     it: {
       title: "Portale Brand & Collaborazioni",
@@ -93,7 +95,8 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
       message: "Descrivi i tuoi obiettivi (UGC, Notorietà, Conversione) *",
       submit: "Invia richiesta all'Agenzia",
       success: "✅ Richiesta inviata con successo! Il nostro team (Brejnev Diaz) ti contatterà entro 24 ore.",
-      submitting: "Invio in corso..."
+      submitting: "Invio in corso...",
+      selectPlaceholder: "Seleziona..."
     }
   }[uiLang] || {
     // default to French if somehow missing
@@ -107,7 +110,8 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
     message: "Décrivez vos objectifs *",
     submit: "Envoyer",
     success: "✅ Demande envoyée avec succès !",
-    submitting: "Envoi en cours..."
+    submitting: "Envoi en cours...",
+    selectPlaceholder: "Sélectionnez..."
   };
 
   return (
@@ -186,7 +190,7 @@ export default function BrandPortalTab({ c, uiLang, API_URL }) {
                   onChange={e => setFormData({...formData, budget: e.target.value})}
                   style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", boxSizing: "border-box" }}
                 >
-                  <option value="">Sélectionnez...</option>
+                  <option value="">{t.selectPlaceholder}</option>
                   <option value="<1000">&lt; 1,000 €</option>
                   <option value="1000-5000">1,000 € - 5,000 €</option>
                   <option value="5000-10000">5,000 € - 10,000 €</option>

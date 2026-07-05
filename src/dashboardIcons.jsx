@@ -31,6 +31,13 @@ export const SourcingCRMIcon = ({ color, size = 18 }) => (
   </svg>
 );
 
+export const VideoMarketplaceIcon = ({ color, size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <rect x="4" y="2" width="16" height="20" rx="3"/>
+    <polygon points="10 9 15 12 10 15 10 9" fill={color} stroke="none"/>
+  </svg>
+);
+
 export const VettingIAIcon = ({ color, size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>

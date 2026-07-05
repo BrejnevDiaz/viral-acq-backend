@@ -1,4 +1,4 @@
-export default function AuthModal({ showLoginModal, setShowLoginModal, authMode, setAuthMode, emailInput, setEmailInput, passInput, setPassInput, handleAuth, authLoading, authError }) {
+export default function AuthModal({ uiLang, showLoginModal, setShowLoginModal, authMode, setAuthMode, emailInput, setEmailInput, passInput, setPassInput, handleAuth, authLoading, authError }) {
   return (
     <>
           {/* Auth Modal overlay (Glassmorphism) */}
@@ -6,16 +6,17 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000,
               background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(20px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              animation: 'fadeIn 0.2s ease-out'
             }}>
-              <div style={{
+              <div className="modal-pop" style={{
                 background: 'rgba(24,24,27,0.8)', border: '1px solid rgba(255,255,255,0.1)',
                 width: 900, maxWidth: '95vw', borderRadius: 24, display: 'flex', overflow: 'hidden',
                 boxShadow: '0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)',
                 position: 'relative'
               }}>
                 <div style={{ position: 'absolute', top: '-20%', left: '-20%', width: '60%', height: '60%', background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)', filter: 'blur(60px)', pointerEvents: 'none' }}></div>
-                
+
                 {/* Auth Form Side */}
                 <div style={{ flex: 1, padding: 60, position: 'relative', zIndex: 10 }}>
                   <button onClick={() => setShowLoginModal(false)} style={{
@@ -23,45 +24,49 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                     color: '#A1A1AA', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13
                   }} className="hover-white">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    Retour
+                    {uiLang === 'fr' ? 'Retour' : uiLang === 'it' ? 'Indietro' : 'Back'}
                   </button>
-                  
+
                   <div style={{ textAlign: 'center', marginBottom: 40, marginTop: 20 }}>
                     <div style={{
                       background: 'linear-gradient(135deg, #8B5CF6, #8B5CF6)', width: 48, height: 48, borderRadius: 12,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 20,
                       margin: '0 auto 20px auto', boxShadow: '0 0 20px rgba(139,92,246,0.5)'
-                    }}>VA</div>
+                    }}>AP</div>
                     <h2 style={{ fontSize: 28, fontWeight: 800, margin: '0 0 8px 0', color: '#fff' }}>
-                      {authMode === "signup" ? "CRÉEZ VOTRE COMPTE VIP." : "CONTENT DE VOUS REVOIR."}
+                      {authMode === "signup"
+                        ? (uiLang === 'fr' ? "CRÉEZ VOTRE COMPTE VIP." : uiLang === 'it' ? "CREA IL TUO ACCOUNT VIP." : "CREATE YOUR VIP ACCOUNT.")
+                        : (uiLang === 'fr' ? "CONTENT DE VOUS REVOIR." : uiLang === 'it' ? "BENTORNATO." : "WELCOME BACK.")}
                     </h2>
                     <p style={{ color: '#A1A1AA', fontSize: 14 }}>
-                      Rejoignez les marques et créateurs qui dominent déjà leur marché.
+                      {uiLang === 'fr' ? "Rejoignez les marques et créateurs qui dominent déjà leur marché." : uiLang === 'it' ? "Unisciti ai brand e ai creator che dominano già il loro mercato." : "Join the brands and creators already dominating their market."}
                     </p>
                   </div>
 
-                  <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <form onSubmit={(e) => handleAuth(e, uiLang)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>ADRESSE E-MAIL</label>
-                      <input 
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>{uiLang === 'fr' ? 'ADRESSE E-MAIL' : uiLang === 'it' ? 'INDIRIZZO E-MAIL' : 'EMAIL ADDRESS'}</label>
+                      <input
                         type="email" required
                         value={emailInput} onChange={e => setEmailInput(e.target.value)}
                         placeholder="you@company.com"
+                        className="input-premium"
                         style={{
                           width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
-                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box'
+                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box'
                         }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>MOT DE PASSE</label>
-                      <input 
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#A1A1AA', marginBottom: 8, letterSpacing: 1 }}>{uiLang === 'fr' ? 'MOT DE PASSE' : uiLang === 'it' ? 'PASSWORD' : 'PASSWORD'}</label>
+                      <input
                         type="password" required
                         value={passInput} onChange={e => setPassInput(e.target.value)}
                         placeholder="••••••••"
+                        className="input-premium"
                         style={{
                           width: '100%', padding: '14px 16px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)',
-                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box'
+                          background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 15, outline: 'none', boxSizing: 'border-box'
                         }}
                       />
                     </div>
@@ -79,13 +84,21 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                       cursor: authLoading ? 'not-allowed' : 'pointer', opacity: authLoading ? 0.7 : 1,
                       marginTop: 10, boxShadow: '0 8px 25px rgba(236,72,153,0.3)'
                     }}>
-                      {authLoading ? "Chargement..." : (authMode === "signup" ? "Valider l'inscription →" : "Se connecter →")}
+                      {authLoading
+                        ? (uiLang === 'fr' ? "Chargement..." : uiLang === 'it' ? "Caricamento..." : "Loading...")
+                        : (authMode === "signup"
+                          ? (uiLang === 'fr' ? "Valider l'inscription →" : uiLang === 'it' ? "Conferma l'iscrizione →" : "Complete Sign Up →")
+                          : (uiLang === 'fr' ? "Se connecter →" : uiLang === 'it' ? "Accedi →" : "Log In →"))}
                     </button>
                   </form>
                   <div style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: '#A1A1AA' }}>
-                    {authMode === "signup" ? "Déjà un compte ? " : "Pas encore de compte ? "}
+                    {authMode === "signup"
+                      ? (uiLang === 'fr' ? "Déjà un compte ? " : uiLang === 'it' ? "Hai già un account? " : "Already have an account? ")
+                      : (uiLang === 'fr' ? "Pas encore de compte ? " : uiLang === 'it' ? "Non hai ancora un account? " : "Don't have an account yet? ")}
                     <span onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")} style={{ color: '#8B5CF6', fontWeight: 600, cursor: 'pointer' }}>
-                      {authMode === "signup" ? "Se connecter" : "Créer un compte"}
+                      {authMode === "signup"
+                        ? (uiLang === 'fr' ? "Se connecter" : uiLang === 'it' ? "Accedi" : "Log in")
+                        : (uiLang === 'fr' ? "Créer un compte" : uiLang === 'it' ? "Crea un account" : "Create an account")}
                     </span>
                   </div>
                 </div>
@@ -94,37 +107,49 @@ export default function AuthModal({ showLoginModal, setShowLoginModal, authMode,
                 <div style={{ flex: 1.2, background: 'rgba(0,0,0,0.5)', borderLeft: '1px solid rgba(255,255,255,0.05)', padding: 60, display: 'flex', flexDirection: 'column' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#8B5CF6', fontSize: 12, fontWeight: 800, letterSpacing: 1, marginBottom: 16 }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                      {authMode === "signup" ? "ÉTAPE 2 : CHOISISSEZ VOTRE NIVEAU D'ACCÈS" : "DÉBLOQUEZ L'ACCÈS COMPLET"}
+                      {authMode === "signup"
+                        ? (uiLang === 'fr' ? "ÉTAPE 2 : CHOISISSEZ VOTRE NIVEAU D'ACCÈS" : uiLang === 'it' ? "FASE 2: SCEGLI IL TUO LIVELLO DI ACCESSO" : "STEP 2: CHOOSE YOUR ACCESS LEVEL")
+                        : (uiLang === 'fr' ? "DÉBLOQUEZ L'ACCÈS COMPLET" : uiLang === 'it' ? "SBLOCCA L'ACCESSO COMPLETO" : "UNLOCK FULL ACCESS")}
                    </div>
-                   <p style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.6, marginBottom: 32 }}>
-                      Chaque forfait débloque un niveau d'accès différent à l'AdSpy, au CRM et au Matchmaking IA — plus vous montez en gamme, plus vite vous scalez.
+                   <p style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
+                      {uiLang === 'fr' ? "Gratuit & Standard sont réservés aux Créateurs. Plus, Pro et Elite sont pensés pour les marques — plus vous montez en gamme, plus vite vous scalez." : uiLang === 'it' ? "Gratuito & Standard sono riservati ai Creator. Plus, Pro ed Elite sono pensati per i brand — più sali di livello, più velocemente scali." : "Free & Standard are reserved for Creators. Plus, Pro and Elite are built for brands — the higher the tier, the faster you scale."}
                    </p>
-                   
-                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, flex: 1 }}>
+
+                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14, flex: 1 }}>
                       {/* Plan: Free */}
-                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>ACCÈS GRATUIT</div>
-                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Vetting IA et ressources de base. Idéal pour démarrer sans risque — passez à un forfait payant dès que vous êtes prêt à débloquer l'AdSpy et le CRM complet.</p>
-                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /à vie</span></div>
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>{uiLang === 'fr' ? 'GRATUIT' : uiLang === 'it' ? 'GRATUITO' : 'FREE'}</div>
+                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Rejoignez le réseau et recevez des propositions de marques. Zéro frais, zéro engagement." : uiLang === 'it' ? "Unisciti alla rete e ricevi proposte dai brand. Zero costi, zero impegno." : "Join the network and receive brand proposals. Zero fees, zero commitment."}</p>
+                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/à vie' : uiLang === 'it' ? '/a vita' : '/forever'}</span></div>
                       </div>
                       {/* Plan: Standard */}
-                      <div style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                         <div style={{ position: 'absolute', top: 12, right: 12, color: '#8B5CF6' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#8B5CF6', letterSpacing: 1, marginBottom: 8 }}>STANDARD</div>
-                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>CRM 10 leads, 3 analyses/jour, AdSpy view-only.</p>
-                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>39 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                      <div className="hover-card-dark" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                         <div style={{ position: 'absolute', top: -9, left: 16, background: '#10B981', color: '#000', fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 10px', borderRadius: 6, textTransform: 'uppercase' }}>{uiLang === 'fr' ? 'UGC Boost' : uiLang === 'it' ? 'UGC Boost' : 'UGC Boost'}</div>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#10B981', letterSpacing: 1, marginBottom: 8, marginTop: 6 }}>STANDARD</div>
+                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Priorité de matching, statistiques avancées et badge Créateur Vérifié." : uiLang === 'it' ? "Priorità nel matching, statistiche avanzate e badge Creator Verificato." : "Priority matching, advanced stats, and a Verified Creator badge."}</p>
+                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>39 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
+                      </div>
+                      {/* Plan: Plus (new) */}
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>PLUS</div>
+                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "AdSpy complet pour trouver vos produits gagnants + CRM 20 leads." : uiLang === 'it' ? "AdSpy completo per trovare i tuoi prodotti vincenti + CRM 20 lead." : "Full AdSpy to find your winning products + 20-lead CRM."}</p>
+                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>69 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
                       </div>
                       {/* Plan: Pro */}
-                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>VIP PRO</div>
-                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Accès total, 2 Coachings + 2 Blogs/mois.</p>
-                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>49 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                      <div className="hover-card-dark" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                         <div style={{ position: 'absolute', top: -9, left: 16, background: '#8B5CF6', color: '#fff', fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            {uiLang === 'fr' ? 'Recommandé' : uiLang === 'it' ? 'Consigliato' : 'Recommended'}
+                         </div>
+                         <div style={{ fontSize: 11, fontWeight: 800, color: '#8B5CF6', letterSpacing: 1, marginBottom: 8, marginTop: 6 }}>VIP PRO</div>
+                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Accès total, 1 coaching + 2 articles de blog par mois." : uiLang === 'it' ? "Accesso totale, 1 coaching + 2 articoli del blog al mese." : "Full access, 1 coaching session + 2 blog posts per month."}</p>
+                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>99 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
                       </div>
                       {/* Plan: Elite */}
-                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column' }}>
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
                          <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 8 }}>VIP ELITE</div>
-                         <p style={{ fontSize: 12, color: '#71717A', lineHeight: 1.5, flex: 1 }}>Accès total, Coaching hebdomadaire, Blog illimité.</p>
-                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>99 €<span style={{ fontSize: 12, color: '#71717A', fontWeight: 500 }}> /mois</span></div>
+                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Accès total, coaching hebdomadaire, blog illimité." : uiLang === 'it' ? "Accesso totale, coaching settimanale, blog illimitato." : "Full access, weekly coaching, unlimited blog."}</p>
+                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>299 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
                       </div>
                    </div>
                 </div>

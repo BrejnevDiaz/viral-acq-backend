@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { apiFetch } from "./utils/apiClient";
+import { useRole, WEEKLY_PROPOSAL_LIMIT } from "./contexts/RoleContext";
 
 // Real influencer talents scoured from https://viralacquisition.it/talents
 const MOCK_TALENTS = [
@@ -135,8 +136,13 @@ const MOCK_GIGS = [
   }
 ];
 
-export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead, userPlan = "free", userId = null }) {
-  const isRestricted = ["free", "standard"].includes(userPlan);
+export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead, userId = null }) {
+  const { userTier, weeklyProposalCount, checkProposalAllowance } = useRole();
+  const isRestricted = ["free", "standard"].includes(userTier);
+  const appliedGigsKey = `va_applied_gigs_${userId || "guest"}`;
+  const [appliedGigIds, setAppliedGigIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(appliedGigsKey) || "[]"); } catch { return []; }
+  });
   const [currentUserRole, setCurrentUserRole] = useState("admin"); // admin | brand | influencer
   const [activePlatforms, setActivePlatforms] = useState({});
   const [talents, setTalents] = useState(() => {
@@ -229,7 +235,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       followers: "abonnés",
       niche: "Niche",
       budget: "Budget",
-      req: "Critères"
+      req: "Critères",
+      applyBtn: "Postuler à cette mission",
+      alreadyApplied: "✓ Candidature envoyée",
+      weeklyRemaining: (n) => `${n} candidature(s) restante(s) cette semaine`,
+      freeDisadvantage: "En tant qu'utilisateur gratuit, votre profil n'est pas prioritaire face aux marques. Pour devenir un Influenceur Confirmé et prioritaire, signez un contrat exclusif avec l'agence Viral Acquisition (ou passez au forfait Standard)."
     },
     en: {
       title: "💼 Talent Agency & Gig Board",
@@ -254,7 +264,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       followers: "followers",
       niche: "Niche",
       budget: "Budget",
-      req: "Criteria"
+      req: "Criteria",
+      applyBtn: "Apply to this gig",
+      alreadyApplied: "✓ Application sent",
+      weeklyRemaining: (n) => `${n} application(s) left this week`,
+      freeDisadvantage: "As a free user, your profile isn't prioritized with brands. To become a Confirmed, priority Influencer, sign an exclusive contract with the Viral Acquisition agency (or upgrade to the Standard plan)."
     },
     it: {
       title: "💼 Roster & Agenzia Lavoro Influencer",
@@ -279,7 +293,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       followers: "follower",
       niche: "Nicchia",
       budget: "Budget",
-      req: "Criteri"
+      req: "Criteri",
+      applyBtn: "Candidati a questa missione",
+      alreadyApplied: "✓ Candidatura inviata",
+      weeklyRemaining: (n) => `${n} candidatura/e rimanente/i questa settimana`,
+      freeDisadvantage: "Come utente gratuito, il tuo profilo non è prioritario per i brand. Per diventare un Influencer Confermato e prioritario, firma un contratto esclusivo con l'agenzia Viral Acquisition (oppure passa al piano Standard)."
     }
   }[uiLang] || {
     title: "💼 Agence Talents & Missions",
@@ -304,7 +322,11 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     followers: "abonnés",
     niche: "Niche",
     budget: "Budget",
-    req: "Critères"
+    req: "Critères",
+    applyBtn: "Postuler",
+    alreadyApplied: "✓ Envoyé",
+    weeklyRemaining: (n) => `${n} restante(s)`,
+    freeDisadvantage: "En tant qu'utilisateur gratuit, votre profil n'est pas prioritaire. Signez un contrat avec l'agence ou passez au forfait Standard."
   };
 
   const verifyProfile = async () => {
@@ -418,6 +440,17 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     }
 
     setNewGig({ brand: "", title: "", niche: "beauty", budget: "", requirements: "", description: "" });
+  };
+
+  // Creator applies to an open gig — gated for Free tier at WEEKLY_PROPOSAL_LIMIT/week
+  // (see checkProposalAllowance in RoleContext.jsx, which opens the upgrade modal itself).
+  const handleApplyToGig = (gigId) => {
+    if (appliedGigIds.includes(gigId)) return;
+    if (!checkProposalAllowance(uiLang)) return;
+    const updated = [...appliedGigIds, gigId];
+    setAppliedGigIds(updated);
+    localStorage.setItem(appliedGigsKey, JSON.stringify(updated));
+    showToast(uiLang === "fr" ? "✅ Candidature envoyée à la marque !" : uiLang === "it" ? "✅ Candidatura inviata al brand!" : "✅ Application sent to the brand!");
   };
 
   // Moteur d'attribution de Staffing IA (Agency 1-Click)
@@ -935,6 +968,17 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
 
           {/* Active gigs marketplace */}
           <div style={{ flex: "2 1 400px", display: "flex", flexDirection: "column", gap: 14 }}>
+            {userTier === "free" && (
+              <div style={{ background: c.warningBg, border: `1px solid ${c.warning}55`, borderRadius: 12, padding: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: 12.5, color: c.text, lineHeight: 1.5, marginBottom: 6 }}>{t.freeDisadvantage}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: c.warning, fontFamily: mono }}>
+                    {t.weeklyRemaining(Math.max(0, WEEKLY_PROPOSAL_LIMIT - weeklyProposalCount))}
+                  </div>
+                </div>
+              </div>
+            )}
             {gigs.map((g, idx) => {
               const isInfluencer = currentUserRole === "influencer";
               const displayBrandName = isInfluencer ? `Confidential Brand #${idx + 1}` : g.brand;
@@ -997,6 +1041,22 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                     <span style={{ color: c.text, fontWeight: 650 }}>{g.requirements}</span>
                   </div>
                 </div>
+
+                {g.status === "open" && (
+                  <button
+                    onClick={() => handleApplyToGig(g.id)}
+                    disabled={appliedGigIds.includes(g.id)}
+                    style={{
+                      width: "100%", marginTop: 16, padding: "11px", borderRadius: 8, border: "none",
+                      background: appliedGigIds.includes(g.id) ? c.successSoft : `linear-gradient(135deg, ${c.accent}, #ec4899)`,
+                      color: appliedGigIds.includes(g.id) ? c.success : "#fff",
+                      fontWeight: 700, fontSize: 12.5, fontFamily: mono,
+                      cursor: appliedGigIds.includes(g.id) ? "default" : "pointer"
+                    }}
+                  >
+                    {appliedGigIds.includes(g.id) ? t.alreadyApplied : t.applyBtn}
+                  </button>
+                )}
               </div>
             );
           })}

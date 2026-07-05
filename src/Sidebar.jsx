@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { TABS } from "./tabsConfig";
+import { useRole } from "./contexts/RoleContext";
 
 // ─── Left Sidebar (Minea-inspired) ───────────────────────────────────────────
 export default function Sidebar({
@@ -8,25 +9,34 @@ export default function Sidebar({
   userTier, setShowUpgradeModal,
   profileMenuOpen, setProfileMenuOpen,
   userId, uiLang, setUiLang, theme, setTheme,
+  mobileMenuOpen, setMobileMenuOpen,
 }) {
+  const { hasTabAccess } = useRole();
   const researchTabs = TABS.filter(tab => tab.group === "research");
   const toolTabs = TABS.filter(tab => tab.group === "tools");
+  const lockedLabel = uiLang === "fr" ? "Réservé aux forfaits Plus, Pro & Elite" : uiLang === "it" ? "Riservato ai piani Plus, Pro e Elite" : "Reserved for Plus, Pro & Elite plans";
+
+  // On mobile the nav doubles as a slide-in drawer; picking a tab should close it.
+  const selectTab = (tabId) => { handleTabChange(tabId); setMobileMenuOpen?.(false); };
 
   return (
-    <div className="sidebar-container" style={{
-      width: 260, flexShrink: 0, borderRight: `1px solid ${c.border}`, display: "flex", flexDirection: "column",
-      height: "100vh", position: "sticky", top: 0, padding: "24px 16px", zIndex: 90, boxSizing: "border-box",
-      background: c.surface
-    }}>
+    <>
+      {mobileMenuOpen && <div className="sidebar-mobile-backdrop" onClick={() => setMobileMenuOpen(false)} />}
+      <div className={`sidebar-container${mobileMenuOpen ? " mobile-drawer-open" : ""}`} style={{
+        width: 260, flexShrink: 0, borderRight: `1px solid ${c.border}`, display: "flex", flexDirection: "column",
+        height: "100vh", position: "sticky", top: 0, padding: "24px 16px", zIndex: 90, boxSizing: "border-box",
+        background: c.surface
+      }}>
       {/* Logo */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>VA</div>
-        <div>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: "#fff", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>AP</div>
+        <div style={{ flex: 1 }}>
           <h1 className="outfit" style={{ fontSize: 17, fontWeight: 800, margin: 0, letterSpacing: "-0.5px", color: c.text }}>
-            VIRAL<span style={{ color: c.accent }}>ACQ</span>
+            ACQUISITION<span style={{ color: c.accent }}> PRO</span>
           </h1>
-          <span style={{ fontSize: 10, color: c.accent2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>PRO SUITE</span>
+          <span style={{ fontSize: 10, color: c.accent2, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>Suite</span>
         </div>
+        <button onClick={() => setMobileMenuOpen(false)} className="show-mobile-flex" style={{ background: "none", border: "none", color: c.textMuted, fontSize: 20, cursor: "pointer", display: "none", padding: 4 }} aria-label="Close menu">✕</button>
       </div>
 
       {/* Sidebar Nav Links */}
@@ -38,7 +48,7 @@ export default function Sidebar({
           textAlign: "left", transition: "all 0.2s", marginBottom: 2
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 16 }}>🔍</span> Research & Discovery
+            <span style={{ fontSize: 16 }}>🔍</span> {uiLang === "fr" ? "Recherche & Découverte" : uiLang === "it" ? "Ricerca & Scoperta" : "Research & Discovery"}
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: researchMenuOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}><path d="m6 9 6 6 6-6"/></svg>
         </button>
@@ -50,31 +60,39 @@ export default function Sidebar({
           maxHeight: researchMenuOpen ? "200px" : "0px",
           marginLeft: 12, paddingLeft: 8, borderLeft: `2px solid ${c.border}`
         }}>
-          {researchTabs.map(tab => (
-            <button key={tab.id} onClick={() => handleTabChange(tab.id)} style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none",
-              background: currentTab === tab.id ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-              color: currentTab === tab.id ? c.text : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-              textAlign: "left", transition: "all 0.2s"
-            }}>
-              <tab.Icon color={currentTab === tab.id ? c.accent : c.textDim} />
-              {tab.label}
-            </button>
-          ))}
+          {researchTabs.map(tab => {
+            const locked = !hasTabAccess(tab.id);
+            return (
+              <button key={tab.id} onClick={() => selectTab(tab.id)} title={locked ? lockedLabel : undefined} style={{
+                display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 10, border: "none",
+                background: currentTab === tab.id ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
+                color: currentTab === tab.id ? c.text : (locked ? c.textDim : c.textMuted), fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+                textAlign: "left", transition: "all 0.2s", opacity: locked ? 0.6 : 1
+              }}>
+                <tab.Icon color={currentTab === tab.id ? c.accent : c.textDim} />
+                <span style={{ flex: 1 }}>{tab.label[uiLang]}</span>
+                {locked && <span style={{ fontSize: 12 }}>🔒</span>}
+              </button>
+            );
+          })}
         </div>
 
-        {toolTabs.map(tab => (
-          <button key={tab.id} onClick={() => handleTabChange(tab.id)} style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
-            background: currentTab === tab.id ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
-            borderLeft: `3px solid ${currentTab === tab.id ? c.accent : "transparent"}`,
-            color: currentTab === tab.id ? c.text : c.textMuted, fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
-            textAlign: "left", transition: "all 0.2s"
-          }}>
-            <tab.Icon color={currentTab === tab.id ? c.accent : c.textDim} />
-            {tab.label}
-          </button>
-        ))}
+        {toolTabs.map(tab => {
+          const locked = !hasTabAccess(tab.id);
+          return (
+            <button key={tab.id} onClick={() => selectTab(tab.id)} title={locked ? lockedLabel : undefined} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 10, border: "none",
+              background: currentTab === tab.id ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
+              borderLeft: `3px solid ${currentTab === tab.id ? c.accent : "transparent"}`,
+              color: currentTab === tab.id ? c.text : (locked ? c.textDim : c.textMuted), fontSize: 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+              textAlign: "left", transition: "all 0.2s", opacity: locked ? 0.6 : 1
+            }}>
+              <tab.Icon color={currentTab === tab.id ? c.accent : c.textDim} />
+              <span style={{ flex: 1 }}>{tab.label[uiLang]}</span>
+              {locked && <span style={{ fontSize: 12 }}>🔒</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* 🚀 Upgrade Button (Minea style) */}
@@ -87,7 +105,7 @@ export default function Sidebar({
           boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)', marginBottom: 16
         }}>
           <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'><rect width='18' height='11' x='3' y='11' rx='2' ry='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>
-          Améliorer
+          {uiLang === "fr" ? "Améliorer" : uiLang === "it" ? "Migliora" : "Upgrade"}
         </button>
       )}
 
@@ -118,22 +136,22 @@ export default function Sidebar({
           }}>
             <div style={{ padding: '8px 16px', borderBottom: `1px solid ${c.border}`, marginBottom: 4 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{userId || 'brejnevdiaz@gmail.com'}</div>
-              <div style={{ fontSize: 11, color: c.textMuted }}>Compte {userTier}</div>
+              <div style={{ fontSize: 11, color: c.textMuted }}>{uiLang === "fr" ? "Compte" : uiLang === "it" ? "Account" : "Account"} {userTier}</div>
             </div>
 
             <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setProfileMenuOpen(false)}>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>
-              Mon compte
+              {uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account"}
             </button>
             <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { setShowUpgradeModal(true); setProfileMenuOpen(false); }}>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect width='18' height='14' x='3' y='5' rx='2' ry='2'/><line x1='3' x2='21' y1='10' y2='10'/></svg>
-              Abonnements
+              {uiLang === "fr" ? "Abonnements" : uiLang === "it" ? "Abbonamenti" : "Subscriptions"}
             </button>
 
             <div style={{ height: 1, background: c.border, margin: '4px 0' }} />
 
             <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: c.textDim }}>Langue</span>
+              <span style={{ fontSize: 13, color: c.textDim }}>{uiLang === "fr" ? "Langue" : uiLang === "it" ? "Lingua" : "Language"}</span>
               <select
                 value={uiLang}
                 onChange={(e) => setUiLang(e.target.value)}
@@ -149,7 +167,7 @@ export default function Sidebar({
             </div>
 
             <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: c.textDim }}>Thème</span>
+              <span style={{ fontSize: 13, color: c.textDim }}>{uiLang === "fr" ? "Thème" : uiLang === "it" ? "Tema" : "Theme"}</span>
               <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} style={{
                 display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28,
                 borderRadius: 6, border: `1px solid ${c.border}`, background: c.card, color: c.textMuted,
@@ -167,12 +185,13 @@ export default function Sidebar({
 
             <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.error, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { setProfileMenuOpen(false); supabase.auth.signOut(); }}>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><polyline points='16 17 21 12 16 7'/><line x1='21' x2='9' y1='12' y2='12'/></svg>
-              Se déconnecter
+              {uiLang === "fr" ? "Se déconnecter" : uiLang === "it" ? "Disconnetti" : "Log out"}
             </button>
           </div>
         )}
       </div>
 
-    </div>
+      </div>
+    </>
   );
 }

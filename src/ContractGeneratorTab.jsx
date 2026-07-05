@@ -59,7 +59,12 @@ export default function ContractGeneratorTab({ c, mono, uiLang, API_URL }) {
     livrables: '2x Vidéos UGC (15-60s)\n1x Story Instagram (Swipe-up)',
     durationMonths: 3,
     exclusivity: true,
-    contractLanguage: 'fr'
+    contractLanguage: 'fr',
+    platforms: 'Instagram, TikTok',
+    paymentTerms: 'full_on_delivery', // full_on_delivery | split_50_50
+    usageRightsDays: 90,
+    revisionRounds: 2,
+    additionalClauses: ''
   });
   
   
@@ -122,6 +127,34 @@ export default function ContractGeneratorTab({ c, mono, uiLang, API_URL }) {
       endDate.setMonth(endDate.getMonth() + parseInt(formData.durationMonths || 3));
       
       const ref = `C-${Math.random().toString(36).substring(2,10).toUpperCase()}`;
+      const usageDays = formData.usageRightsDays || 90;
+      const revisions = formData.revisionRounds ?? 2;
+      const platformsList = formData.platforms?.trim() || 'Instagram, TikTok';
+      const isSplitPayment = formData.paymentTerms === 'split_50_50';
+      const half = (parseFloat(formData.remuneration) / 2 || 0).toFixed(2);
+
+      const paymentTermsText = {
+        fr: isSplitPayment
+          ? `Un acompte de 50% (${half} EUR) sera versé à la signature du contrat, le solde de 50% étant réglé à la livraison finale validée.`
+          : `Un paiement forfaitaire de ${formData.remuneration} EUR (Hors Taxes) sera versé intégralement après validation de la livraison.`,
+        en: isSplitPayment
+          ? `A 50% deposit (${half} EUR) will be paid upon signature of the contract, with the remaining 50% due upon final validated delivery.`
+          : `A flat fee of ${formData.remuneration} EUR (Excluding Taxes) will be paid in full after delivery is validated.`,
+        it: isSplitPayment
+          ? `Un acconto del 50% (${half} EUR) sarà versato alla firma del contratto, e il saldo del 50% alla consegna finale validata.`
+          : `Un compenso forfettario di ${formData.remuneration} EUR (Escluse Imposte) sarà versato integralmente dopo la convalida della consegna.`,
+      };
+      const revisionsText = {
+        fr: `Le Créateur s'engage à réaliser jusqu'à ${revisions} série(s) de retouches à la demande de la Marque, sans supplément de prix.`,
+        en: `The Creator agrees to perform up to ${revisions} round(s) of revisions at the Brand's request, at no additional cost.`,
+        it: `Il Creator si impegna a effettuare fino a ${revisions} serie di modifiche su richiesta del Brand, senza costi aggiuntivi.`,
+      };
+      const additionalClausesBlock = formData.additionalClauses?.trim() ? {
+        fr: `\n\nARTICLE 7 : CLAUSES SPÉCIFIQUES ADDITIONNELLES\n${formData.additionalClauses.trim()}`,
+        en: `\n\nARTICLE 7: ADDITIONAL SPECIFIC CLAUSES\n${formData.additionalClauses.trim()}`,
+        it: `\n\nARTICOLO 7: CLAUSOLE SPECIFICHE AGGIUNTIVE\n${formData.additionalClauses.trim()}`,
+      } : { fr: '', en: '', it: '' };
+
       let contractText = "";
 
       if (formData.contractLanguage === 'en') {
@@ -160,22 +193,25 @@ The purpose of this contract is to define the conditions under which the Creator
 ARTICLE 2: DESCRIPTION OF DELIVERABLES
 The Creator undertakes to deliver to the Agency, for validation by the Brand, the following elements:
 ${formData.livrables}
+Platforms covered by this collaboration: ${platformsList}.
 The Creator has complete editorial freedom, subject to respecting the creative brief.
 
 ARTICLE 3: REMUNERATION AND PAYMENT TERMS
 In return, the Creator will receive:
-- A flat fee of ${formData.remuneration} EUR (Excluding Taxes).
+- ${paymentTermsText.en}
 Payment will be made by bank transfer within thirty (30) clear days from validation.
+${revisionsText.en}
 
 ${formData.exclusivity ? `ARTICLE 4: EXCLUSIVITY OBLIGATION
 The Creator undertakes, for the entire duration of this contract, not to collaborate with direct competitors of ${formData.brandName}.` : ''}
 
 ARTICLE 5: ASSIGNMENT OF RIGHTS (WHITELISTING)
-The Creator assigns to the Brand, worldwide and for a period of 90 days:
+The Creator assigns to the Brand, worldwide and for a period of ${usageDays} days:
 - The right of exploitation for paid advertising purposes (Social Ads / Whitelisting) via the Brand's or Creator's accounts.
 
 ARTICLE 6: CONFIDENTIALITY & JURISDICTION
 The Parties undertake to keep strictly confidential all exchanged information. This contract is exclusively subject to Italian Jurisdiction (Diritto Italiano).
+${additionalClausesBlock.en}
 
 THE PARTIES ACCEPT THE TERMS:
 
@@ -223,22 +259,25 @@ Il presente contratto ha per oggetto la definizione delle condizioni alle quali 
 ARTICOLO 2: DESCRIZIONE DEI DELIVERABLE
 Il Creator si impegna a consegnare all'Agenzia, per l'approvazione del Brand, i seguenti elementi:
 ${formData.livrables}
+Piattaforme coperte da questa collaborazione: ${platformsList}.
 Il Creator gode di totale libertà editoriale, a condizione di rispettare il brief creativo.
 
 ARTICOLO 3: COMPENSO E MODALITÀ DI PAGAMENTO
 In cambio, il Creator riceverà:
-- Un compenso forfettario di ${formData.remuneration} EUR (Escluse Imposte).
+- ${paymentTermsText.it}
 Il pagamento sarà effettuato tramite bonifico bancario entro trenta (30) giorni solari dalla validazione.
+${revisionsText.it}
 
 ${formData.exclusivity ? `ARTICOLO 4: OBBLIGO DI ESCLUSIVA
 Il Creator si impegna, per tutta la durata del presente contratto, a non collaborare con concorrenti diretti di ${formData.brandName}.` : ''}
 
 ARTICOLO 5: CESSIONE DEI DIRITTI (WHITELISTING)
-Il Creator cede al Brand, per tutto il mondo e per un periodo di 90 giorni:
+Il Creator cede al Brand, per tutto il mondo e per un periodo di ${usageDays} giorni:
 - Il diritto di sfruttamento per finalità di pubblicità a pagamento (Social Ads / Whitelisting) tramite gli account del Brand o del Creator.
 
 ARTICOLO 6: RISERVATEZZA E FORO COMPETENTE
 Le Parti si impegnano a mantenere strettamente riservate tutte le informazioni scambiate. Il presente contratto è soggetto esclusivamente alla Giurisdizione Italiana (Diritto Italiano).
+${additionalClausesBlock.it}
 
 LE PARTI ACCETTANO I TERMINI:
 
@@ -286,22 +325,25 @@ Le présent contrat a pour objet de définir les conditions dans lesquelles le C
 ARTICLE 2 : DESCRIPTION DES LIVRABLES
 Le Créateur s'engage à livrer à l'Agence, aux fins de validation par la Marque, les éléments suivants :
 ${formData.livrables}
+Plateformes concernées par cette collaboration : ${platformsList}.
 Le Créateur dispose d'une totale liberté éditoriale, sous réserve de respecter le brief créatif.
 
 ARTICLE 3 : RÉMUNÉRATION ET MODALITÉS DE PAIEMENT
 En contrepartie, le Créateur percevra :
-- Un paiement forfaitaire de ${formData.remuneration} EUR (Hors Taxes).
+- ${paymentTermsText.fr}
 Le paiement sera effectué par virement bancaire sous trente (30) jours francs à compter de la validation.
+${revisionsText.fr}
 
 ${formData.exclusivity ? `ARTICLE 4 : OBLIGATION D'EXCLUSIVITÉ
 Le Créateur s'engage, pendant toute la durée d'exécution du présent contrat, à ne pas collaborer avec des marques directement concurrentes de ${formData.brandName}.` : ''}
 
 ARTICLE 5 : CESSION DES DROITS (WHITELISTING)
-Le Créateur cède à la Marque, pour le monde entier et pour une durée de 90 jours :
+Le Créateur cède à la Marque, pour le monde entier et pour une durée de ${usageDays} jours :
 - Le droit d'exploitation à des fins de publicité payante (Social Ads / Whitelisting) via les comptes de la Marque ou du Créateur.
 
 ARTICLE 6 : CONFIDENTIALITÉ & JURIDICTION
 Les Parties s'engagent à conserver strictement confidentielles toutes les informations échangées. Ce contrat est soumis exclusivement à la juridiction italienne (Diritto Italiano).
+${additionalClausesBlock.fr}
 
 LES PARTIES ACCEPTENT LES TERMES :
 
@@ -623,10 +665,41 @@ Signature : Brejnev Diaz (Signé)
             <Input placeholder="Rémunération (€) *" type="number" value={formData.remuneration} onChange={e=>setFormData({...formData, remuneration: e.target.value})} c={c} />
 
             <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 4, display: "block" }}>Livrables attendus</label>
-            <textarea 
-              rows={3} 
+            <textarea
+              rows={3}
               value={formData.livrables}
               onChange={e=>setFormData({...formData, livrables: e.target.value})}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", marginBottom: 12, resize: "vertical" }}
+            />
+
+            <Input placeholder="Plateformes concernées (ex: Instagram, TikTok)" value={formData.platforms} onChange={e=>setFormData({...formData, platforms: e.target.value})} c={c} />
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 6, display: "block" }}>Modalités de paiement</label>
+                <select
+                  value={formData.paymentTerms}
+                  onChange={e=>setFormData({...formData, paymentTerms: e.target.value})}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", marginBottom: 12 }}
+                >
+                  <option value="full_on_delivery">100% à la livraison</option>
+                  <option value="split_50_50">50% acompte + 50% livraison</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 6, display: "block" }}>Retouches incluses</label>
+                <Input placeholder="Nombre de séries" type="number" value={formData.revisionRounds} onChange={e=>setFormData({...formData, revisionRounds: e.target.value})} c={c} />
+              </div>
+            </div>
+
+            <Input placeholder="Durée des droits d'exploitation (jours)" type="number" value={formData.usageRightsDays} onChange={e=>setFormData({...formData, usageRightsDays: e.target.value})} c={c} />
+
+            <label style={{ fontSize: 12, color: c.textMuted, marginBottom: 4, display: "block" }}>Clauses additionnelles (optionnel)</label>
+            <textarea
+              rows={3}
+              placeholder="Ex: pénalité de retard, droit de veto sur le montage, conditions de renouvellement..."
+              value={formData.additionalClauses}
+              onChange={e=>setFormData({...formData, additionalClauses: e.target.value})}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", marginBottom: 12, resize: "vertical" }}
             />
 

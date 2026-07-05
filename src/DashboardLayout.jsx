@@ -25,6 +25,7 @@ export default function DashboardLayout({
         userTier={userTier} setShowUpgradeModal={setShowUpgradeModal}
         profileMenuOpen={profileMenuOpen} setProfileMenuOpen={setProfileMenuOpen}
         userId={userId} uiLang={uiLang} setUiLang={setUiLang} theme={theme} setTheme={setTheme}
+        mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
       />
 
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
@@ -33,13 +34,13 @@ export default function DashboardLayout({
         {/* Mobile Header Navigation Bar */}
         <MobileTopbar
           c={c} mono={mono} currentTab={currentTab} handleTabChange={handleTabChange}
-          mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
+          mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} uiLang={uiLang}
         />
 
         {/* Desktop Top Header */}
         <DesktopTopbar
           c={c} mono={mono} currentTab={currentTab} userRole={userRole} backendOk={backendOk}
-          resultsCount={resultsCount} statsTotal={statsTotal} emailsSent={emailsSent} t={t}
+          resultsCount={resultsCount} statsTotal={statsTotal} emailsSent={emailsSent} t={t} uiLang={uiLang}
         />
 
         {/* Main page content body */}
@@ -61,13 +62,23 @@ export default function DashboardLayout({
 
         @media (max-width: 768px) {
           .sidebar-container { display: none !important; }
+          .sidebar-container.mobile-drawer-open {
+            display: flex !important; position: fixed !important; top: 0; left: 0;
+            width: 82vw !important; max-width: 300px; height: 100dvh !important;
+            z-index: 300; box-shadow: 20px 0 60px rgba(0,0,0,0.6);
+            animation: sidebarSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .sidebar-mobile-backdrop { display: block !important; }
           .mobile-nav-bar { display: flex !important; }
           .main-content { padding: 16px !important; }
         }
         @media (min-width: 769px) {
           .sidebar-container { display: flex !important; }
           .mobile-nav-bar { display: none !important; }
+          .sidebar-mobile-backdrop { display: none !important; }
         }
+        .sidebar-mobile-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 299; animation: fadeIn 0.2s ease-out; }
+        @keyframes sidebarSlideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
               .hover-bg-light:hover { background: rgba(255,255,255,0.05) !important; }
       `}</style>
     </div>

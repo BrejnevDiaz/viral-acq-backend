@@ -22,9 +22,9 @@ const PLATFORMS = [
   { id: "tiktok",    label: "TikTok",        icon: "https://cdn.simpleicons.org/tiktok/010101",    siteFilter: "site:tiktok.com" },
   { id: "facebook",  label: "Facebook",      icon: "https://cdn.simpleicons.org/facebook/1877F2",  siteFilter: "site:facebook.com" },
   { id: "pinterest", label: "Pinterest",     icon: "https://cdn.simpleicons.org/pinterest/E60023", siteFilter: "site:pinterest.com" },
-  { id: "amazon",    label: "Amazon",        icon: "https://cdn.simpleicons.org/amazon/FF9900",    siteFilter: "site:amazon.it" },
-  { id: "etsy",      label: "Etsy",          icon: "https://cdn.simpleicons.org/etsy/F16521",      siteFilter: "site:etsy.com" },
-  { id: "ebay",      label: "eBay",          icon: "https://cdn.simpleicons.org/ebay/E53238",      siteFilter: "site:ebay.it" },
+  { id: "amazon",    label: "Amazon",        icon: "https://cdn.simpleicons.org/amazon/FF9900",    siteFilter: "site:amazon.it",    ecommerceOnly: true },
+  { id: "etsy",      label: "Etsy",          icon: "https://cdn.simpleicons.org/etsy/F16521",      siteFilter: "site:etsy.com",     ecommerceOnly: true },
+  { id: "ebay",      label: "eBay",          icon: "https://cdn.simpleicons.org/ebay/E53238",      siteFilter: "site:ebay.it",      ecommerceOnly: true },
 ];
 
 // ─── Regions ─────────────────────────────────────────────────────────────────
@@ -216,6 +216,20 @@ export default function SourcingCRMTab({
 
   const t = T[uiLang] || T.fr;
 
+  // Amazon/Etsy/eBay only make sense when sourcing e-commerce brands, not influencers
+  const visiblePlatforms = PLATFORMS.filter(p => selTarget === "brands" || !p.ecommerceOnly);
+
+  // Switch target and drop now-hidden e-commerce platforms from the selection
+  const handleTargetChange = (target) => {
+    setSelTarget(target);
+    if (target !== "brands") {
+      setSelPlatforms(prev => {
+        const pruned = prev.filter(id => !PLATFORMS.find(p => p.id === id)?.ecommerceOnly);
+        return pruned.length ? pruned : ["web"];
+      });
+    }
+  };
+
   // Adjust icon colors for light/dark theme
   const getPlatformIcon = (p) => {
     if (!p) return null;
@@ -392,10 +406,10 @@ export default function SourcingCRMTab({
             {t.targetLabel}
           </label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <Chip c={c} selected={selTarget === "brands"} onClick={() => setSelTarget("brands")}>
+            <Chip c={c} selected={selTarget === "brands"} onClick={() => handleTargetChange("brands")}>
               🏢 Marques E-commerce
             </Chip>
-            <Chip c={c} selected={selTarget === "influencers"} onClick={() => setSelTarget("influencers")}>
+            <Chip c={c} selected={selTarget === "influencers"} onClick={() => handleTargetChange("influencers")}>
               🌟 Influenceurs / Créateurs
             </Chip>
           </div>
@@ -405,15 +419,15 @@ export default function SourcingCRMTab({
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <label style={{ fontSize: 10, fontFamily: mono, color: c.textMuted, textTransform: "uppercase", letterSpacing: 1.5 }}>
-              {t.platforms(selPlatforms.length, PLATFORMS.length)}
+              {t.platforms(selPlatforms.length, visiblePlatforms.length)}
             </label>
-            <button onClick={() => setSelPlatforms(selPlatforms.length === PLATFORMS.length ? ["web"] : PLATFORMS.map(p => p.id))}
+            <button onClick={() => setSelPlatforms(selPlatforms.length === visiblePlatforms.length ? ["web"] : visiblePlatforms.map(p => p.id))}
               style={{ fontSize: 10, fontFamily: mono, color: c.textDim, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              {selPlatforms.length === PLATFORMS.length ? t.reset : t.all}
+              {selPlatforms.length === visiblePlatforms.length ? t.reset : t.all}
             </button>
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {PLATFORMS.map(p => (
+            {visiblePlatforms.map(p => (
               <Chip key={p.id} c={c} selected={selPlatforms.includes(p.id)} onClick={() => toggle(selPlatforms, setSelPlatforms, p.id)} icon={getPlatformIcon(p)}>
                 {p.label}
               </Chip>

@@ -72,6 +72,12 @@ export function AuthProvider({ children }) {
         }
         return true;
       }
+    } catch (err) {
+      // Network failure or Supabase misconfiguration (e.g. invalid URL/key) — surface it
+      // instead of failing silently, which previously left the form looking unresponsive.
+      setAuthError(uiLang === "fr" ? "Connexion au serveur impossible. Réessayez dans un instant." : uiLang === "it" ? "Impossibile connettersi al server. Riprova tra un momento." : "Could not reach the server. Please try again in a moment.");
+      console.error("Auth error:", err);
+      return false;
     } finally {
       setAuthLoading(false);
     }

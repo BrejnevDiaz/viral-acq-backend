@@ -50,9 +50,9 @@ Tu as pour mission de rendre ce SaaS irrésistible. Le copywriting doit transpir
 
 Tu ne dois pas inventer de nouveau style. Utilise ces règles :
 
-- **Backgrounds** : Sombre (Zinc 950 : `#09090b` et Zinc 900 : `#18181B`).
-- **Glassmorphism** : Effets de transparence sur les cartes et modales (`background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1);`).
+- **Backgrounds** : Le Dashboard démarre en thème **clair** par défaut (`#f3f4f6`/`#ffffff`, texte `#1f2937`), avec un thème sombre (Zinc 950 : `#09090b` et Zinc 900 : `#18181B`) toujours disponible via le bouton bascule du menu profil (Sidebar). La home page publique (avant login) est en thème clair sophistiqué (`src/landingTheme.js`, objet `L` : fond `#FAFAF8`, texte `#18181B`) — voir DESIGN_SYSTEM.md §2 pour le détail des 3 palettes. Le Footer public et les mockups produit restent volontairement sombres (screenshots d'app encadrés).
+- **Glassmorphism** : Effets de transparence sur les cartes et modales (`background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1);`) — toujours valable pour les surfaces volontairement sombres (modales, mockups).
 - **Gradients de Marque (CTA)** : `linear-gradient(90deg, #8B5CF6, #EC4899)`.
-- **Textes** : `#ffffff` (Principal) et `#A1A1AA` (Secondaire).
+- **Textes** : sur fond sombre `#ffffff` (Principal) et `#A1A1AA` (Secondaire) ; sur fond clair `L.text`/`c.text` et `L.textMuted`/`c.textMuted` selon la palette active — ne jamais coder une couleur de texte en dur sans vérifier le fond réel derrière elle.
 - **Polices** : `Outfit` (Titres) et `Inter` (Corps de texte).
 - **Micro-interactions** : Hover avec translation légère vers le haut (`translateY(-2px)`) et augmentation du glow box-shadow.

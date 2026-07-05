@@ -16,14 +16,24 @@ Nous utilisons une typographie moderne, clean et "Tech/SaaS" :
 
 ## 2. Palette de Couleurs (Variables)
 
-Le thème global est **Sombre (Dark Mode) et Premium**. Pas de fond noir pur, mais du Zinc très foncé.
+Le Dashboard (post-login) reste **Sombre (Dark Mode) et Premium** par défaut à l'origine, mais démarre désormais en **thème clair** par défaut (basculable par l'utilisateur via le menu profil de la Sidebar — voir DARK/LIGHT dans \`App.jsx\`). La home page publique (avant login : \`LandingPage.jsx\`, \`BlogPage.jsx\`, \`FooterInfoPage.jsx\`) est en **thème clair sophistiqué** défini dans \`src/landingTheme.js\` (objet \`L\`), avec le Footer et les mockups produit (captures d'écran du Dashboard) volontairement laissés en sombre — comme des screenshots d'app encadrés sur une page claire (pattern Stripe/Linear).
 
+**Dashboard — palette sombre (DARK, App.jsx) :**
 - **Background Principal** : \`#09090b\` (Zinc 950)
 - **Background Secondaire (Cards/Surfaces)** : \`#18181B\` (Zinc 900)
 - **Bordures (Subtiles)** : \`rgba(255, 255, 255, 0.1)\`
 - **Texte Principal** : \`#ffffff\` (Blanc)
 - **Texte Secondaire (Muted)** : \`#A1A1AA\` (Zinc 400)
 - **Texte Tertiaire / Labels** : \`#71717A\` (Zinc 500)
+
+**Dashboard — palette claire (LIGHT, App.jsx, thème par défaut) :**
+- **Background Principal** : \`#f3f4f6\` — **Cards/Surfaces** : \`#ffffff\`
+- **Texte Principal** : \`#1f2937\` — **Texte Muted** : \`#4b5563\` — **Texte Dim** : \`#9ca3af\`
+
+**Home page publique — palette claire (\`L\`, landingTheme.js) :**
+- **Background** : \`#FAFAF8\` — **Surface (cards)** : \`#FFFFFF\`
+- **Texte Principal** : \`#18181B\` — **Texte Muted** : \`#52525B\` — **Texte Dim** : \`#71717A\`
+- **Bordures** : \`rgba(0,0,0,0.09)\`
 
 **Couleurs d'Accents (Gradients & Boutons) :**
 - **Primary Gradient (Violet vers Rose)** : \`linear-gradient(90deg, #8B5CF6, #EC4899)\` ou \`linear-gradient(90deg, #8B5CF6, #F43F5E, #F97316)\`

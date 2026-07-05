@@ -149,9 +149,9 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
       // Tiers titles
       planPro: "Abonnement VIP Pro 💎",
       planElite: "Abonnement VIP Elite 🔥",
-      planProPrice: "3999 € / mois",
-      planElitePrice: "5999 € / mois",
-      planProLimits: "• 2 coachings live par mois\n• 2 études de cas blog par mois\n• Support VIP standard",
+      planProPrice: "99 € / mois",
+      planElitePrice: "299 € / mois",
+      planProLimits: "• 1 coaching live par mois\n• 2 études de cas blog par mois\n• Support VIP standard",
       planEliteLimits: "• 1 coaching live chaque semaine (4/mois)\n• Études de cas & blog en illimité\n• Support VIP prioritaire 24/7"
     },
     en: {
@@ -218,9 +218,9 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
       
       planPro: "VIP Pro Membership 💎",
       planElite: "VIP Elite Membership 🔥",
-      planProPrice: "€3999 / month",
-      planElitePrice: "€5999 / month",
-      planProLimits: "• 2 live coachings per month\n• 2 blog case studies per month\n• Standard VIP support",
+      planProPrice: "€99 / month",
+      planElitePrice: "€299 / month",
+      planProLimits: "• 1 live coaching per month\n• 2 blog case studies per month\n• Standard VIP support",
       planEliteLimits: "• 1 live coaching every week (4/month)\n• Unlimited case studies & blog posts\n• Priority 24/7 Expert support"
     },
     it: {
@@ -287,9 +287,9 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
       
       planPro: "Abbonamento VIP Pro 💎",
       planElite: "Abbonamento VIP Elite 🔥",
-      planProPrice: "3999 € / mese",
-      planElitePrice: "5999 € / mese",
-      planProLimits: "• 2 coaching live al mese\n• 2 casi studio blog al mese\n• Supporto VIP standard",
+      planProPrice: "99 € / mese",
+      planElitePrice: "299 € / mese",
+      planProLimits: "• 1 coaching live al mese\n• 2 casi studio blog al mese\n• Supporto VIP standard",
       planEliteLimits: "• 1 coaching live ogni settimana (4/mese)\n• Casi studio & blog in illimitato\n• Supporto VIP prioritario 24/7"
     }
   }[uiLang] || t.fr;
@@ -576,15 +576,15 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
               {uiLang === 'fr' ? 'Simulateur d\'Abonnement (Test d\'Accès VIP Tiers)' : (uiLang === 'it' ? 'Simulatore di Abbonamento (Test VIP Tiers)' : 'Billing Tier Simulator (VIP Tiers Test)')}
             </h4>
             <p style={{ margin: 0, fontSize: 11.5, color: c.textMuted }}>
-              {uiLang === 'fr' ? 'Basculez entre Pro (3999€, 2 sessions/mois) et Elite (5999€, hebdomadaire illimité).' : (uiLang === 'it' ? 'Bilocato tra Pro (3999€, 2 sessioni/mese) ed Elite (5999€, illimitato).' : 'Switch between Pro (€3999, 2 sessions/mo) and Elite (€5999, weekly unlimited).')}
+              {uiLang === 'fr' ? 'Basculez entre Pro (99€, 1 session/mois) et Elite (299€, hebdomadaire illimité).' : (uiLang === 'it' ? 'Bilocato tra Pro (99€, 1 sessione/mese) ed Elite (299€, illimitato).' : 'Switch between Pro (€99, 1 session/mo) and Elite (€299, weekly unlimited).')}
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {[
             { id: "standard", label: uiLang === 'fr' ? "Standard" : (uiLang === 'it' ? "Standard" : "Standard"), color: c.textMuted },
-            { id: "vip_pro", label: uiLang === 'fr' ? "💎 VIP Pro (3999 €/mo)" : (uiLang === 'it' ? "💎 VIP Pro (3999 €/mese)" : "💎 VIP Pro (€3999/mo)"), color: c.accent },
-            { id: "vip_elite", label: uiLang === 'fr' ? "🔥 VIP Elite (5999 €/mo)" : (uiLang === 'it' ? "🔥 VIP Elite (5999 €/mese)" : "🔥 VIP Elite (€5999/mo)"), color: c.accent2 },
+            { id: "vip_pro", label: uiLang === 'fr' ? "💎 VIP Pro (99 €/mo)" : (uiLang === 'it' ? "💎 VIP Pro (99 €/mese)" : "💎 VIP Pro (€99/mo)"), color: c.accent },
+            { id: "vip_elite", label: uiLang === 'fr' ? "🔥 VIP Elite (299 €/mo)" : (uiLang === 'it' ? "🔥 VIP Elite (299 €/mese)" : "🔥 VIP Elite (€299/mo)"), color: c.accent2 },
             { id: "admin", label: uiLang === 'fr' ? "👑 Admin (Accès Total)" : (uiLang === 'it' ? "👑 Admin (Accesso Totale)" : "👑 Admin (Full Access)"), color: c.success }
           ].map(tier => (
             <button
@@ -707,7 +707,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${c.border}`, paddingBottom: 16, marginBottom: 20 }}>
             <div>
               <span style={{ fontSize: 9.5, fontWeight: 700, background: userTier === 'vip_pro' ? c.accentSoft : c.successSoft, color: userTier === 'vip_pro' ? c.accent : c.success, padding: "3px 8px", borderRadius: 4, textTransform: "uppercase", display: "inline-block", marginBottom: 4, fontFamily: mono }}>
-                {userTier === 'vip_pro' ? "MEMBRE VIP PRO (3999€/mois) • 2 LIVE / MOIS" : (userTier === 'admin' ? "👑 ADMIN • ACCÈS ILLIMITÉ" : "MEMBRE VIP ELITE (5999€/mois) • LIVE HEBDOMADAIRE")}
+                {userTier === 'vip_pro' ? "MEMBRE VIP PRO (99€/mois) • 1 LIVE / MOIS" : (userTier === 'admin' ? "👑 ADMIN • ACCÈS ILLIMITÉ" : "MEMBRE VIP ELITE (299€/mois) • LIVE HEBDOMADAIRE")}
               </span>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: c.text, margin: 0 }}>📢 {t.liveCoaching}</h3>
             </div>
@@ -723,7 +723,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           {userTier === 'vip_pro' && (
             <div style={{ background: `rgba(245, 158, 11, 0.08)`, border: `1.5px solid rgba(245, 158, 11, 0.3)`, color: c.text, borderRadius: 10, padding: 14, marginBottom: 20, fontSize: 12.5, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <div>
-                ⚠️ <strong>Abonnement VIP Pro actif (3999 €) :</strong> Vous consommez actuellement <strong>{unlockedWebinars.length} crédit(s) sur 2</strong> autorisés ce mois-ci.<br/>
+                ⚠️ <strong>Abonnement VIP Pro actif (99 €) :</strong> Vous consommez actuellement <strong>{unlockedWebinars.length} crédit(s) sur 1</strong> autorisé ce mois-ci.<br/>
                 Les replays avancés et les lives hebdomadaires complémentaires nécessitent la formule Elite.
               </div>
               <button 
@@ -771,7 +771,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
                   {coachingSessions.map((session, index) => {
                     // Check if Pro member has reached limit
                     // Pro members can only open Session 1 and Session 3. Session 2 requires VIP Elite.
-                    const isLockedForPro = userTier === "vip_pro" && !unlockedWebinars.includes(session.id) && unlockedWebinars.length >= 2;
+                    const isLockedForPro = userTier === "vip_pro" && !unlockedWebinars.includes(session.id) && unlockedWebinars.length >= 1;
                     
                     return (
                       <div 
@@ -796,7 +796,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
                           {isLockedForPro ? (
                             <button 
                               onClick={() => {
-                                alert("🔒 Limite VIP Pro Atteinte : Vous avez déjà visionné 2 coachings ce mois-ci. Passez à la formule VIP Elite (+100€/mois) pour accéder à l'intégralité des lives hebdomadaires !");
+                                alert("🔒 Limite VIP Pro Atteinte : Vous avez déjà visionné votre coaching du mois. Passez à la formule VIP Elite (+200€/mois) pour accéder à l'intégralité des lives hebdomadaires !");
                                 setSelectedPlan("elite");
                                 setLockedTarget("coaching");
                               }}
@@ -897,7 +897,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${c.border}`, paddingBottom: 16, marginBottom: 20 }}>
             <div>
               <span style={{ fontSize: 9.5, fontWeight: 700, background: userTier === 'vip_pro' ? c.accentSoft : c.successSoft, color: userTier === 'vip_pro' ? c.accent : c.success, padding: "3px 8px", borderRadius: 4, textTransform: "uppercase", display: "inline-block", marginBottom: 4, fontFamily: mono }}>
-                {userTier === 'vip_pro' ? "MEMBRE VIP PRO (3999€/mois) • 2 ARTICLES / MOIS" : (userTier === 'admin' ? "👑 ADMIN • ACCÈS ILLIMITÉ" : "MEMBRE VIP ELITE (5999€/mois) • ACCÈS ILLIMITÉ")}
+                {userTier === 'vip_pro' ? "MEMBRE VIP PRO (99€/mois) • 2 ARTICLES / MOIS" : (userTier === 'admin' ? "👑 ADMIN • ACCÈS ILLIMITÉ" : "MEMBRE VIP ELITE (299€/mois) • ACCÈS ILLIMITÉ")}
               </span>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: c.text, margin: 0 }}>📰 {t.blogStrategies}</h3>
             </div>

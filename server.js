@@ -10,6 +10,7 @@ import { startCampaign, getCampaignState } from "./campaignManager.js";
 import { supabase } from "./supabaseClient.js";
 import { requireBrand, requireAnyUser } from "./authMiddleware.js";
 import catalogueRoutes from "./catalogueRoutes.js";
+import chatbotRoutes from "./chatbotRoutes.js";
 
 // ─── Load .env ───────────────────────────────────────────────────────────────
 try {
@@ -29,6 +30,7 @@ const PORT = 3001;
 app.use(cors()); // Autorise toutes les origines
 app.use(express.json({ limit: "2mb" }));
 app.use("/api/catalogue", catalogueRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 // ─── Platform → site domain ───────────────────────────────────────────────────
 const siteMap = {

@@ -1,3 +1,5 @@
+import { L } from "./landingTheme";
+
 export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) {
   return (
     <>
@@ -5,7 +7,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
           <main style={{ position: 'relative', zIndex: 10, paddingTop: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: 100 }}>
             <h1 style={{
               fontSize: 'clamp(48px, 6vw, 76px)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-2px',
-              maxWidth: 900, margin: '0 0 24px 0'
+              maxWidth: 900, margin: '0 0 24px 0', animation: 'fadeInUp 0.7s ease-out'
             }}>
               {uiLang === 'fr' ? <>L'Arme Secrète des<br/></> : uiLang === 'it' ? <>L'Arma Segreta per i<br/></> : <>The Secret Weapon for<br/></>}
               <span style={{
@@ -15,13 +17,14 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
               }}>{uiLang === 'fr' ? "Marques qui Dominent leur Marché" : uiLang === 'it' ? "Brand che Dominano il Mercato" : "Brands That Dominate Their Market"}</span>
             </h1>
             <p style={{
-              fontSize: 18, color: '#A1A1AA', maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400
+              fontSize: 18, color: L.textMuted, maxWidth: 650, lineHeight: 1.6, margin: '0 0 48px 0', fontWeight: 400,
+              animation: 'fadeInUp 0.7s ease-out 0.1s both'
             }}>
               {uiLang === 'fr' ? "La plateforme d'élite réservée aux marques qui refusent la médiocrité. Espionnez les publicités de vos concurrents, recrutez les meilleurs créateurs UGC, et transformez chaque euro en croissance explosive — avant qu'il ne soit trop tard." : uiLang === 'it' ? "La piattaforma d'élite riservata ai brand che rifiutano la mediocrità. Spia le pubblicità dei tuoi concorrenti, recluta i migliori creatori UGC e trasforma ogni euro in una crescita esplosiva — prima che sia troppo tardi." : "The elite platform built for brands that refuse to settle for average. Spy on your competitors' winning ads, recruit the best UGC creators, and turn every dollar spent into explosive growth — before it's too late."}
             </p>
 
-            <div style={{ display: 'flex', gap: 16 }}>
- 
+            <div style={{ display: 'flex', gap: 16, animation: 'fadeInUp 0.7s ease-out 0.2s both' }}>
+
                 <button 
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
                   style={{
@@ -36,15 +39,15 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                 >
                   {uiLang === 'fr' ? 'Je suis une Marque — Scaler Maintenant →' : uiLang === 'it' ? 'Sono un Brand — Scala Ora →' : 'I am a Brand — Scale Now →'}
                 </button>
-                <button 
+                <button
                   onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
                   style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                    color: '#fff', padding: '16px 32px', borderRadius: 12,
+                    background: L.surface, border: `1px solid ${L.borderStrong}`,
+                    color: L.text, padding: '16px 32px', borderRadius: 12,
                     fontSize: 15, fontWeight: 600, cursor: 'pointer',
                     transition: 'background 0.2s',
                     display: 'flex', alignItems: 'center', gap: 8
-                  }} 
+                  }}
                   className="hover-lift"
                 >
                   {uiLang === 'fr' ? 'Je suis Créateur — Rejoindre Gratuitement →' : uiLang === 'it' ? 'Sono un Creatore — Unisciti Gratis →' : 'I am a Creator — Join for Free →'}
@@ -52,85 +55,29 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
               
             </div>
 
-            {/* Massive Hero Mockup */}
+            {/* Hero Product Demo — real screen-recording video, not a static mockup.
+                Drop your demo file at public/demo-video.mp4 (served at /demo-video.mp4). */}
             <div style={{
-              marginTop: 80, width: '90%', maxWidth: 1100, height: 600,
+              marginTop: 80, width: '90%', maxWidth: 1100,
               background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)',
               border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24,
               boxShadow: '0 30px 100px -20px rgba(0,0,0,1), 0 0 40px rgba(139,92,246,0.15)',
-              overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column'
+              overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column',
+              animation: 'fadeInUp 0.9s ease-out 0.3s both'
             }}>
-              <div style={{ height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, background: '#111' }}>
+              <div style={{ height: 48, borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', padding: '0 20px', gap: 8, background: '#111', flexShrink: 0 }}>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EF4444' }}></div>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#F59E0B' }}></div>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#10B981' }}></div>
-                <div style={{ marginLeft: 'auto', background: '#27272A', color: '#71717A', fontSize: 12, padding: '4px 12px', borderRadius: 4 }}>viralacq.app/dashboard</div>
+                <div style={{ marginLeft: 'auto', background: '#27272A', color: '#71717A', fontSize: 12, padding: '4px 12px', borderRadius: 4 }}>acquisition-pro.app/dashboard</div>
                 <div style={{ marginLeft: 'auto', width: 44 }}></div>
               </div>
-              <div style={{ flex: 1, padding: 32, display: 'flex', gap: 32 }}>
-                 <div style={{ width: 240, borderRight: '1px solid rgba(255,255,255,0.05)', paddingRight: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ width: '100%', height: 32, background: 'rgba(255,255,255,0.05)', borderRadius: 6 }}></div>
-                    <div style={{ width: '80%', height: 32, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}></div>
-                    <div style={{ width: '90%', height: 32, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}></div>
-                 </div>
-                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {/* Top Row: 4 Cards */}
-                    <div style={{ display: 'flex', gap: 16, height: 160 }}>
-                       {/* Ad Card 1 */}
-                       <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(139,92,246,0.4)', position: 'relative', overflow: 'hidden' }}>
-                           <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                           <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 1.2M</div>
-                           <div style={{ position: 'absolute', top: 8, right: 8, background: '#10B981', padding: '3px 8px', borderRadius: 4, fontSize: 9, color: '#fff', fontWeight: 'bold' }}>Active</div>
-                       </div>
-                       {/* Ad Card 2 */}
-                       <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <img src="https://images.unsplash.com/photo-1512413917887-8463c6591873?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                           <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 450K</div>
-                       </div>
-                       {/* Ad Card 3 */}
-                       <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <img src="https://images.unsplash.com/photo-1512756290469-ec264b7fbf87?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                           <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 890K</div>
-                       </div>
-                       {/* Ad Card 4 (THE FACE) */}
-                       <div style={{ flex: 1, background: '#000', borderRadius: 12, border: '1px solid rgba(236,72,153,0.5)', position: 'relative', overflow: 'hidden', boxShadow: '0 0 20px rgba(236,72,153,0.2)' }}>
-                           <img src="/founder.jpg" alt="Creative Face" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.95 }} />
-                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%)' }}>
-                               <div style={{ fontSize: 11, fontWeight: 'bold', color: '#fff' }}>Coaching Elite</div>
-                               <div style={{ fontSize: 9, color: '#EC4899' }}>Top Performer</div>
-                           </div>
-                       </div>
-                    </div>
-                    {/* Bottom Row: 2 Cards + Data */}
-                    <div style={{ display: 'flex', gap: 16, height: 160 }}>
-                       {/* Ad Card 5 */}
-                       <div style={{ width: '22%', background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <img src="https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=300&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
-                           <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 320K</div>
-                       </div>
-                       {/* Ad Card 6 */}
-                       <div style={{ width: '22%', background: '#000', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative', overflow: 'hidden' }}>
-                           <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&q=80" alt="Product" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} />
-                           <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', padding: '4px 8px', borderRadius: 4, fontSize: 10, color: '#fff', fontWeight: 'bold' }}>👁 2.1M</div>
-                       </div>
-                       {/* Data Card */}
-                       <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', padding: 20, display: 'flex', gap: 24 }}>
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                               <div style={{ fontSize: 10, color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 1 }}>Revenus estimés</div>
-                               <div style={{ fontSize: 22, fontWeight: 'bold', color: '#fff' }}>$48,900</div>
-                               <div style={{ fontSize: 11, color: '#10B981' }}>+24.5% vs mois dernier</div>
-                               <div style={{ marginTop: 'auto', height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: '85%', background: '#8B5CF6' }}></div>
-                               </div>
-                            </div>
-                            <div style={{ flex: 1.5, background: 'rgba(139,92,246,0.05)', borderRadius: 8, border: '1px solid rgba(139,92,246,0.1)', padding: 12, display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-                               {[20, 40, 30, 60, 50, 80, 70, 90, 60, 100].map((h, i) => (
-                                  <div key={i} className="chart-bar" style={{ flex: 1, background: 'linear-gradient(180deg, #8B5CF6 0%, transparent 100%)', height: `${h}%`, borderRadius: '4px 4px 0 0', animationDelay: `${i * 0.1}s` }}></div>
-                               ))}
-                            </div>
-                       </div>
-                    </div>
-                 </div>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000' }}>
+                <video
+                  src="/demo-video.mp4"
+                  autoPlay muted loop playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
               </div>
             </div>
           </main>
