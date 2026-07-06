@@ -18,6 +18,14 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
   // step, no stale copy left behind after a language switch.
   const handleToggle = () => setIsOpen(v => !v);
 
+  // Lets other parts of the app (e.g. Sidebar's "Support" menu item) open this
+  // widget without lifting isOpen state up through every layout component.
+  useEffect(() => {
+    const openChatbot = () => setIsOpen(true);
+    window.addEventListener("va-open-chatbot", openChatbot);
+    return () => window.removeEventListener("va-open-chatbot", openChatbot);
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

@@ -139,13 +139,17 @@ export default function Sidebar({
               <div style={{ fontSize: 11, color: c.textMuted }}>{uiLang === "fr" ? "Compte" : uiLang === "it" ? "Account" : "Account"} {userTier}</div>
             </div>
 
-            <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => setProfileMenuOpen(false)}>
+            <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { selectTab('account'); setProfileMenuOpen(false); }}>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>
               {uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account"}
             </button>
             <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { setShowUpgradeModal(true); setProfileMenuOpen(false); }}>
               <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><rect width='18' height='14' x='3' y='5' rx='2' ry='2'/><line x1='3' x2='21' y1='10' y2='10'/></svg>
               {uiLang === "fr" ? "Abonnements" : uiLang === "it" ? "Abbonamenti" : "Subscriptions"}
+            </button>
+            <button style={{ background: 'transparent', border: 'none', padding: '10px 16px', textAlign: 'left', fontSize: 13, color: c.text, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { window.dispatchEvent(new CustomEvent('va-open-chatbot')); setProfileMenuOpen(false); }}>
+              <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/></svg>
+              {uiLang === "fr" ? "Support" : uiLang === "it" ? "Supporto" : "Support"}
             </button>
 
             <div style={{ height: 1, background: c.border, margin: '4px 0' }} />

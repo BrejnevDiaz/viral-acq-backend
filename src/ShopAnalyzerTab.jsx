@@ -630,14 +630,53 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
     }
   };
 
+  // ─── Mock "Bloomberg terminal" metrics ──────────────────────────────────────
+  // None of this is tracked by any real API yet — each value is deterministically
+  // derived from the shop's own id/domain so it stays stable across re-renders
+  // and re-sorts instead of jumping around randomly (same trick as AdSpy's
+  // "Sourcing" mock metric).
+  const hashOf = (str) => {
+    let hash = 0;
+    const s = String(str);
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return hash;
+  };
+  const getCreatedDate = (shop) => {
+    const monthsAgo = 3 + (hashOf(shop.id) % 46); // 3 to 48 months old
+    const d = new Date();
+    d.setMonth(d.getMonth() - monthsAgo);
+    return d;
+  };
+  const TECH_OPTIONS = ["shopify", "woocommerce", "wix"];
+  const getTech = (shop) => TECH_OPTIONS[hashOf(shop.domain || shop.id) % TECH_OPTIONS.length];
+  const getDailyRevenue = (shop) => Math.round(shop.monthlyRevenue / 30);
+  const getAdThumbnails = (shop) => {
+    const pool = [
+      ...(shop.activeAds || []).map(ad => ad.thumbnail),
+      ...(shop.topProducts || []).map(p => p.thumbnail),
+    ].filter(Boolean);
+    if (pool.length === 0) return [];
+    // Pad up to 4 by cycling the pool so every shop shows a full thumbnail row.
+    const out = [];
+    for (let i = 0; i < 4; i++) out.push(pool[i % pool.length]);
+    return out;
+  };
+  const formatMonthYear = (d) => d.toLocaleDateString(uiLang === "fr" ? "fr-FR" : uiLang === "it" ? "it-IT" : "en-US", { month: "short", year: "numeric" });
+
+  const [techFilter, setTechFilter] = useState("all");
+  const [minAgeMonths, setMinAgeMonths] = useState(0);
+
   const filteredShops = useMemo(() => {
     return shops.filter(s => {
       const matchNiche = selectedNiche === "all" || s.niche === selectedNiche;
       const matchTraffic = s.monthlyTraffic >= settings.minTraffic * 1000;
       const matchRevenue = s.monthlyRevenue >= settings.minRevenue * 1000;
-      return matchNiche && matchTraffic && matchRevenue;
+      const matchTech = techFilter === "all" || getTech(s) === techFilter;
+      const ageMonths = Math.round((Date.now() - getCreatedDate(s).getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const matchAge = ageMonths >= minAgeMonths;
+      return matchNiche && matchTraffic && matchRevenue && matchTech && matchAge;
     });
-  }, [shops, selectedNiche, settings.minTraffic, settings.minRevenue]);
+  }, [shops, selectedNiche, settings.minTraffic, settings.minRevenue, techFilter, minAgeMonths]);
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", position: "relative" }}>
@@ -657,6 +696,87 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
         <p style={{ color: c.textMuted, margin: 0, fontSize: 14, lineHeight: 1.5, maxWidth: 700 }}>{t.desc}</p>
       </div>
 
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+      {/* ─── Advanced Filters Sidebar ─────────────────────────────────────── */}
+      <aside style={{ flex: "0 0 220px", position: "sticky", top: 20, background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: c.text, textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 6 }}>
+          🎛️ {uiLang === "it" ? "Filtri Avanzati" : uiLang === "en" ? "Advanced Filters" : "Filtres Avancés"}
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.niche}</label>
+          <select
+            value={selectedNiche}
+            onChange={e => setSelectedNiche(e.target.value)}
+            style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}
+          >
+            <option value="all">{t.all}</option>
+            <option value="beauty">Beauty</option>
+            <option value="food">Food & Nutrition</option>
+            <option value="fitness">Fitness</option>
+            <option value="home">Home & Kitchen</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Fatturato Minimo" : uiLang === "en" ? "Min. Revenue" : "CA Minimum"} (k{currencySymbol}/mois)
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="range" min="0" max="1000" step="10" value={settings.minRevenue} onChange={e => setSettings(s => ({ ...s, minRevenue: parseInt(e.target.value) }))} style={{ flex: 1, accentColor: c.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: c.text, minWidth: 42 }}>{settings.minRevenue}k</span>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Traffico Minimo" : uiLang === "en" ? "Min. Traffic" : "Trafic Minimum"} (k/mois)
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="range" min="0" max="500" step="10" value={settings.minTraffic} onChange={e => setSettings(s => ({ ...s, minTraffic: parseInt(e.target.value) }))} style={{ flex: 1, accentColor: c.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: c.text, minWidth: 42 }}>{settings.minTraffic}k</span>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Tecnologia" : uiLang === "en" ? "Technology" : "Technologie"}
+          </label>
+          <select
+            value={techFilter}
+            onChange={e => setTechFilter(e.target.value)}
+            style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}
+          >
+            <option value="all">{t.all}</option>
+            <option value="shopify">Shopify</option>
+            <option value="woocommerce">WooCommerce</option>
+            <option value="wix">Wix</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Anzianità Minima" : uiLang === "en" ? "Min. Store Age" : "Ancienneté Minimum"} ({uiLang === "it" ? "mesi" : uiLang === "en" ? "months" : "mois"})
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="range" min="0" max="48" step="1" value={minAgeMonths} onChange={e => setMinAgeMonths(parseInt(e.target.value))} style={{ flex: 1, accentColor: c.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: c.text, minWidth: 30 }}>{minAgeMonths}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setSelectedNiche("all"); setTechFilter("all"); setMinAgeMonths(0); setSettings(s => ({ ...s, minTraffic: 0, minRevenue: 0 })); }}
+          style={{ padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: "transparent", color: c.textDim, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+        >
+          ↺ {uiLang === "it" ? "Ripristina Filtri" : uiLang === "en" ? "Reset Filters" : "Réinitialiser les Filtres"}
+        </button>
+      </aside>
+
+      {/* ─── Main column ──────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
       {/* Filter panel */}
       <form onSubmit={handleSearch} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         
@@ -672,22 +792,6 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
           <button type="submit" style={{ padding: "11px 18px", borderRadius: 9, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>
             {t.searchBtn}
           </button>
-        </div>
-
-        {/* Niche */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, fontFamily: mono, color: c.textDim, textTransform: "uppercase" }}>{t.niche}</span>
-          <select
-            value={selectedNiche}
-            onChange={e => setSelectedNiche(e.target.value)}
-            style={{ padding: "10px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
-          >
-            <option value="all">{t.all}</option>
-            <option value="beauty">Beauty</option>
-            <option value="food">Food & Nutrition</option>
-            <option value="fitness">Fitness</option>
-            <option value="home">Home & Kitchen</option>
-          </select>
         </div>
 
         {/* Settings toggle */}
@@ -737,38 +841,6 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
                   style={{ flex: 1, accentColor: c.accent }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 40 }}>{settings.avgOrderValue}{currencySymbol}</span>
-              </div>
-            </div>
-
-            {/* Min traffic */}
-            <div>
-              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
-                {uiLang === "it" ? "Traffico Minimo" : uiLang === "en" ? "Min. Traffic" : "Trafic Minimum"} (k/mois)
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="range" min="0" max="500" step="10"
-                  value={settings.minTraffic}
-                  onChange={e => setSettings(s => ({ ...s, minTraffic: parseInt(e.target.value) }))}
-                  style={{ flex: 1, accentColor: c.accent }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 44 }}>{settings.minTraffic}k</span>
-              </div>
-            </div>
-
-            {/* Min revenue */}
-            <div>
-              <label style={{ display: "block", fontSize: 11, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
-                {uiLang === "it" ? "Fatturato Minimo" : uiLang === "en" ? "Min. Revenue" : "Revenu Minimum"} (k{currencySymbol}/mois)
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="range" min="0" max="1000" step="10"
-                  value={settings.minRevenue}
-                  onChange={e => setSettings(s => ({ ...s, minRevenue: parseInt(e.target.value) }))}
-                  style={{ flex: 1, accentColor: c.accent }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 800, color: c.text, minWidth: 50 }}>{settings.minRevenue}k</span>
               </div>
             </div>
 
@@ -835,73 +907,101 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
         </div>
       )}
 
-      {/* Shop list grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
-        {filteredShops.map((s) => (
-          <div 
+      {/* Shop terminal — dense horizontal rows (Bloomberg-style) instead of small cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowX: "auto" }}>
+        {filteredShops.map((s) => {
+          const trend = s.trafficGrowth || [30, 40, 50, 60, 70];
+          const trendUp = trend[trend.length - 1] >= trend[0];
+          const trendColor = trendUp ? c.success : c.error;
+          const points = trend.map((v, i) => {
+            const max = Math.max(...trend), min = Math.min(...trend);
+            const x = (i / (trend.length - 1)) * 100;
+            const y = 30 - ((v - min) / Math.max(1, max - min)) * 28;
+            return `${x},${y}`;
+          }).join(" ");
+          const thumbs = getAdThumbnails(s);
+          return (
+          <div
             key={s.id}
             onMouseEnter={() => setHoveredProd(s.id)}
             onMouseLeave={() => setHoveredProd(null)}
-            style={{ 
-              background: c.card, 
-              border: `1.5px solid ${hoveredProd === s.id ? c.borderActive : c.border}`, 
-              borderRadius: 16, 
-              padding: 20,
+            style={{
+              background: c.card,
+              border: `1.5px solid ${hoveredProd === s.id ? c.borderActive : c.border}`,
+              borderRadius: 14,
+              padding: "14px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
               boxShadow: hoveredProd === s.id ? `0 12px 32px ${c.accentGlow}` : "none",
-              transform: hoveredProd === s.id ? "translateY(-4px)" : "none",
               transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
             }}
           >
-            {/* Header info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            {/* Identity: logo + name/domain + creation date */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 190px", minWidth: 0 }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, border: `1.5px solid ${c.border}`, background: `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-                <img 
-                  src={s.domain ? `https://logo.clearbit.com/${s.domain}` : s.logo} 
+                <img
+                  src={s.domain ? `https://logo.clearbit.com/${s.domain}` : s.logo}
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=8B5CF6&color=fff&size=100&rounded=false`;
-                  }} 
-                  alt="" 
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                  }}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               </div>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: c.text, margin: 0 }}>{s.name}</h3>
-                <span style={{ fontSize: 11, color: c.textDim, fontFamily: mono }}>{s.domain}</span>
-              </div>
-            </div>
-
-            {/* Growth & Revenues Summary */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }}>
-              <div style={{ background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>TRAFIC / MOIS</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: c.text }}>
-                  {s.monthlyTraffic >= 1000 ? `${(s.monthlyTraffic / 1000).toFixed(0)}k` : s.monthlyTraffic}
-                </div>
-              </div>
-              <div style={{ background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>REVENUE / MOIS</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: c.success }}>
-                  {currencySymbol}{s.monthlyRevenue >= 1000 ? `${(s.monthlyRevenue / 1000).toFixed(0)}k` : s.monthlyRevenue}
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ fontSize: 14.5, fontWeight: 800, color: c.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</h3>
+                <a href={s.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: c.accent2, fontFamily: mono, textDecoration: "none" }}>{s.domain}</a>
+                <div style={{ fontSize: 10, color: c.textDim, marginTop: 2 }}>
+                  📅 {uiLang === "it" ? "Creato" : uiLang === "en" ? "Created" : "Créée"} {formatMonthYear(getCreatedDate(s))}
                 </div>
               </div>
             </div>
 
-            {/* Daily Growth badge */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: c.bg, padding: "8px 12px", borderRadius: 10, border: `1px solid ${c.border}`, marginBottom: 16 }}>
-              <span style={{ fontSize: 11, color: c.textMuted }}>{t.growth}</span>
-              <span style={{ fontSize: 12, fontWeight: 800, color: c.success }}>{s.dailyGrowth}</span>
+            {/* CA estimé / jour */}
+            <div style={{ flex: "0 0 74px", textAlign: "center" }}>
+              <div style={{ fontSize: 8.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase" }}>{uiLang === "it" ? "Fatt./Giorno" : uiLang === "en" ? "Rev./Day" : "CA / Jour"}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: c.success }}>{currencySymbol}{getDailyRevenue(s) >= 1000 ? `${(getDailyRevenue(s) / 1000).toFixed(1)}k` : getDailyRevenue(s)}</div>
+            </div>
+
+            {/* Visites mensuelles + sparkline */}
+            <div style={{ flex: "0 0 100px", textAlign: "center" }}>
+              <div style={{ fontSize: 8.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase" }}>{t.traffic}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: c.text, marginBottom: 2 }}>
+                {s.monthlyTraffic >= 1000 ? `${(s.monthlyTraffic / 1000).toFixed(0)}k` : s.monthlyTraffic}
+              </div>
+              <svg width="70" height="20" viewBox="0 0 100 30" preserveAspectRatio="none" style={{ overflow: "visible" }}>
+                <polyline points={points} fill="none" stroke={trendColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+
+            {/* Annonces Meta */}
+            <div style={{ flex: "0 0 66px", textAlign: "center" }}>
+              <div style={{ fontSize: 8.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase" }}>{uiLang === "it" ? "Ads Meta" : uiLang === "en" ? "Meta Ads" : "Ads Meta"}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: c.accent }}>📣 {s.activeAdsCount}</div>
+            </div>
+
+            {/* Ad thumbnails */}
+            <div style={{ flex: "0 0 100px", display: "flex", gap: 4 }}>
+              {thumbs.length === 0 ? (
+                <span style={{ fontSize: 11, color: c.textDim }}>—</span>
+              ) : thumbs.slice(0, 3).map((thumb, i) => (
+                <div key={i} onClick={() => setActiveShop(s)} style={{ width: 26, height: 36, borderRadius: 5, overflow: "hidden", border: `1px solid ${c.border}`, cursor: "pointer", flexShrink: 0 }}>
+                  <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ))}
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, flex: "0 0 190px", justifyContent: "flex-end" }}>
               <button
                 onClick={() => setActiveShop(s)}
-                style={{ flex: 1, padding: "9px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 12, fontWeight: 650, cursor: "pointer", fontFamily: mono }}
+                style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 11, fontWeight: 650, cursor: "pointer", fontFamily: mono, whiteSpace: "nowrap" }}
               >
                 Auditer 📊
               </button>
-              <button 
+              <button
                 onClick={() => onImportLead({
                   name: s.name,
                   url: s.url,
@@ -916,13 +1016,14 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
                   size: "Medium",
                   reasoning: "Trending Competitor Shop"
                 })}
-                style={{ flex: 2, padding: "9px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: mono }}
+                style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: mono, whiteSpace: "nowrap" }}
               >
                 {t.import}
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* FAQ Section */}
@@ -1006,6 +1107,9 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
             );
           })}
         </div>
+      </div>
+
+      </div>
       </div>
 
       {/* DETAIL MODAL ANALYSIS */}

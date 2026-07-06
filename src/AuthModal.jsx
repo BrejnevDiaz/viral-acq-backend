@@ -161,66 +161,89 @@ export default function AuthModal({ uiLang, showLoginModal, setShowLoginModal, a
                         ? (uiLang === 'fr' ? "ÉTAPE 2 : CHOISISSEZ VOTRE NIVEAU D'ACCÈS" : uiLang === 'it' ? "FASE 2: SCEGLI IL TUO LIVELLO DI ACCESSO" : "STEP 2: CHOOSE YOUR ACCESS LEVEL")
                         : (uiLang === 'fr' ? "DÉBLOQUEZ L'ACCÈS COMPLET" : uiLang === 'it' ? "SBLOCCA L'ACCESSO COMPLETO" : "UNLOCK FULL ACCESS")}
                    </div>
-                   <p style={{ color: '#A1A1AA', fontSize: 13, lineHeight: 1.6, marginBottom: 24 }}>
-                      {authMode === "signup" && signupRole === "creator"
+                   {authMode === "signup" ? (
+                   <>
+                   <p style={{ color: '#A1A1AA', fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
+                      {signupRole === "creator"
                         ? (uiLang === 'fr' ? "Gratuit & Standard sont réservés aux Créateurs UGC & Influenceurs." : uiLang === 'it' ? "Gratuito & Standard sono riservati ai Creator UGC & Influencer." : "Free & Standard are reserved for UGC Creators & Influencers.")
-                        : authMode === "signup" && signupRole === "brand"
-                        ? (uiLang === 'fr' ? "Plus, Pro et Elite sont pensés pour les marques — plus vous montez en gamme, plus vite vous scalez." : uiLang === 'it' ? "Plus, Pro ed Elite sono pensati per i brand — più sali di livello, più velocemente scali." : "Plus, Pro and Elite are built for brands — the higher the tier, the faster you scale.")
-                        : (uiLang === 'fr' ? "Gratuit & Standard sont réservés aux Créateurs. Plus, Pro et Elite sont pensés pour les marques — plus vous montez en gamme, plus vite vous scalez." : uiLang === 'it' ? "Gratuito & Standard sono riservati ai Creator. Plus, Pro ed Elite sono pensati per i brand — più sali di livello, più velocemente scali." : "Free & Standard are reserved for Creators. Plus, Pro and Elite are built for brands — the higher the tier, the faster you scale.")}
+                        : (uiLang === 'fr' ? "Plus, Pro et Elite sont pensés pour les marques — plus vous montez en gamme, plus vite vous scalez." : uiLang === 'it' ? "Plus, Pro ed Elite sono pensati per i brand — più sali di livello, più velocemente scali." : "Plus, Pro and Elite are built for brands — the higher the tier, the faster you scale.")}
                    </p>
 
-                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, flex: 1, alignContent: 'start' }}>
+                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, flex: 1, alignContent: 'start' }}>
                       {/* Plan: Free */}
-                      {(authMode !== "signup" || signupRole === "creator") && (
-                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 4 }}>{uiLang === 'fr' ? 'GRATUIT' : uiLang === 'it' ? 'GRATUITO' : 'FREE'}</div>
-                         <div style={{ fontSize: 9.5, fontWeight: 700, color: '#EC4899', letterSpacing: 0.3, marginBottom: 8, textTransform: 'uppercase' }}>{uiLang === 'fr' ? '👤 Créateurs UGC & Influenceurs' : uiLang === 'it' ? '👤 Creator UGC & Influencer' : '👤 UGC Creators & Influencers'}</div>
-                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Rejoignez le réseau et recevez des propositions de marques. Zéro frais, zéro engagement." : uiLang === 'it' ? "Unisciti alla rete e ricevi proposte dai brand. Zero costi, zero impegno." : "Join the network and receive brand proposals. Zero fees, zero commitment."}</p>
-                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/à vie' : uiLang === 'it' ? '/a vita' : '/forever'}</span></div>
+                      {signupRole === "creator" && (
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 10, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 3 }}>{uiLang === 'fr' ? 'GRATUIT' : uiLang === 'it' ? 'GRATUITO' : 'FREE'}</div>
+                         <p style={{ fontSize: 10, color: '#71717A', lineHeight: 1.35, flex: 1, margin: '0 0 6px 0' }}>{uiLang === 'fr' ? "Réseau + propositions." : uiLang === 'it' ? "Rete + proposte." : "Network + proposals."}</p>
+                         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>0 €<span style={{ fontSize: 9.5, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/à vie' : uiLang === 'it' ? '/a vita' : '/forever'}</span></div>
                       </div>
                       )}
                       {/* Plan: Standard */}
-                      {(authMode !== "signup" || signupRole === "creator") && (
-                      <div className="hover-card-dark" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                         <div style={{ position: 'absolute', top: -9, left: 16, background: '#10B981', color: '#000', fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 10px', borderRadius: 6, textTransform: 'uppercase' }}>{uiLang === 'fr' ? 'UGC Boost' : uiLang === 'it' ? 'UGC Boost' : 'UGC Boost'}</div>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#10B981', letterSpacing: 1, marginBottom: 4, marginTop: 6 }}>STANDARD</div>
-                         <div style={{ fontSize: 9.5, fontWeight: 700, color: '#EC4899', letterSpacing: 0.3, marginBottom: 8, textTransform: 'uppercase' }}>{uiLang === 'fr' ? '👤 Créateurs UGC & Influenceurs' : uiLang === 'it' ? '👤 Creator UGC & Influencer' : '👤 UGC Creators & Influencers'}</div>
-                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Priorité de matching, statistiques avancées et badge Créateur Vérifié." : uiLang === 'it' ? "Priorità nel matching, statistiche avanzate e badge Creator Verificato." : "Priority matching, advanced stats, and a Verified Creator badge."}</p>
-                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>39 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
+                      {signupRole === "creator" && (
+                      <div className="hover-card-dark" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: 11, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 10, fontWeight: 800, color: '#10B981', letterSpacing: 1, marginBottom: 3 }}>STANDARD</div>
+                         <p style={{ fontSize: 10, color: '#71717A', lineHeight: 1.35, flex: 1, margin: '0 0 6px 0' }}>{uiLang === 'fr' ? "Priorité + badge vérifié." : uiLang === 'it' ? "Priorità + badge." : "Priority + verified badge."}</p>
+                         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>39 €<span style={{ fontSize: 9.5, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/mo'}</span></div>
                       </div>
                       )}
-                      {/* Plan: Plus (new) */}
-                      {(authMode !== "signup" || signupRole === "brand") && (
-                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 4 }}>PLUS</div>
-                         <div style={{ fontSize: 9.5, fontWeight: 700, color: '#8B5CF6', letterSpacing: 0.3, marginBottom: 8, textTransform: 'uppercase' }}>{uiLang === 'fr' ? '🏢 Marques & E-commerce' : uiLang === 'it' ? '🏢 Brand & E-commerce' : '🏢 Brands & E-commerce'}</div>
-                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "AdSpy complet pour trouver vos produits gagnants + CRM 20 leads." : uiLang === 'it' ? "AdSpy completo per trovare i tuoi prodotti vincenti + CRM 20 lead." : "Full AdSpy to find your winning products + 20-lead CRM."}</p>
-                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>69 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
+                      {/* Plan: Plus */}
+                      {signupRole === "brand" && (
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 10, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 3 }}>PLUS</div>
+                         <p style={{ fontSize: 10, color: '#71717A', lineHeight: 1.35, flex: 1, margin: '0 0 6px 0' }}>{uiLang === 'fr' ? "AdSpy + CRM 20 leads." : uiLang === 'it' ? "AdSpy + CRM 20 lead." : "AdSpy + 20-lead CRM."}</p>
+                         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>69 €<span style={{ fontSize: 9.5, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/mo'}</span></div>
                       </div>
                       )}
                       {/* Plan: Pro */}
-                      {(authMode !== "signup" || signupRole === "brand") && (
-                      <div className="hover-card-dark" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                         <div style={{ position: 'absolute', top: -9, left: 16, background: '#8B5CF6', color: '#fff', fontSize: 9, fontWeight: 800, letterSpacing: 0.5, padding: '2px 10px', borderRadius: 6, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                            {uiLang === 'fr' ? 'Recommandé' : uiLang === 'it' ? 'Consigliato' : 'Recommended'}
+                      {signupRole === "brand" && (
+                      <div className="hover-card-dark" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 10, padding: 11, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                         <div style={{ position: 'absolute', top: -7, left: 11, background: '#8B5CF6', color: '#fff', fontSize: 8, fontWeight: 800, padding: '1px 7px', borderRadius: 5, textTransform: 'uppercase' }}>
+                            {uiLang === 'fr' ? 'Top' : uiLang === 'it' ? 'Top' : 'Top'}
                          </div>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#8B5CF6', letterSpacing: 1, marginBottom: 4, marginTop: 6 }}>VIP PRO</div>
-                         <div style={{ fontSize: 9.5, fontWeight: 700, color: '#8B5CF6', letterSpacing: 0.3, marginBottom: 8, textTransform: 'uppercase' }}>{uiLang === 'fr' ? '🏢 Marques & E-commerce' : uiLang === 'it' ? '🏢 Brand & E-commerce' : '🏢 Brands & E-commerce'}</div>
-                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Accès total, 1 coaching + 2 articles de blog par mois." : uiLang === 'it' ? "Accesso totale, 1 coaching + 2 articoli del blog al mese." : "Full access, 1 coaching session + 2 blog posts per month."}</p>
-                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>99 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
+                         <div style={{ fontSize: 10, fontWeight: 800, color: '#8B5CF6', letterSpacing: 1, marginBottom: 3, marginTop: 4 }}>VIP PRO</div>
+                         <p style={{ fontSize: 10, color: '#71717A', lineHeight: 1.35, flex: 1, margin: '0 0 6px 0' }}>{uiLang === 'fr' ? "Accès total + coaching." : uiLang === 'it' ? "Accesso totale + coaching." : "Full access + coaching."}</p>
+                         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>99 €<span style={{ fontSize: 9.5, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/mo'}</span></div>
                       </div>
                       )}
                       {/* Plan: Elite */}
-                      {(authMode !== "signup" || signupRole === "brand") && (
-                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ fontSize: 11, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 4 }}>VIP ELITE</div>
-                         <div style={{ fontSize: 9.5, fontWeight: 700, color: '#8B5CF6', letterSpacing: 0.3, marginBottom: 8, textTransform: 'uppercase' }}>{uiLang === 'fr' ? '🏢 Marques & E-commerce' : uiLang === 'it' ? '🏢 Brand & E-commerce' : '🏢 Brands & E-commerce'}</div>
-                         <p style={{ fontSize: 11.5, color: '#71717A', lineHeight: 1.5, flex: 1 }}>{uiLang === 'fr' ? "Accès total, coaching hebdomadaire, blog illimité." : uiLang === 'it' ? "Accesso totale, coaching settimanale, blog illimitato." : "Full access, weekly coaching, unlimited blog."}</p>
-                         <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>299 €<span style={{ fontSize: 11, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/month'}</span></div>
+                      {signupRole === "brand" && (
+                      <div className="hover-card-dark" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ fontSize: 10, fontWeight: 800, color: '#A1A1AA', letterSpacing: 1, marginBottom: 3 }}>VIP ELITE</div>
+                         <p style={{ fontSize: 10, color: '#71717A', lineHeight: 1.35, flex: 1, margin: '0 0 6px 0' }}>{uiLang === 'fr' ? "Tout illimité + coaching hebdo." : uiLang === 'it' ? "Tutto illimitato + coaching." : "Everything unlimited + weekly."}</p>
+                         <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>299 €<span style={{ fontSize: 9.5, color: '#71717A', fontWeight: 500 }}> {uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/mo'}</span></div>
                       </div>
                       )}
                    </div>
+                   </>
+                   ) : (
+                   /* Login mode: no card grid at all — a short testimonial + a
+                      minimalist plan list, so 5 pricing cards never have to
+                      fight for vertical space against the login form. */
+                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <div style={{ marginBottom: 28 }}>
+                         <div style={{ color: '#8B5CF6', fontSize: 22, lineHeight: 1, marginBottom: 8 }}>“</div>
+                         <p style={{ color: '#D4D4D8', fontSize: 14, lineHeight: 1.6, fontStyle: 'italic', margin: '0 0 12px 0' }}>
+                            {uiLang === 'fr' ? "En 3 semaines on a trouvé 4 créateurs qui convertissent mieux que nos pubs Meta classiques." : uiLang === 'it' ? "In 3 settimane abbiamo trovato 4 creator che convertono meglio delle nostre ads Meta classiche." : "In 3 weeks we found 4 creators converting better than our classic Meta ads."}
+                         </p>
+                         <div style={{ fontSize: 12, color: '#71717A', fontWeight: 600 }}>— Marque DTC, Beauté</div>
+                      </div>
+                      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginBottom: 20 }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                         {[
+                            { name: uiLang === 'fr' ? 'Gratuit' : uiLang === 'it' ? 'Gratuito' : 'Free', price: '0 €' },
+                            { name: 'Standard', price: '39 €' },
+                            { name: 'Plus', price: '69 €' },
+                            { name: 'VIP Pro', price: '99 €' },
+                            { name: 'VIP Elite', price: '299 €' },
+                         ].map(p => (
+                            <div key={p.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                               <span style={{ color: '#D4D4D8', fontWeight: 600 }}>{p.name}</span>
+                               <span style={{ color: '#71717A', fontFamily: 'monospace' }}>{p.price}{p.price !== '0 €' ? (uiLang === 'fr' ? '/mois' : uiLang === 'it' ? '/mese' : '/mo') : ''}</span>
+                            </div>
+                         ))}
+                      </div>
+                   </div>
+                   )}
                 </div>
               </div>
             </div>

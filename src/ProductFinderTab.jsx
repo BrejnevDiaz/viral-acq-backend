@@ -468,11 +468,45 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
     }
   };
 
+  // ─── Mock "Bloomberg terminal" ad metrics ───────────────────────────────────
+  // No real ad-library integration is wired to individual products yet — these
+  // are deterministic mock values (hashed from the product id) so the counts
+  // and thumbnails stay stable across re-renders/re-sorts instead of flickering.
+  const hashOf = (str) => {
+    let hash = 0;
+    const s = String(str);
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return hash;
+  };
+  const getAdsCount = (p) => 3 + (hashOf(p.id) % 45);
+  const getAdThumbnails = (p) => Array.from({ length: 4 }, () => p.thumbnail);
+  const getShopName = (p) => {
+    try { return new URL(p.contact.includes("@") ? `https://${p.contact.split("@")[1]}` : p.url).hostname.replace(/^www\./, ""); }
+    catch { return getSourceLabel(p.source); }
+  };
+  const getBadges = (p) => {
+    const badges = [];
+    const growthNum = parseInt(String(p.growthRate).replace(/[^0-9]/g, "")) || 0;
+    if (p.relevance >= 90) badges.push({ label: uiLang === "fr" ? "🏆 Gagnant du Mois" : uiLang === "it" ? "🏆 Vincitore del Mese" : "🏆 Winner of the Month", bg: "rgba(245,158,11,0.15)", color: "#F59E0B" });
+    if (growthNum >= 150) badges.push({ label: uiLang === "fr" ? "🔥 Phase de Scaling" : uiLang === "it" ? "🔥 Fase di Scaling" : "🔥 Scaling Phase", bg: "rgba(239,68,68,0.15)", color: "#EF4444" });
+    return badges;
+  };
+
+  const [minRevenueK, setMinRevenueK] = useState(0);
+  const [minSales, setMinSales] = useState(0);
+  const [badgeFilter, setBadgeFilter] = useState("all"); // all | scaling | winner
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchNiche = selectedNiche === "all" || p.niche === selectedNiche;
       const matchSource = selectedSource === "all" || p.source === selectedSource;
-      return matchNiche && matchSource;
+      const matchRevenue = p.monthlyRevenue >= minRevenueK * 1000;
+      const matchSales = p.monthlySales >= minSales;
+      const badges = getBadges(p);
+      const matchBadge = badgeFilter === "all"
+        || (badgeFilter === "scaling" && badges.some(b => b.label.includes("Scaling") || b.label.includes("scaling")))
+        || (badgeFilter === "winner" && badges.some(b => b.label.includes("Winner") || b.label.includes("Gagnant") || b.label.includes("Vincitore")));
+      return matchNiche && matchSource && matchRevenue && matchSales && matchBadge;
     }).sort((a, b) => {
       if (sortBy === "relevance") return (b.relevance || 0) - (a.relevance || 0);
       if (sortBy === "revenue") return b.monthlyRevenue - a.monthlyRevenue;
@@ -480,7 +514,7 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
       if (sortBy === "price") return b.price - a.price;
       return 0;
     });
-  }, [products, selectedNiche, selectedSource, sortBy]);
+  }, [products, selectedNiche, selectedSource, sortBy, minRevenueK, minSales, badgeFilter]);
 
   const getSourceIcon = (src) => {
     const icons = {
@@ -543,30 +577,20 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
         <span>{t.tipText}</span>
       </div>
 
-      {/* Filter panel */}
-      <form onSubmit={handleSearch} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        
-        {/* Search */}
-        <div style={{ flex: "1 1 280px", display: "flex", gap: 8 }}>
-          <input 
-            type="text" 
-            placeholder={t.ph}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={{ flex: 1, padding: "11px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, fontSize: 13, outline: "none" }}
-          />
-          <button type="submit" style={{ padding: "11px 18px", borderRadius: 9, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>
-            {t.searchBtn}
-          </button>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+      {/* ─── Advanced Filters Sidebar ─────────────────────────────────────── */}
+      <aside style={{ flex: "0 0 220px", position: "sticky", top: 20, background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: c.text, textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 6 }}>
+          🎛️ {uiLang === "it" ? "Filtri Avanzati" : uiLang === "en" ? "Advanced Filters" : "Filtres Avancés"}
         </div>
 
-        {/* Niche */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, fontFamily: mono, color: c.textDim, textTransform: "uppercase" }}>{t.niche}</span>
-          <select 
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.niche}</label>
+          <select
             value={selectedNiche}
             onChange={e => setSelectedNiche(e.target.value)}
-            style={{ padding: "10px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
+            style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}
           >
             <option value="all">{t.all}</option>
             <option value="beauty">Beauty</option>
@@ -575,6 +599,70 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
             <option value="home">Home & Kitchen</option>
             <option value="tech">Tech</option>
           </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Fatturato Minimo" : uiLang === "en" ? "Min. Revenue" : "CA Minimum"} (k$/mois)
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="range" min="0" max="200" step="5" value={minRevenueK} onChange={e => setMinRevenueK(parseInt(e.target.value))} style={{ flex: 1, accentColor: c.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: c.text, minWidth: 36 }}>{minRevenueK}k</span>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Vendite Minime" : uiLang === "en" ? "Min. Sales" : "Ventes Minimum"} (/mois)
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="range" min="0" max="3000" step="100" value={minSales} onChange={e => setMinSales(parseInt(e.target.value))} style={{ flex: 1, accentColor: c.accent }} />
+            <span style={{ fontSize: 12, fontWeight: 800, color: c.text, minWidth: 36 }}>{minSales}</span>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+            {uiLang === "it" ? "Stato Prodotto" : uiLang === "en" ? "Product Status" : "Statut Produit"}
+          </label>
+          <select
+            value={badgeFilter}
+            onChange={e => setBadgeFilter(e.target.value)}
+            style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}
+          >
+            <option value="all">{t.all}</option>
+            <option value="scaling">{uiLang === "it" ? "🔥 In Fase di Scaling" : uiLang === "en" ? "🔥 Scaling Phase" : "🔥 Phase de Scaling"}</option>
+            <option value="winner">{uiLang === "it" ? "🏆 Vincitori del Mese" : uiLang === "en" ? "🏆 Winners of the Month" : "🏆 Gagnants du Mois"}</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setSelectedNiche("all"); setSelectedSource("all"); setMinRevenueK(0); setMinSales(0); setBadgeFilter("all"); }}
+          style={{ padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: "transparent", color: c.textDim, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+        >
+          ↺ {uiLang === "it" ? "Ripristina Filtri" : uiLang === "en" ? "Reset Filters" : "Réinitialiser les Filtres"}
+        </button>
+      </aside>
+
+      {/* ─── Main column ──────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
+      {/* Filter panel */}
+      <form onSubmit={handleSearch} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+
+        {/* Search */}
+        <div style={{ flex: "1 1 280px", display: "flex", gap: 8 }}>
+          <input
+            type="text"
+            placeholder={t.ph}
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ flex: 1, padding: "11px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, fontSize: 13, outline: "none" }}
+          />
+          <button type="submit" style={{ padding: "11px 18px", borderRadius: 9, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>
+            {t.searchBtn}
+          </button>
         </div>
 
         {/* Source */}
@@ -627,78 +715,82 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
           <p>{t.emptyText}</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
-          {filteredProducts.map((p) => (
-            <div 
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, overflowX: "auto" }}>
+          {filteredProducts.map((p) => {
+            const badges = getBadges(p);
+            const thumbs = getAdThumbnails(p);
+            return (
+            <div
               key={p.id}
               onMouseEnter={() => setHoveredProd(p.id)}
               onMouseLeave={() => setHoveredProd(null)}
-              style={{ 
-                background: c.card, 
-                border: `1.5px solid ${hoveredProd === p.id ? c.borderActive : c.border}`, 
-                borderRadius: 16, 
-                overflow: "hidden", 
+              style={{
+                background: c.card,
+                border: `1.5px solid ${hoveredProd === p.id ? c.borderActive : c.border}`,
+                borderRadius: 16,
+                overflow: "hidden",
+                minWidth: 900,
+                display: "flex",
                 boxShadow: hoveredProd === p.id ? `0 12px 32px ${c.accentGlow}` : "none",
-                transform: hoveredProd === p.id ? "translateY(-4px)" : "none",
                 transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
               }}
             >
-              {/* Product Cover image */}
-              <div style={{ height: 200, position: "relative", cursor: "pointer", background: "#000" }} onClick={() => setActiveProduct(p)}>
-                <img 
-                  src={p.thumbnail} 
-                  alt={p.name} 
-                  style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }}
+              {/* Left: Product image */}
+              <div style={{ width: 160, height: 160, flexShrink: 0, position: "relative", cursor: "pointer", background: "#000" }} onClick={() => setActiveProduct(p)}>
+                <img
+                  src={p.thumbnail}
+                  alt={p.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.9 }}
                 />
-                
-                {/* Platform Badge */}
-                <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 6, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
-                  <img src={getSourceIcon(p.source)} width={11} height={11} alt="" />
+                <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 9.5, fontWeight: 700, padding: "3px 7px", borderRadius: 6, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <img src={getSourceIcon(p.source)} width={10} height={10} alt="" />
                   {getSourceLabel(p.source).toUpperCase()}
-                </div>
-
-                {/* Growth Rate */}
-                <div style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(16,185,129,0.95)", color: "#06060b", fontSize: 11, fontWeight: 800, padding: "4px 8px", borderRadius: 6 }}>
-                  {p.growthRate}
                 </div>
               </div>
 
-              {/* Info Area */}
-              <div style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 14.5, fontWeight: 700, color: c.text, margin: "0 0 6px 0", height: 20, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
-                <p style={{ fontSize: 12, color: c.textMuted, height: 36, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.4, marginBottom: 12 }}>
+              {/* Center: Name, price, shop, badges */}
+              <div style={{ flex: 1, minWidth: 0, padding: 16, display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
+                <h3 style={{ fontSize: 15.5, fontWeight: 800, color: c.text, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12.5 }}>
+                  <span style={{ fontWeight: 800, color: c.success, fontSize: 16 }}>${p.price}</span>
+                  <span style={{ color: c.textDim }}>·</span>
+                  <span style={{ color: c.textMuted, fontFamily: mono }}>{getShopName(p)}</span>
+                  <span style={{ color: c.textDim }}>·</span>
+                  <span style={{ color: c.success, fontWeight: 700 }}>{p.growthRate}</span>
+                </div>
+                <p style={{ fontSize: 12, color: c.textMuted, margin: 0, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.4 }}>
                   {p.description}
                 </p>
-
-                {/* Financial Summary */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, marginBottom: 14 }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>CA MENSUEL</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: c.text }}>
-                      ${p.monthlyRevenue >= 1000 ? `${(p.monthlyRevenue / 1000).toFixed(0)}k` : p.monthlyRevenue}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>PRIX</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: c.text }}>${p.price}</div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: 9, color: c.textDim, fontFamily: mono }}>MARGE</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: c.success }}>
-                      {((p.price - p.cogs) / p.price * 100).toFixed(0)}%
-                    </div>
-                  </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {badges.map((b, i) => (
+                    <span key={i} style={{ background: b.bg, color: b.color, fontSize: 10.5, fontWeight: 800, padding: "3px 9px", borderRadius: 6 }}>{b.label}</span>
+                  ))}
+                  <span style={{ background: c.bg, border: `1px solid ${c.border}`, color: c.textMuted, fontSize: 10.5, fontWeight: 700, padding: "3px 9px", borderRadius: 6 }}>
+                    ${p.monthlyRevenue >= 1000 ? `${(p.monthlyRevenue / 1000).toFixed(0)}k` : p.monthlyRevenue}/mo · {((p.price - p.cogs) / p.price * 100).toFixed(0)}% {uiLang === "it" ? "margine" : uiLang === "en" ? "margin" : "marge"}
+                  </span>
                 </div>
+              </div>
 
-                {/* Actions */}
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button 
+              {/* Right: Ads section */}
+              <div style={{ flex: "0 0 220px", borderLeft: `1px solid ${c.border}`, padding: 16, display: "flex", flexDirection: "column", justifyContent: "center", gap: 10 }}>
+                <div style={{ fontSize: 10, color: c.textDim, fontFamily: mono, textTransform: "uppercase" }}>
+                  📣 {uiLang === "it" ? "Pubblicità" : uiLang === "en" ? "Ads" : "Publicités"} — <span style={{ color: c.accent, fontWeight: 800 }}>{getAdsCount(p)}</span> {uiLang === "it" ? "attive" : uiLang === "en" ? "active" : "actives"}
+                </div>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {thumbs.map((thumb, i) => (
+                    <div key={i} onClick={() => setActiveProduct(p)} style={{ width: 38, height: 50, borderRadius: 6, overflow: "hidden", border: `1px solid ${c.border}`, cursor: "pointer", flexShrink: 0 }}>
+                      <img src={thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <button
                     onClick={() => setActiveProduct(p)}
-                    style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 12, fontWeight: 650, cursor: "pointer", fontFamily: mono }}
+                    style={{ padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 11, fontWeight: 650, cursor: "pointer", fontFamily: mono, whiteSpace: "nowrap" }}
                   >
                     Analyse 📊
                   </button>
-                  <button 
+                  <button
                     onClick={() => onImportLead({
                       name: p.name.split("-")[0].trim(),
                       url: p.url,
@@ -713,16 +805,20 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
                       size: "Small",
                       reasoning: "Best Seller Product"
                     })}
-                    style={{ flex: 2, padding: "8px 12px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: mono }}
+                    style={{ padding: "7px 10px", borderRadius: 8, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                   >
                     {t.import}
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      </div>
+      </div>
 
       {/* DETAIL MODAL ANALYSIS */}
       {activeProduct && (

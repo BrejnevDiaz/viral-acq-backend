@@ -10,6 +10,7 @@ import TalentAgencyTab from "./TalentAgencyTab";
 import BrandPortalTab from "./BrandPortalTab";
 import ContractGeneratorTab from "./ContractGeneratorTab";
 import ResourcesTab from "./ResourcesTab";
+import AccountSettings from "./AccountSettings";
 import VideoMarketplaceTab from "./VideoMarketplaceTab";
 import ChatbotWidget from "./ChatbotWidget";
 import LandingPage from "./LandingPage";
@@ -173,6 +174,7 @@ export default function ProspectionAgent() {
   const [researchMenuOpen, setResearchMenuOpen] = useState(true);
   const [redirectShop, setRedirectShop]   = useState(null);
   const [pendingIntentTab, setPendingIntentTab] = useState(null);
+  const [billingCycle, setBillingCycle] = useState("monthly"); // monthly | annual — annual = 20% off, billed yearly
   const [appToast, setAppToast] = useState(null);
   const toastTimerRef = useRef(null);
 
@@ -376,6 +378,12 @@ export default function ProspectionAgent() {
         mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
         backendOk={backendOk} resultsCount={results.length}
         statsTotal={stats.total} emailsSent={emailsSent} t={t}
+        userTier={userTier} userId={userId} userEmail={userEmail}
+        setShowUpgradeModal={() => openUpgradeModal({
+          tab: "",
+          title: uiLang === "fr" ? "💎 Passez à un Forfait Supérieur" : uiLang === "it" ? "💎 Passa a un Piano Superiore" : "💎 Upgrade Your Plan",
+          reason: uiLang === "fr" ? "Débloquez tous les outils premium d'Acquisition Pro." : uiLang === "it" ? "Sblocca tutti gli strumenti premium di Acquisition Pro." : "Unlock every premium tool in Acquisition Pro."
+        })}
       >
 
         
@@ -395,7 +403,7 @@ export default function ProspectionAgent() {
             </button>
           </div>
         ) : currentTab === "adspy" ? (
-          <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} />
+          <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} openUpgradeModal={openUpgradeModal} />
         ) : currentTab === "productfinder" ? (
           <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} openUpgradeModal={openUpgradeModal} />
         ) : currentTab === "acquisition" ? (
@@ -412,6 +420,8 @@ export default function ProspectionAgent() {
           <ContractGeneratorTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} />
+        ) : currentTab === "account" ? (
+          <AccountSettings c={c} mono={mono} uiLang={uiLang} userId={userId} userEmail={userEmail} userTier={userTier} setShowUpgradeModal={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez à un Forfait Supérieur" : "💎 Upgrade Your Plan", reason: "" })} />
         ) : currentTab === "videomarketplace" ? (
           <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} userId={userId} />
         ) : (
@@ -473,26 +483,46 @@ export default function ProspectionAgent() {
             
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <span style={{ fontSize: 36 }}>💎</span>
-              <h3 style={{ fontSize: 20, fontWeight: 900, color: "#fff", margin: "8px 0 6px 0", letterSpacing: "-0.5px" }}>{upgradeModalData.title}</h3>
+              <h3 style={{ fontSize: 20, fontWeight: 900, color: c.text, margin: "8px 0 6px 0", letterSpacing: "-0.5px" }}>{upgradeModalData.title}</h3>
               <p style={{ fontSize: 13.5, color: c.textMuted, margin: 0, lineHeight: 1.5 }}>{upgradeModalData.reason}</p>
+            </div>
+
+            {/* Monthly / Annual toggle — annual nudges toward a longer commitment */}
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 22 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: billingCycle === "monthly" ? c.text : c.textDim, fontFamily: mono }}>
+                {uiLang === "fr" ? "Mensuel" : uiLang === "it" ? "Mensile" : "Monthly"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setBillingCycle(v => v === "monthly" ? "annual" : "monthly")}
+                style={{ width: 44, height: 24, borderRadius: 20, border: `1px solid ${c.border}`, background: billingCycle === "annual" ? `linear-gradient(135deg, ${c.accent}, #ec4899)` : c.bg, position: "relative", cursor: "pointer", transition: "background 0.2s", flexShrink: 0 }}
+              >
+                <span style={{ position: "absolute", top: 2, left: billingCycle === "annual" ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: billingCycle === "annual" ? "#fff" : c.textMuted, transition: "left 0.2s" }} />
+              </button>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: billingCycle === "annual" ? c.text : c.textDim, fontFamily: mono, display: "flex", alignItems: "center", gap: 6 }}>
+                {uiLang === "fr" ? "Annuel" : uiLang === "it" ? "Annuale" : "Annual"}
+                <span style={{ background: c.successSoft, color: c.success, fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 20 }}>-20%</span>
+              </span>
             </div>
 
             <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
 
               {/* Plus card option */}
               <div style={{
-                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.accent}44`, borderRadius: 16, padding: 16,
+                background: c.bg, border: `1.5px solid ${c.accent}44`, borderRadius: 16, padding: 16,
                 display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.accentSoft, color: c.accent, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Plus</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>Plan Plus</h4>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>Plan Plus</h4>
                   <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
                     {uiLang === "fr" ? "AdSpy complet pour le dropshipping + CRM 20 leads." : uiLang === "it" ? "AdSpy completo per il dropshipping + CRM 20 lead." : "Full AdSpy for dropshipping + 20-lead CRM."}
                   </p>
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent, fontFamily: mono }}>69 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent, fontFamily: mono }}>
+                    {billingCycle === "annual" ? Math.round(69 * 0.8) : 69} €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> {uiLang === "fr" ? "/mois" : uiLang === "it" ? "/mese" : "/mo"}{billingCycle === "annual" ? (uiLang === "fr" ? ", facturé annuellement" : uiLang === "it" ? ", fatturato annualmente" : ", billed yearly") : ""}</span>
+                  </div>
                   <button onClick={() => upgradeTier("plus", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accentSoft}` }}>
                     {uiLang === "fr" ? "Activer Plus ➔" : "Subscribe Plus ➔"}
                   </button>
@@ -501,18 +531,20 @@ export default function ProspectionAgent() {
 
               {/* VIP Pro card option */}
               <div style={{
-                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.accent2}44`, borderRadius: 16, padding: 16,
+                background: c.bg, border: `1.5px solid ${c.accent2}44`, borderRadius: 16, padding: 16,
                 display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.accent2Soft, color: c.accent2, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Pro</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>VIP Pro Plan</h4>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>VIP Pro Plan</h4>
                   <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
                     {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blogs par mois." : uiLang === "it" ? "Accesso illimitato (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blog al mese." : "Full workspace access + 1 Live Coaching & 2 case study blogs/mo."}
                   </p>
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent2, fontFamily: mono }}>99 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.accent2, fontFamily: mono }}>
+                    {billingCycle === "annual" ? Math.round(99 * 0.8) : 99} €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> {uiLang === "fr" ? "/mois" : uiLang === "it" ? "/mese" : "/mo"}{billingCycle === "annual" ? (uiLang === "fr" ? ", facturé annuellement" : uiLang === "it" ? ", fatturato annualmente" : ", billed yearly") : ""}</span>
+                  </div>
                   <button onClick={() => upgradeTier("vip_pro", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.accent2, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.accent2Soft}` }}>
                     {uiLang === "fr" ? "Activer VIP Pro ➔" : "Subscribe VIP Pro ➔"}
                   </button>
@@ -521,18 +553,20 @@ export default function ProspectionAgent() {
 
               {/* VIP Elite card option */}
               <div style={{
-                background: "rgba(0,0,0,0.2)", border: `1.5px solid ${c.success}44`, borderRadius: 16, padding: 16,
+                background: c.bg, border: `1.5px solid ${c.success}44`, borderRadius: 16, padding: 16,
                 display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.successSoft, color: c.success, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Elite</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>VIP Elite Plan</h4>
+                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>VIP Elite Plan</h4>
                   <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
                     {uiLang === "fr" ? "Accès illimité à TOUTE l'application e-commerce + Coaching Vidéo Hebdomadaire & Blog en illimité." : uiLang === "it" ? "Accesso totale all'app e-commerce + Video Coaching Settimanale e Blog illimitato." : "Total e-commerce access + Weekly Video Coaching & unlimited strategy blog."}
                   </p>
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: c.success, fontFamily: mono }}>299 €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> /mois</span></div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: c.success, fontFamily: mono }}>
+                    {billingCycle === "annual" ? Math.round(299 * 0.8) : 299} €<span style={{ fontSize: 10, color: c.textDim, fontWeight: 400 }}> {uiLang === "fr" ? "/mois" : uiLang === "it" ? "/mese" : "/mo"}{billingCycle === "annual" ? (uiLang === "fr" ? ", facturé annuellement" : uiLang === "it" ? ", fatturato annualmente" : ", billed yearly") : ""}</span>
+                  </div>
                   <button onClick={() => upgradeTier("vip_elite", () => { if (upgradeModalData.tab) setCurrentTab(upgradeModalData.tab); })} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, border: "none", background: c.success, color: "#fff", fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 12px ${c.successSoft}` }}>
                     {uiLang === "fr" ? "Activer VIP Elite ➔" : "Subscribe VIP Elite ➔"}
                   </button>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { apiFetch } from "./utils/apiClient";
 
-export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCurrentTab, setRedirectShop, userTier = "free" }) {
+export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCurrentTab, setRedirectShop, userTier = "free", openUpgradeModal }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [selectedPlatform, setSelectedPlatform] = useState("all");
@@ -13,6 +13,23 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
   const [activeModalTab, setActiveModalTab] = useState("overview"); // overview | transcript | suppliers
   const [adToast, setAdToast] = useState(null);
   const showToast = (msg, type = "success") => { setAdToast({ message: msg, type }); setTimeout(() => setAdToast(null), 4000); };
+
+  // ─── Quick-filter pills + advanced sidebar filters ──────────────────────────
+  const [quickFilter, setQuickFilter] = useState("all");
+  const [minDuration, setMinDuration] = useState("all"); // all | short | medium | long
+  const [mediaType, setMediaType] = useState("all"); // all | video | image
+  const [creatorLanguage, setCreatorLanguage] = useState("all");
+  const [creatorCountry, setCreatorCountry] = useState("all");
+  const [ctaFilter, setCtaFilter] = useState("all");
+
+  const QUICK_FILTERS = [
+    { id: "all", label: uiLang === "fr" ? "Tout" : uiLang === "it" ? "Tutto" : "All" },
+    { id: "winners_week", label: uiLang === "fr" ? "🔥 Winners de la semaine" : uiLang === "it" ? "🔥 Vincitori della settimana" : "🔥 Winners of the week" },
+    { id: "ready_scale", label: uiLang === "fr" ? "🚀 Prêts à décoller" : uiLang === "it" ? "🚀 Pronti a decollare" : "🚀 Ready to scale" },
+    { id: "top_beauty", label: uiLang === "fr" ? "✨ Top Créateurs Beauté" : uiLang === "it" ? "✨ Top Creator Beauty" : "✨ Top Beauty Creators" },
+    { id: "high_eng", label: uiLang === "fr" ? "📈 Haut Taux d'Engagement" : uiLang === "it" ? "📈 Alto Tasso di Engagement" : "📈 High Engagement Rate" },
+    { id: "certified", label: uiLang === "fr" ? "💎 UGC Certifiés" : uiLang === "it" ? "💎 UGC Certificati" : "💎 Certified UGC" },
+  ];
 
   const maskString = (str) => {
     if (userTier === "admin") return str;
@@ -46,6 +63,9 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       views: "Vues",
       likes: "Likes",
       eng: "Taux d'Engagement",
+      sourcing: "Nombre de sourcings",
+      hotScore: "Score de Potentiel (Hot) 🔥",
+      sourcingLabel: (n) => `📁 ${n} Sourcings`,
       outreach: "🚀 Prospecter direct",
       ctaBtn: "Voir l'original",
       trendLabel: "Index de Tendance",
@@ -68,6 +88,9 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       views: "Views",
       likes: "Likes",
       eng: "Engagement Rate",
+      sourcing: "Sourcing Count",
+      hotScore: "Potential Score (Hot) 🔥",
+      sourcingLabel: (n) => `📁 ${n} Sourced`,
       outreach: "🚀 Fast Outreach",
       ctaBtn: "View Original",
       trendLabel: "Trend Index",
@@ -90,6 +113,9 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       views: "Visualizzazioni",
       likes: "Likes",
       eng: "Tasso d'Engagement",
+      sourcing: "Numero di sourcing",
+      hotScore: "Punteggio di Potenziale (Hot) 🔥",
+      sourcingLabel: (n) => `📁 ${n} Sourcing`,
       outreach: "🚀 Prospezione diretta",
       ctaBtn: "Vedi Originale",
       trendLabel: "Indice di Trend",
@@ -112,6 +138,9 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
     views: "Vues",
     likes: "Likes",
     eng: "Taux d'Engagement",
+    sourcing: "Nombre de sourcings",
+    hotScore: "Score de Potentiel (Hot) 🔥",
+    sourcingLabel: (n) => `📁 ${n} Sourcings`,
     outreach: "🚀 Prospecter direct",
     ctaBtn: "Voir l'original",
     trendLabel: "Index de Tendance",
@@ -154,20 +183,80 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
   // placeholder data — only genuinely fetched ads, from the moment it opens.
   useEffect(() => { handleSearch(null, { silent: true }); }, []);
 
+  // "Sourcing" (how many times a creative was saved/imported into the CRM by
+  // users) isn't tracked anywhere yet — this is mock data, deterministically
+  // derived from the creative's own id so the count stays stable across
+  // re-renders and re-sorts instead of jumping around randomly.
+  const getSourcingCount = (ad) => {
+    const str = String(ad.id);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+    return 1 + (hash % 60);
+  };
+
+  // Hot Score: a simple weighted blend of views, likes and sourcing so brands
+  // can surface the creatives that are both viral AND already being acted on
+  // by other users — not just the ones with the most raw views.
+  const getHotScore = (ad) => ad.views * 1 + ad.likes * 20 + getSourcingCount(ad) * 5000;
+
+  // ─── More mock "AdSpy B2B" attributes, same deterministic-hash trick as
+  // Sourcing above — no real data source for these yet. ─────────────────────
+  const hashOf = (str) => {
+    let hash = 0;
+    const s = String(str);
+    for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    return hash;
+  };
+  const DURATIONS = ["short", "medium", "long"]; // <15s | 15-45s | >45s
+  const COUNTRIES = ["US", "FR", "IT", "UK", "DE", "ES"];
+  const LANG_BY_COUNTRY = { US: "en", UK: "en", FR: "fr", IT: "it", DE: "de", ES: "es" };
+  const CTAS = ["Shop Now", "Learn More", "Sign Up", "Get Offer"];
+  const getDuration = (ad) => DURATIONS[hashOf(ad.id) % DURATIONS.length];
+  const getMediaType = (ad) => (hashOf(ad.id + "m") % 5 === 0 ? "image" : "video");
+  const getCreatorCountry = (ad) => COUNTRIES[hashOf(ad.id + "c") % COUNTRIES.length];
+  const getCreatorLanguage = (ad) => LANG_BY_COUNTRY[getCreatorCountry(ad)];
+  const getCta = (ad) => CTAS[hashOf(ad.id + "cta") % CTAS.length];
+  const isCertified = (ad) => hashOf(ad.id + "cert") % 3 === 0;
+
+  const matchesQuickFilter = (ad) => {
+    const eng = parseFloat(ad.engagementRate) || 0;
+    switch (quickFilter) {
+      case "winners_week": return ad.daysActive <= 21 && eng >= 4;
+      case "ready_scale": return getSourcingCount(ad) >= 30;
+      case "top_beauty": return ad.niche === "beauty" && (ad.relevance || 0) >= 80;
+      case "high_eng": return eng >= 5;
+      case "certified": return isCertified(ad);
+      default: return true;
+    }
+  };
+
   const filteredAds = useMemo(() => {
     return creatives.filter(ad => {
-      // Local client-side filter if search input is changed but not submitted, or to filter local demo items
       const matchNiche = selectedNiche === "all" || ad.niche === selectedNiche;
       const matchPlatform = selectedPlatform === "all" || ad.platform === selectedPlatform;
-      return matchNiche && matchPlatform;
+      const matchDuration = minDuration === "all" || getDuration(ad) === minDuration;
+      const matchMedia = mediaType === "all" || getMediaType(ad) === mediaType;
+      const matchLang = creatorLanguage === "all" || getCreatorLanguage(ad) === creatorLanguage;
+      const matchCountry = creatorCountry === "all" || getCreatorCountry(ad) === creatorCountry;
+      const matchCta = ctaFilter === "all" || getCta(ad) === ctaFilter;
+      return matchNiche && matchPlatform && matchDuration && matchMedia && matchLang && matchCountry && matchCta && matchesQuickFilter(ad);
     }).sort((a, b) => {
       if (sortBy === "relevance") return (b.relevance || 0) - (a.relevance || 0);
       if (sortBy === "views") return b.views - a.views;
       if (sortBy === "likes") return b.likes - a.likes;
       if (sortBy === "engagement") return parseFloat(b.engagementRate) - parseFloat(a.engagementRate);
+      if (sortBy === "sourcing") return getSourcingCount(b) - getSourcingCount(a);
+      if (sortBy === "hotscore") return getHotScore(b) - getHotScore(a);
       return 0;
     });
-  }, [creatives, selectedNiche, selectedPlatform, sortBy]);
+  }, [creatives, selectedNiche, selectedPlatform, sortBy, quickFilter, minDuration, mediaType, creatorLanguage, creatorCountry, ctaFilter]);
+
+  // ─── Paywall in-feed: free-tier users only ever see the first N results,
+  // the rest is teased behind a blur + upsell banner. ─────────────────────
+  const FREE_VISIBLE_COUNT = 6;
+  const isFreeTier = userTier === "free";
+  const visibleAds = isFreeTier ? filteredAds.slice(0, FREE_VISIBLE_COUNT) : filteredAds;
+  const lockedAds = isFreeTier ? filteredAds.slice(FREE_VISIBLE_COUNT, FREE_VISIBLE_COUNT + 3) : [];
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", position: "relative" }}>
@@ -183,9 +272,106 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
         <span>{t.realSearchTip}</span>
       </div>
 
+      {/* Quick-filter pills */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 16 }}>
+        {QUICK_FILTERS.map(qf => (
+          <button
+            key={qf.id}
+            type="button"
+            onClick={() => setQuickFilter(qf.id)}
+            style={{
+              flexShrink: 0, padding: "8px 16px", borderRadius: 30, whiteSpace: "nowrap", cursor: "pointer",
+              border: `1.5px solid ${quickFilter === qf.id ? "transparent" : c.border}`,
+              background: quickFilter === qf.id ? `linear-gradient(135deg, ${c.accent}, #ec4899)` : c.card,
+              color: quickFilter === qf.id ? "#fff" : c.textMuted,
+              fontSize: 12.5, fontWeight: 700, fontFamily: mono, transition: "all 0.2s"
+            }}
+          >
+            {qf.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+      {/* ─── Advanced Filters Sidebar ─────────────────────────────────────── */}
+      <aside style={{ flex: "0 0 210px", position: "sticky", top: 20, background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: c.text, textTransform: "uppercase", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 6 }}>
+          🎛️ {uiLang === "it" ? "Filtri Avanzati" : uiLang === "en" ? "Advanced Filters" : "Filtres Avancés"}
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.niche}</label>
+          <select value={selectedNiche} onChange={e => setSelectedNiche(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            <option value="beauty">Beauty</option>
+            <option value="food">Food & Nutrition</option>
+            <option value="fitness">Fitness</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{uiLang === "it" ? "Durata Video" : uiLang === "en" ? "Video Duration" : "Durée de la vidéo"}</label>
+          <select value={minDuration} onChange={e => setMinDuration(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            <option value="short">{uiLang === "it" ? "Corta (&lt;15s)" : uiLang === "en" ? "Short (<15s)" : "Courte (<15s)"}</option>
+            <option value="medium">{uiLang === "it" ? "Media (15-45s)" : uiLang === "en" ? "Medium (15-45s)" : "Moyenne (15-45s)"}</option>
+            <option value="long">{uiLang === "it" ? "Lunga (&gt;45s)" : uiLang === "en" ? "Long (>45s)" : "Longue (>45s)"}</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{uiLang === "it" ? "Tipo di Media" : uiLang === "en" ? "Media Type" : "Type de média"}</label>
+          <select value={mediaType} onChange={e => setMediaType(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            <option value="video">{uiLang === "it" ? "Video" : uiLang === "en" ? "Video" : "Vidéo"}</option>
+            <option value="image">{uiLang === "it" ? "Immagine" : uiLang === "en" ? "Image" : "Image"}</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{uiLang === "it" ? "Lingua" : uiLang === "en" ? "Language" : "Langue"}</label>
+          <select value={creatorLanguage} onChange={e => setCreatorLanguage(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="it">Italiano</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{uiLang === "it" ? "Paese del Creator" : uiLang === "en" ? "Creator Country" : "Pays du créateur"}</label>
+          <select value={creatorCountry} onChange={e => setCreatorCountry(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            {["US", "FR", "IT", "UK", "DE", "ES"].map(cc => <option key={cc} value={cc}>{cc}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Call-to-Action (CTA)</label>
+          <select value={ctaFilter} onChange={e => setCtaFilter(e.target.value)} style={{ width: "100%", padding: "9px 10px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 12.5, cursor: "pointer" }}>
+            <option value="all">{t.all}</option>
+            {["Shop Now", "Learn More", "Sign Up", "Get Offer"].map(cta => <option key={cta} value={cta}>{cta}</option>)}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => { setSelectedNiche("all"); setMinDuration("all"); setMediaType("all"); setCreatorLanguage("all"); setCreatorCountry("all"); setCtaFilter("all"); setQuickFilter("all"); }}
+          style={{ padding: "9px", borderRadius: 8, border: `1px solid ${c.border}`, background: "transparent", color: c.textDim, fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+        >
+          ↺ {uiLang === "it" ? "Ripristina Filtri" : uiLang === "en" ? "Reset Filters" : "Réinitialiser les Filtres"}
+        </button>
+      </aside>
+
+      {/* ─── Main column ──────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
       {/* Filter panel */}
       <form onSubmit={handleSearch} style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, marginBottom: 20, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        
+
         {/* Search Input */}
         <div style={{ flex: "1 1 280px", display: "flex", gap: 8 }}>
           <input 
@@ -198,21 +384,6 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
           <button type="submit" style={{ padding: "11px 18px", borderRadius: 9, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: mono, boxShadow: `0 4px 16px ${c.accentGlow}` }}>
             {t.searchBtn}
           </button>
-        </div>
-
-        {/* Niche select */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, fontFamily: mono, color: c.textDim, textTransform: "uppercase" }}>{t.niche}</span>
-          <select 
-            value={selectedNiche}
-            onChange={e => setSelectedNiche(e.target.value)}
-            style={{ padding: "10px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
-          >
-            <option value="all">{t.all}</option>
-            <option value="beauty">Beauty</option>
-            <option value="food">Food & Nutrition</option>
-            <option value="fitness">Fitness</option>
-          </select>
         </div>
 
         {/* Platform select */}
@@ -240,9 +411,11 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
             style={{ padding: "10px 14px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13, cursor: "pointer" }}
           >
             <option value="relevance">{t.relevance}</option>
+            <option value="hotscore">{t.hotScore}</option>
             <option value="views">{t.views}</option>
             <option value="likes">{t.likes}</option>
             <option value="engagement">{t.eng}</option>
+            <option value="sourcing">{t.sourcing}</option>
           </select>
         </div>
       </form>
@@ -263,70 +436,90 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
-          {filteredAds.map((ad) => (
-            <div 
+          {visibleAds.map((ad) => {
+            const contactLead = () => onImportLead({
+              name: ad.brand,
+              url: ad.platform === "tiktok" ? `https://tiktok.com/${ad.creator}` : `https://instagram.com/${ad.creator.replace("@", "")}`,
+              platform: ad.platform === "tiktok" ? "TikTok" : "Instagram",
+              platformId: ad.platform,
+              niche: ad.niche,
+              region: ad.region,
+              contact: ad.contact,
+              instagram: ad.platform === "instagram" ? ad.creator : null,
+              socials: {
+                instagram: ad.platform === "instagram" ? `https://instagram.com/${ad.creator.replace("@", "")}` : null,
+                tiktok: ad.platform === "tiktok" ? `https://tiktok.com/${ad.creator}` : null,
+              },
+              score: 85,
+              size: "Startup",
+              reasoning: "Minea Spy Live"
+            });
+            return (
+            <div
               key={ad.id}
               onMouseEnter={() => setHoveredAd(ad.id)}
               onMouseLeave={() => setHoveredAd(null)}
-              style={{ 
-                background: c.card, 
-                border: `1.5px solid ${hoveredAd === ad.id ? c.borderActive : c.border}`, 
-                borderRadius: 16, 
-                overflow: "hidden", 
-                boxShadow: hoveredAd === ad.id ? `0 12px 32px ${c.accentGlow}` : "none",
+              style={{
+                background: c.card,
+                border: `1.5px solid ${hoveredAd === ad.id ? c.borderActive : c.border}`,
+                borderRadius: 16,
+                overflow: "hidden",
+                boxShadow: hoveredAd === ad.id ? `0 12px 32px ${c.accentGlow}` : "0 2px 10px rgba(0,0,0,0.04)",
                 transform: hoveredAd === ad.id ? "translateY(-4px)" : "none",
                 transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
               }}
             >
-              
+
+              {/* Brand x Creator header — who paid vs who filmed it */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderBottom: `1px solid ${c.border}` }}>
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(maskString(ad.brand))}&background=8B5CF6&color=fff&size=64&bold=true`} alt="" style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, fontWeight: 800, color: c.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{maskString(ad.brand)}</span>
+                <span style={{ color: c.textDim, fontSize: 13, fontWeight: 700 }}>✕</span>
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(maskCreator(ad.creator).replace("@",""))}&background=EC4899&color=fff&size=64&bold=true`} alt="" style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: c.textMuted, fontFamily: mono, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{maskCreator(ad.creator)}</span>
+                {isCertified(ad) && (
+                  <span title={uiLang === "fr" ? "UGC Certifié" : uiLang === "it" ? "UGC Certificato" : "Certified UGC"} style={{ marginLeft: "auto", flexShrink: 0 }}>💎</span>
+                )}
+              </div>
+
               {/* Visual Thumbnail / Video Wrapper */}
-              <div style={{ height: 260, position: "relative", cursor: "pointer", background: "#000" }} onClick={() => setActiveVideo(ad)}>
-                <img 
-                  src={ad.thumbnail} 
-                  alt="Ad cover" 
+              <div style={{ height: 240, position: "relative", cursor: "pointer", background: "#000" }} onClick={() => setActiveVideo(ad)}>
+                <img
+                  src={ad.thumbnail}
+                  alt="Ad cover"
                   style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85, transition: "transform 0.3s" }}
                 />
-                
+
                 {/* Play Badge */}
                 <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: 56, height: 56, borderRadius: "50%", background: "rgba(139, 92, 246, 0.85)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 20px rgba(139, 92, 246, 0.5)", transition: "all 0.2s" }}>
                   <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff" style={{ marginLeft: 3 }}><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 </div>
 
-                {/* Niche & Platform Badges */}
-                <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 6 }}>
-                  <span style={{ background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 6, backdropFilter: "blur(4px)", textTransform: "uppercase" }}>
+                {/* Niche & Platform mini-pills */}
+                <div style={{ position: "absolute", top: 10, left: 10, display: "flex", gap: 5 }}>
+                  <span style={{ background: "rgba(255,255,255,0.9)", color: "#18181B", fontSize: 9.5, fontWeight: 800, padding: "3px 8px", borderRadius: 20, backdropFilter: "blur(4px)", textTransform: "uppercase" }}>
                     {ad.niche}
                   </span>
-                  <span style={{ background: ad.platform === 'tiktok' ? '#000' : 'rgba(225,48,108,0.85)', color: '#fff', fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 6, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <img src={`https://cdn.simpleicons.org/${ad.platform}/ffffff`} width={10} height={10} alt="" />
+                  <span style={{ background: "rgba(255,255,255,0.9)", color: "#18181B", fontSize: 9.5, fontWeight: 800, padding: "3px 8px", borderRadius: 20, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
+                    <img src={`https://cdn.simpleicons.org/${ad.platform}/18181B`} width={9} height={9} alt="" />
                     {ad.platform.toUpperCase()}
                   </span>
                 </div>
 
-                {/* Engagement Rate overlay */}
-                <div style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(16,185,129,0.9)", color: "#06060b", fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 6, backdropFilter: "blur(4px)" }}>
-                  🔥 {ad.engagementRate} Er
-                </div>
-
-                {/* Days Active Overlay */}
-                <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 10.5, fontWeight: 550, padding: "4px 8px", borderRadius: 6, backdropFilter: "blur(4px)", fontFamily: mono }}>
-                  {t.activeDays(ad.daysActive)}
+                {/* Days Active — bright green "proof of profitability" badge */}
+                <div style={{ position: "absolute", bottom: 10, left: 10, background: "#10B981", color: "#052e1f", fontSize: 10.5, fontWeight: 800, padding: "4px 9px", borderRadius: 20, display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 10px rgba(16,185,129,0.5)" }}>
+                  🟢 {t.activeDays(ad.daysActive)}
                 </div>
               </div>
 
               {/* Ad text & info */}
-              <div style={{ padding: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: c.text }}>{maskString(ad.brand)}</span>
-                  <span style={{ fontSize: 12, color: c.textMuted, fontFamily: mono }}>{maskCreator(ad.creator)}</span>
-                </div>
-
-                <p style={{ fontSize: 12, color: c.textMuted, height: 40, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.4, margin: "0 0 14px 0" }}>
+              <div style={{ padding: 14 }}>
+                <p style={{ fontSize: 12, color: c.textMuted, height: 34, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", lineHeight: 1.4, margin: "0 0 12px 0" }}>
                   {ad.title}
                 </p>
 
                 {/* Engagement Stats Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, marginBottom: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, background: c.bg, padding: 8, borderRadius: 10, border: `1px solid ${c.border}`, marginBottom: 12 }}>
                   <div style={{ textAlign: "center" }}>
                     <div style={{ fontSize: 9.5, color: c.textDim, fontFamily: mono }}>VIEWS</div>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: c.text }}>
@@ -343,54 +536,91 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
                     <div style={{ fontSize: 9.5, color: c.textDim, fontFamily: mono }}>ENG.</div>
                     <div style={{ fontSize: 11.5, fontWeight: 700, color: c.success }}>{ad.engagementRate}</div>
                   </div>
+                  <div style={{ textAlign: "center" }} title={t.sourcing}>
+                    <div style={{ fontSize: 9.5, color: c.textDim, fontFamily: mono }}>SOURCING</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: c.accent }}>🔥 {getSourcingCount(ad)}</div>
+                  </div>
                 </div>
 
-                {/* Actions */}
+                {/* Actions — agency/creator oriented */}
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button 
-                    onClick={() => onImportLead({
-                      name: ad.brand,
-                      url: ad.platform === "tiktok" ? `https://tiktok.com/${ad.creator}` : `https://instagram.com/${ad.creator.replace("@", "")}`,
-                      platform: ad.platform === "tiktok" ? "TikTok" : "Instagram",
-                      platformId: ad.platform,
-                      niche: ad.niche,
-                      region: ad.region,
-                      contact: ad.contact,
-                      instagram: ad.platform === "instagram" ? ad.creator : null,
-                      socials: {
-                        instagram: ad.platform === "instagram" ? `https://instagram.com/${ad.creator.replace("@", "")}` : null,
-                        tiktok: ad.platform === "tiktok" ? `https://tiktok.com/${ad.creator}` : null,
-                      },
-                      score: 85,
-                      size: "Startup",
-                      reasoning: "Minea Spy Live"
-                    })}
-                    style={{ 
-                      flex: 1, 
-                      padding: "10px 14px", 
-                      borderRadius: 9, 
-                      border: "none", 
-                      background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, 
-                      color: "#fff", 
-                      fontSize: 12, 
-                      fontWeight: 700, 
-                      fontFamily: mono, 
-                      cursor: "pointer", 
-                      boxShadow: `0 4px 16px ${c.accentGlow}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6
+                  <button
+                    onClick={() => setActiveVideo(ad)}
+                    style={{ flex: 1, padding: "9px 10px", borderRadius: 9, border: `1.5px solid ${c.border}`, background: "transparent", color: c.textMuted, fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer" }}
+                  >
+                    {uiLang === "fr" ? "Analyser le Créateur" : uiLang === "it" ? "Analizza il Creator" : "Analyze Creator"}
+                  </button>
+                  <button
+                    onClick={contactLead}
+                    style={{
+                      flex: 1, padding: "9px 10px", borderRadius: 9, border: "none",
+                      background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff",
+                      fontSize: 11.5, fontWeight: 700, fontFamily: mono, cursor: "pointer", boxShadow: `0 4px 16px ${c.accentGlow}`
                     }}
                   >
-                    {t.outreach}
+                    {uiLang === "fr" ? "Contacter" : uiLang === "it" ? "Contatta" : "Contact"}
                   </button>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* Paywall in-feed — free tier only sees the first FREE_VISIBLE_COUNT results */}
+      {isFreeTier && lockedAds.length > 0 && (
+        <div style={{ position: "relative", marginTop: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20, filter: "blur(6px)", opacity: 0.5, pointerEvents: "none", userSelect: "none" }}>
+            {lockedAds.map(ad => (
+              <div key={ad.id} style={{ background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{ height: 240, background: "#000" }}>
+                  <img src={ad.thumbnail} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div style={{ padding: 14 }}>
+                  <div style={{ height: 12, width: "70%", background: c.border, borderRadius: 4, marginBottom: 8 }} />
+                  <div style={{ height: 30, background: c.bg, borderRadius: 10 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            position: "absolute", inset: 0, top: "-60px", display: "flex", alignItems: "flex-end", justifyContent: "center",
+            background: `linear-gradient(180deg, transparent 0%, ${c.bg} 55%)`
+          }}>
+            <div style={{
+              width: "100%", maxWidth: 640, background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 20,
+              padding: "28px 32px", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.12)", marginBottom: 12
+            }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: c.text, marginBottom: 8 }}>
+                🔒 {uiLang === "fr" ? "Débloquez le catalogue complet des UGC Winners" : uiLang === "it" ? "Sblocca il catalogo completo degli UGC Winners" : "Unlock the full catalog of UGC Winners"}
+              </div>
+              <p style={{ fontSize: 13.5, color: c.textMuted, margin: "0 0 18px 0" }}>
+                {uiLang === "fr" ? "Et contactez directement les créateurs derrière ces publicités qui cartonnent." : uiLang === "it" ? "E contatta direttamente i creator dietro queste pubblicità di successo." : "And contact the creators behind these winning ads directly."}
+              </p>
+              <button
+                onClick={() => openUpgradeModal?.({
+                  tab: "adspy",
+                  title: uiLang === "fr" ? "🔥 Débloquez l'AdSpy Complet" : uiLang === "it" ? "🔥 Sblocca l'AdSpy Completo" : "🔥 Unlock Full AdSpy",
+                  reason: uiLang === "fr" ? "L'accès illimité à tous les créatifs et le contact direct des créateurs sont réservés aux forfaits payants." : uiLang === "it" ? "L'accesso illimitato a tutti i creativi e il contatto diretto dei creator sono riservati ai piani a pagamento." : "Unlimited access to every creative and direct creator contact are reserved for paid plans."
+                })}
+                style={{ padding: "14px 32px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${c.accent}, #ec4899)`, color: "#fff", fontSize: 14.5, fontWeight: 800, cursor: "pointer", boxShadow: `0 8px 24px ${c.accentGlow}`, marginBottom: 16 }}
+              >
+                {uiLang === "fr" ? "🚀 Passer au forfait Supérieur" : uiLang === "it" ? "🚀 Passa al piano superiore" : "🚀 Upgrade Now"}
+              </button>
+              <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", fontSize: 12, color: c.textMuted }}>
+                <span>✓ {uiLang === "fr" ? "Accès illimité" : uiLang === "it" ? "Accesso illimitato" : "Unlimited access"}</span>
+                <span>✓ {uiLang === "fr" ? "Analytics avancés" : uiLang === "it" ? "Analytics avanzate" : "Advanced analytics"}</span>
+                <span>✓ {uiLang === "fr" ? "Contact direct" : uiLang === "it" ? "Contatto diretto" : "Direct contact"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      </div>
+      </div>
 
       {/* VIDEO MODAL PLAYER & SPY ANALYTICS */}
       {activeVideo && (
