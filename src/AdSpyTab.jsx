@@ -1,365 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { apiFetch } from "./utils/apiClient";
-
-// Pre-loaded high-quality demo creatives inspired by Minea
-const BASE_MOCK_ADS = [
-  {
-    id: "spy_1",
-    brand: "GlowSkin Co.",
-    creator: "@sophia_beauty",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-beautiful-woman-applying-skincare-cream-on-face-41584-large.mp4",
-    title: "Ce siero all'acido ialuronico ha cambiato la mia pelle! 🤯✨ #skincareroutine",
-    niche: "beauty",
-    region: "it",
-    likes: 48200,
-    comments: 890,
-    shares: 1200,
-    views: 890000,
-    engagementRate: "5.5%",
-    cta: "Shop Now",
-    daysActive: 14,
-    trend: [10, 25, 45, 75, 95],
-    relevance: 92,
-    contact: "collabs@glowskinco.com"
-  },
-  {
-    id: "spy_2",
-    brand: "FitBurn Nutrition",
-    creator: "@marco_fitlife",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-man-exercising-with-battle-ropes-in-gym-23007-large.mp4",
-    title: "Le proteine veg più buone che io abbia mai provato! Codice MARCO10 per il -10%. 💪🌱",
-    niche: "food",
-    region: "it",
-    likes: 12400,
-    comments: 420,
-    shares: 340,
-    views: 180000,
-    engagementRate: "7.1%",
-    cta: "Learn More",
-    daysActive: 8,
-    trend: [5, 12, 28, 50, 72],
-    relevance: 74,
-    contact: "partners@fitburn.it"
-  },
-  {
-    id: "spy_3",
-    brand: "PureMatcha",
-    creator: "@chloe_wellness",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-whipping-green-tea-matcha-powder-with-whisk-43346-large.mp4",
-    title: "My morning ritual for extreme focus & high energy! No coffee crashes anymore. 🍵🧘‍♀️",
-    niche: "food",
-    region: "eu",
-    likes: 31200,
-    comments: 650,
-    shares: 980,
-    views: 450000,
-    engagementRate: "7.0%",
-    cta: "Get Offer",
-    daysActive: 22,
-    trend: [30, 40, 52, 60, 68],
-    relevance: 80,
-    contact: "hello@purematcha.com"
-  },
-  {
-    id: "spy_4",
-    brand: "Velvet Cosmetics",
-    creator: "@elisa_makeup",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-of-makeup-artist-applying-eyeshadow-on-a-woman-40082-large.mp4",
-    title: "Questo rossetto no-transfer resiste letteralmente a TUTTO. Test live su 24h! 💄👄",
-    niche: "beauty",
-    region: "it",
-    likes: 54100,
-    comments: 1100,
-    shares: 2300,
-    views: 1200000,
-    engagementRate: "4.6%",
-    cta: "Shop Now",
-    daysActive: 30,
-    trend: [80, 85, 90, 93, 97],
-    relevance: 89,
-    contact: "influencers@velvetcosmetics.com"
-  },
-  {
-    id: "spy_5",
-    brand: "Aura Activewear",
-    creator: "@julia_yogi",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-doing-yoga-poses-on-a-mat-28956-large.large.mp4",
-    title: "The squattest-proof leggings I have ever owned. High-waist luxury for half the price! 🧘‍♀️🍑",
-    niche: "fitness",
-    region: "eu",
-    likes: 8900,
-    comments: 180,
-    shares: 95,
-    views: 110000,
-    engagementRate: "8.2%",
-    cta: "Shop Now",
-    daysActive: 5,
-    trend: [2, 10, 30, 60, 85],
-    relevance: 96,
-    contact: "collab@aurawear.com"
-  },
-  {
-    id: "spy_6",
-    brand: "EcoGlow Skincare",
-    creator: "@serena_green",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-dripping-oil-on-her-face-from-a-dropper-40915-large.mp4",
-    title: "Rutina natural para piel radiante sin químicos. Hecho con ingredientes 100% orgánicos! 🌿✨",
-    niche: "beauty",
-    region: "eu",
-    likes: 19800,
-    comments: 310,
-    shares: 512,
-    views: 320000,
-    engagementRate: "6.3%",
-    cta: "Apply Code",
-    daysActive: 12,
-    trend: [15, 22, 35, 48, 62],
-    relevance: 68,
-    contact: "info@ecoglow.com"
-  },
-  {
-    id: "spy_7",
-    brand: "HomeNest Design",
-    creator: "@deco_lifestyle",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-hands-of-makeup-artist-applying-eyeshadow-on-a-woman-40082-large.mp4",
-    title: "This magnetic spice rack changed my kitchen organization! Highly satisfying 🧂😍",
-    niche: "beauty",
-    region: "us",
-    likes: 25000,
-    comments: 450,
-    shares: 110,
-    views: 320000,
-    engagementRate: "8.1%",
-    cta: "Shop Now",
-    daysActive: 19,
-    trend: [40, 50, 65, 80, 95],
-    relevance: 88,
-    contact: "deco@homenest.com"
-  },
-  {
-    id: "spy_8",
-    brand: "HairLuxe Pro",
-    creator: "@giulia_hairstyles",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-beautiful-woman-applying-skincare-cream-on-face-41584-large.mp4",
-    title: "Il segreto per onde perfette senza calore! Funziona al 100%! 💇‍♀️✨ #hairgoals",
-    niche: "beauty",
-    region: "it",
-    likes: 45000,
-    comments: 980,
-    shares: 1200,
-    views: 980000,
-    engagementRate: "4.7%",
-    cta: "Shop Now",
-    daysActive: 25,
-    trend: [60, 70, 85, 92, 98],
-    relevance: 95,
-    contact: "collabs@hairluxepro.it"
-  },
-  {
-    id: "spy_9",
-    brand: "Veloce Coffee",
-    creator: "@coffee_lover_it",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-whipping-green-tea-matcha-powder-with-whisk-43346-large.mp4",
-    title: "Il mio espresso portatile ricaricabile, pronto in 2 minuti ovunque! ☕🚗",
-    niche: "food",
-    region: "it",
-    likes: 18000,
-    comments: 230,
-    shares: 450,
-    views: 240000,
-    engagementRate: "7.6%",
-    cta: "Get Offer",
-    daysActive: 9,
-    trend: [10, 25, 40, 62, 85],
-    relevance: 78,
-    contact: "hello@velocecoffee.it"
-  },
-  {
-    id: "spy_10",
-    brand: "Flexfit Band",
-    creator: "@john_fitness",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-man-exercising-with-battle-ropes-in-gym-23007-large.mp4",
-    title: "The only resistance bands you need for an intense home workout. Durable and premium. 💪",
-    niche: "fitness",
-    region: "eu",
-    likes: 22000,
-    comments: 390,
-    shares: 150,
-    views: 300000,
-    engagementRate: "7.3%",
-    cta: "Shop Now",
-    daysActive: 6,
-    trend: [5, 20, 48, 70, 90],
-    relevance: 82,
-    contact: "info@flexfitband.com"
-  },
-  {
-    id: "spy_11",
-    brand: "CleanSpatula",
-    creator: "@laura_aesthetic",
-    platform: "tiktok",
-    thumbnail: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-dripping-oil-on-her-face-from-a-dropper-40915-large.mp4",
-    title: "Scrub viso ad ultrasuoni a casa come in centro estetico! Pori puliti all'istante ✨🧴",
-    niche: "beauty",
-    region: "eu",
-    likes: 37000,
-    comments: 810,
-    shares: 640,
-    views: 600000,
-    engagementRate: "6.3%",
-    cta: "Shop Now",
-    daysActive: 16,
-    trend: [20, 35, 55, 78, 92],
-    relevance: 91,
-    contact: "collab@cleanspatula.com"
-  },
-  {
-    id: "spy_12",
-    brand: "LumiLamp",
-    creator: "@lucas_tech",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1507646227500-4d389b0012be?w=400&q=80",
-    videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-man-exercising-with-battle-ropes-in-gym-23007-large.mp4",
-    title: "This levitating lamp with wireless charging base is absolute magic. 🌌💡",
-    niche: "fitness",
-    region: "us",
-    likes: 29000,
-    comments: 750,
-    shares: 180,
-    views: 400000,
-    engagementRate: "7.4%",
-    cta: "Shop Now",
-    daysActive: 11,
-    trend: [10, 30, 50, 75, 88],
-    relevance: 85,
-    contact: "support@lumilamp.com"
-  }
-];
-
-const MOCK_ADS = [...BASE_MOCK_ADS];
-
-const brandTemplates = [
-  { brand: "PureSilky Co.", niche: "beauty", contact: "collab@puresilky.com" },
-  { brand: "FitShaker Nutrition", niche: "food", contact: "info@fitshaker.it" },
-  { brand: "AuraJade Skin", niche: "beauty", contact: "hello@aurajade.com" },
-  { brand: "KetoBites Snacks", niche: "food", contact: "partners@ketobites.eu" },
-  { brand: "ActiveStrap Gear", niche: "fitness", contact: "collabs@activestrap.com" },
-  { brand: "LuxeBrow Cosmetics", niche: "beauty", contact: "partners@luxebrow.it" },
-  { brand: "EcoZen Essentials", niche: "lifestyle", contact: "hello@ecozen.com" }
-];
-
-const creatorTemplates = [
-  "@emma_glow", "@davide_fit", "@clara_wellness", "@luca_lifestyle",
-  "@sophie_cosmetics", "@giovanni_trainer", "@sara_organic", "@matteo_shred"
-];
-
-const titleTemplates = {
-  fr: [
-    "Incroyable ! Ce produit a littéralement changé ma routine quotidienne. 😍✨",
-    "Le secret pour brûler les graisses rapidement sans frustration ! 💪🥑",
-    "J'ai testé cette astuce virale pendant une semaine entière, regardez ça !",
-    "La meilleure alternative bio et naturelle du marché. Approuvé à 100% ! 🌿",
-    "Déballage et avis honnête de ce gadget révolutionnaire. 🤯📦"
-  ],
-  en: [
-    "Honestly, this product completely transformed my morning routine! 😍✨",
-    "The ultimate secret to boost energy and stay lean! 💪🥑",
-    "I tested this viral hack for a full week, here is what happened!",
-    "The best organic and natural alternative out there. 100% approved! 🌿",
-    "Honest unboxing and review of this revolutionary tool. 🤯📦"
-  ],
-  it: [
-    "Onestamente, questo prodotto ha completamente rivoluzionato la mia routine! 😍✨",
-    "Il segreto definitivo per rimanere in forma e pieni di energia! 💪🥑",
-    "Ho testato questo trucco virale per una settimana intera, ecco i risultati!",
-    "La migliore alternativa biologica e naturale in commercio. Approvato! 🌿",
-    "Unboxing e recensione onesta di questo gadget rivoluzionario. 🤯📦"
-  ]
-};
-
-const videoTemplates = [
-  "https://assets.mixkit.co/videos/preview/mixkit-beautiful-woman-applying-skincare-cream-on-face-41584-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-man-exercising-with-battle-ropes-in-gym-23007-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-woman-whipping-green-tea-matcha-powder-with-whisk-43346-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-hands-of-makeup-artist-applying-eyeshadow-on-a-woman-40082-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-woman-dripping-oil-on-her-face-from-a-dropper-40915-large.mp4"
-];
-
-const thumbnails = [
-  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80",
-  "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-  "https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=400&q=80",
-  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&q=80",
-  "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=80",
-  "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&q=80"
-];
-
-const platforms = ["tiktok", "instagram", "facebook", "pinterest"];
-const regions = ["it", "fr", "eu", "us"];
-const ctas = ["Shop Now", "Get Offer", "Learn More", "Subscribe"];
-
-for (let i = 13; i <= 100; i++) {
-  const brandObj = brandTemplates[i % brandTemplates.length];
-  const creator = creatorTemplates[i % creatorTemplates.length];
-  const platform = platforms[i % platforms.length];
-  const region = regions[i % regions.length];
-  const cta = ctas[i % ctas.length];
-  const videoUrl = videoTemplates[i % videoTemplates.length];
-  const thumbnail = thumbnails[i % thumbnails.length];
-  
-  const langKey = region === "it" ? "it" : (region === "fr" ? "fr" : "en");
-  const titles = titleTemplates[langKey] || titleTemplates.en;
-  const titleText = titles[i % titles.length] + ` #${brandObj.brand.toLowerCase().replace(/\s/g, '')}`;
-  
-  const views = 45000 + (i * 14813) % 1200000;
-  const likes = Math.floor(views * 0.06);
-  const comments = Math.floor(likes * 0.03);
-  const shares = Math.floor(likes * 0.04);
-  const relevance = 25 + (i * 11) % 76;
-  
-  MOCK_ADS.push({
-    id: `spy_${i}`,
-    brand: brandObj.brand,
-    creator: creator,
-    platform: platform,
-    thumbnail: thumbnail,
-    videoUrl: videoUrl,
-    title: titleText,
-    niche: brandObj.niche,
-    region: region,
-    likes: likes,
-    comments: comments,
-    shares: shares,
-    views: views,
-    engagementRate: ((likes / views) * 100).toFixed(1) + "%",
-    cta: cta,
-    daysActive: 4 + (i * 3) % 40,
-    trend: [12, 22 + i % 8, 44 + i % 18, 66 + i % 28, 88 + i % 18],
-    relevance: relevance,
-    contact: brandObj.contact
-  });
-}
 
 export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCurrentTab, setRedirectShop, userTier = "free" }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -368,7 +8,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
   const [sortBy, setSortBy] = useState("relevance");
   const [hoveredAd, setHoveredAd] = useState(null);
   const [activeVideo, setActiveVideo] = useState(null);
-  const [creatives, setCreatives] = useState(MOCK_ADS);
+  const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState("overview"); // overview | transcript | suppliers
   const [adToast, setAdToast] = useState(null);
@@ -412,7 +52,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       all: "Tous",
       activeDays: (n) => `Actif depuis ${n} jours`,
       statsHeading: "Statistiques Clés",
-      realSearchTip: "💡 Mode Réel : Saisissez un mot-clé et cliquez sur Rechercher pour extraire de VRAIS créatifs en temps réel de TikTok/Instagram !",
+      realSearchTip: "💡 Mode Réel : Saisissez un mot-clé et cliquez sur Rechercher pour extraire de VRAIS créatifs en temps réel de TikTok/Instagram/Facebook/Google !",
       loadingText: "⚡ Extraction de vrais créatifs en temps réel...",
       emptyText: "Aucun créatif trouvé. Essayez une recherche en mode réel avec un autre mot-clé !"
     },
@@ -434,7 +74,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       all: "All",
       activeDays: (n) => `Active for ${n} days`,
       statsHeading: "Key Statistics",
-      realSearchTip: "💡 Live Search: Type any keyword and click Search to fetch REAL live creatives in real-time from TikTok/Instagram!",
+      realSearchTip: "💡 Live Search: Type any keyword and click Search to fetch REAL live creatives in real-time from TikTok/Instagram/Facebook/Google!",
       loadingText: "⚡ Extracting real creatives in real-time...",
       emptyText: "No creatives found. Try a live search with a different keyword!"
     },
@@ -456,7 +96,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
       all: "Tutti",
       activeDays: (n) => `Attivo da ${n} giorni`,
       statsHeading: "Statistiche Chiave",
-      realSearchTip: "💡 Ricerca Live: Inserisci una parola chiave e clicca su Cerca per estrarre VERE inserzioni in tempo reale da TikTok/Instagram!",
+      realSearchTip: "💡 Ricerca Live: Inserisci una parola chiave e clicca su Cerca per estrarre VERE inserzioni in tempo reale da TikTok/Instagram/Facebook/Google!",
       loadingText: "⚡ Estrazione di creatività reali in tempo reale...",
       emptyText: "Nessuna creatività trovata. Prova una ricerca live con un'altra parola chiave!"
     }
@@ -478,33 +118,41 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
     all: "Tous",
     activeDays: (n) => `Actif depuis ${n} jours`,
     statsHeading: "Statistiques Clés",
-    realSearchTip: "💡 Mode Réel : Saisissez un mot-clé et cliquez sur Rechercher pour extraire de VRAIS créatifs en temps réel de TikTok/Instagram !",
+    realSearchTip: "💡 Mode Réel : Saisissez un mot-clé et cliquez sur Rechercher pour extraire de VRAIS créatifs en temps réel de TikTok/Instagram/Facebook/Google !",
     loadingText: "⚡ Extraction de vrais créatifs en temps réel...",
     emptyText: "Aucun créatif trouvé."
   };
 
-  const handleSearch = async (e) => {
+  // `silent`: used for the auto-load on mount only. It skips the Apify Meta
+  // Ads Library fallback server-side (a paid, credit-metered call) so simply
+  // opening the tab never spends Apify credits — only an explicit search
+  // (or picking the Facebook filter) does, same as before this feature existed.
+  const handleSearch = async (e, { silent = false } = {}) => {
     if (e) e.preventDefault();
     setLoading(true);
     try {
       const response = await apiFetch(`${API_URL}/api/adspy/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchTerm, niche: selectedNiche, platform: selectedPlatform })
+        body: JSON.stringify({ query: searchTerm, niche: selectedNiche, platform: selectedPlatform, skipPaidFallback: silent })
       });
       const data = await response.json();
       if (data.creatives && data.creatives.length > 0) {
         setCreatives(data.creatives);
-      } else {
+      } else if (!silent) {
         showToast(uiLang === "fr" ? "Aucun créatif trouvé pour cette recherche." : "Nessuna creatività trovata per questa ricerca.", "warning");
       }
     } catch (err) {
       console.error(err);
-      showToast(uiLang === "fr" ? "Erreur de connexion au backend." : "Errore del server.", "error");
+      if (!silent) showToast(uiLang === "fr" ? "Erreur de connexion au backend." : "Errore del server.", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  // Auto-load real creatives once on mount so the tab never shows fake
+  // placeholder data — only genuinely fetched ads, from the moment it opens.
+  useEffect(() => { handleSearch(null, { silent: true }); }, []);
 
   const filteredAds = useMemo(() => {
     return creatives.filter(ad => {
@@ -578,6 +226,8 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
             <option value="all">{t.all}</option>
             <option value="tiktok">TikTok</option>
             <option value="instagram">Instagram</option>
+            <option value="facebook">Facebook</option>
+            <option value="google">Google</option>
           </select>
         </div>
 

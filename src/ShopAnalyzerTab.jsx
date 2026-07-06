@@ -1234,8 +1234,8 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
                   
       {/* Marketing Analysis Modal */}
       {analysisResult && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(5px)" }}>
-            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, width: 450, padding: 24, position: 'relative', boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(5px)", padding: 16, boxSizing: "border-box" }}>
+            <div style={{ background: c.card, border: `1px solid ${c.border}`, borderRadius: 16, width: 450, maxWidth: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, position: 'relative', boxShadow: "0 20px 50px rgba(0,0,0,0.5)" }}>
                 <button onClick={() => setAnalysisResult(null)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", color: c.textDim, fontSize: 20, cursor: "pointer" }}>&times;</button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B5CF6' }}>

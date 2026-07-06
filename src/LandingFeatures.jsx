@@ -37,8 +37,8 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
           {/* MATCHMAKING & SOURCING SECTIONS */}
           <section id="matchmaking" style={{ maxWidth: 1100, margin: '0 auto', padding: '120px 24px', display: 'flex', flexDirection: 'column', gap: 160, position: 'relative', zIndex: 10 }}>
             {/* Feature 1 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
-              <div style={{ flex: 1, maxWidth: 450 }}>
+            <div className="flex-col-mobile" style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between' }}>
+              <div className="text-center-mobile" style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
                   {uiLang === 'fr' ? <>L'IA qui <span style={{ color: '#8B5CF6' }}>Recrute vos Créateurs</span> à votre Place</> : uiLang === 'it' ? <>L'IA che <span style={{ color: '#8B5CF6' }}>Recluta Creatori</span> per Te</> : <>The AI that <span style={{ color: '#8B5CF6' }}>Recruits Creators</span> for You</>}
                 </h2>
@@ -105,8 +105,8 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
 
             {/* Feature 2 (Reversed) */}
             <div id="sourcing-crm" style={{ paddingTop: 80 }}></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
-              <div style={{ flex: 1, maxWidth: 450 }}>
+            <div className="flex-col-mobile" style={{ display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', flexDirection: 'row-reverse' }}>
+              <div className="text-center-mobile" style={{ flex: 1, maxWidth: 450 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, margin: '0 0 24px 0', letterSpacing: '-1px' }}>
                   {uiLang === 'fr' ? <>Votre <span style={{ color: '#8B5CF6' }}>Agence Marketing</span>, Intégrée au CRM</> : uiLang === 'it' ? <>La Tua <span style={{ color: '#8B5CF6' }}>Agenzia Marketing</span>, Integrata nel CRM</> : <>Your <span style={{ color: '#8B5CF6' }}>Marketing Agency</span>, Built into your CRM</>}
                 </h2>
@@ -193,8 +193,8 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
           
             {/* Feature 3 (Track Trends) */}
             <div id="shop-analyzer" style={{ paddingTop: 80 }}></div>
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80 }}>
-              <div style={{ flex: 1, maxWidth: 500 }}>
+            <div className="flex-col-mobile" style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 80, justifyContent: 'space-between', marginTop: 120, marginBottom: 80, boxSizing: 'border-box' }}>
+              <div className="text-center-mobile" style={{ flex: 1, maxWidth: 500 }}>
                 <h2 style={{ fontSize: 42, fontWeight: 800, color: L.text, marginBottom: 24, letterSpacing: '-1px', lineHeight: 1.2 }}>{uiLang === 'fr' ? "Espionnez les Marques qui Cartonnent — Avant Tout le Monde" : uiLang === 'it' ? "Spia i Brand che Spaccano — Prima di Tutti" : "Spy on Brands that Crush It — Before Anyone Else"}</h2>
                 <p style={{ fontSize: 18, color: L.textMuted, lineHeight: 1.6, marginBottom: 32 }}>
                   {uiLang === 'fr' ? "Engagement, vues, top campagnes, influenceurs utilisés : disséquez la stratégie exacte de n'importe quel concurrent et copiez ce qui encaisse de l'argent — au lieu de réinventer la roue à perte." : uiLang === 'it' ? "Coinvolgimento, visualizzazioni, campagne top: seziona l'esatta strategia dei concorrenti e copia ciò che porta soldi — invece di reinventare la ruota in perdita." : "Engagement, views, top campaigns, influencers used: dissect the exact strategy of any competitor and copy what prints money — instead of reinventing the wheel at a loss."}
@@ -237,9 +237,9 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
 
             {/* Huge Dashboard Mockup Below Feature 3 */}
             <div style={{ width: '100%', maxWidth: 1100, margin: '0 auto 160px auto', position: 'relative', zIndex: 5 }}>
-               <div style={{ 
-                  background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, 
-                  boxShadow: '0 30px 60px rgba(0,0,0,0.8), 0 0 60px rgba(139,92,246,0.15)', 
+               <div style={{
+                  background: 'linear-gradient(180deg, #18181B 0%, #09090B 100%)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24,
+                  boxShadow: '0 40px 100px rgba(0,0,0,0.85), 0 0 90px rgba(139,92,246,0.22), inset 0 1px 0 rgba(255,255,255,0.06)',
                   overflow: 'hidden'
                 }}>
                   {/* Fake Header */}
@@ -252,7 +252,9 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
                   {/* Fake Content Area */}
                   <div style={{ padding: 32 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 24 }}>
-                       <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg, #EC4899, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: '0 4px 15px rgba(236,72,153,0.3)' }}>✨</div>
+                       <div style={{ width: 48, height: 48, borderRadius: 12, background: '#000', border: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.4)' }}>
+                          <span style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-1px' }}>S</span>
+                       </div>
                        <div>
                           <div style={{ fontWeight: 800, color: '#fff', fontSize: 24 }}>Sephora France</div>
                           <div style={{ fontSize: 14, color: '#A1A1AA', display: 'flex', gap: 12 }}>
@@ -268,27 +270,41 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
                            <div style={{ color: '#A1A1AA', fontSize: 13, textTransform: 'uppercase', fontWeight: 700, letterSpacing: 1 }}>Trafic & Vues TikTok</div>
                            <div style={{ fontSize: 42, fontWeight: 800, color: '#fff' }}>14.2M</div>
                            <div style={{ color: '#10B981', fontSize: 14, fontWeight: 600 }}>+ 24% vs mois dernier</div>
-                           <div style={{ height: 100, marginTop: 'auto' }}>
-                             <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
-                               <path d="M0,40 L10,30 L20,35 L30,20 L40,25 L50,10 L60,15 L70,5 L80,10 L90,0 L100,20 L100,40 Z" fill="rgba(139,92,246,0.15)" />
-                               <polyline points="0,40 10,30 20,35 30,20 40,25 50,10 60,15 70,5 80,10 90,0 100,20" fill="none" stroke="#8B5CF6" strokeWidth="3" />
+                           <div style={{ height: 100, marginTop: 'auto', position: 'relative' }}>
+                             <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                               <defs>
+                                 <linearGradient id="sephoraChartFill" x1="0" y1="0" x2="0" y2="1">
+                                   <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.45" />
+                                   <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
+                                 </linearGradient>
+                                 <filter id="sephoraChartGlow" x="-50%" y="-50%" width="200%" height="200%">
+                                   <feGaussianBlur stdDeviation="2.2" result="blur" />
+                                   <feMerge>
+                                     <feMergeNode in="blur" />
+                                     <feMergeNode in="SourceGraphic" />
+                                   </feMerge>
+                                 </filter>
+                               </defs>
+                               <path d="M0,33 C8,31 12,28 18,27 C26,26 30,18 38,17 C46,16 50,9 58,8 C68,7 72,4 82,3 C88,2 92,3 96,2 L100,2 L100,40 L0,40 Z" fill="url(#sephoraChartFill)" />
+                               <path d="M0,33 C8,31 12,28 18,27 C26,26 30,18 38,17 C46,16 50,9 58,8 C68,7 72,4 82,3 C88,2 92,3 96,2 L100,2" fill="none" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" filter="url(#sephoraChartGlow)" />
+                               <circle cx="100" cy="2" r="3.2" fill="#fff" filter="url(#sephoraChartGlow)" />
                              </svg>
                            </div>
                        </div>
                     <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
                            <div style={{ color: '#A1A1AA', fontSize: 13, textTransform: 'uppercase', fontWeight: 700, letterSpacing: 1 }}>Top Créateurs Engagés</div>
                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                               <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                               <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', flexShrink: 0 }} />
                                <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>@lena.situations</div>
                                <div style={{ marginLeft: 'auto', fontSize: 13, color: '#10B981', fontWeight: 700, background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: 6 }}>+2.4M Vues</div>
                            </div>
                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                               <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                               <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', flexShrink: 0 }} />
                                <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>@squeezie</div>
                                <div style={{ marginLeft: 'auto', fontSize: 13, color: '#10B981', fontWeight: 700, background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: 6 }}>+1.8M Vues</div>
                            </div>
                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'rgba(0,0,0,0.3)', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                               <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=100&q=80" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                               <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=100&q=80" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(139,92,246,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', flexShrink: 0 }} />
                                <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>@marie.lopez</div>
                                <div style={{ marginLeft: 'auto', fontSize: 13, color: '#10B981', fontWeight: 700, background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: 6 }}>+950k Vues</div>
                            </div>

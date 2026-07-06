@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import DirectMessagePanel from "./DirectMessagePanel";
+import { supabase } from "./supabaseClient";
 
-// ─── Mock UGC video catalogue (interface only — purchase logic wired later) ───
-const VIDEOS = [
+// ─── Demo UGC videos shown alongside real creator uploads so the marketplace
+// never looks empty before creators start publishing (see "sellvideos" tab
+// in TalentAgencyTab.jsx for the real publish flow, backed by the
+// "marketplace_videos" Supabase table + "marketplace-videos" storage bucket).
+const DEMO_VIDEOS = [
   { id: "v1", username: "diariatou_sow", niche: "Beauté", src: "https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4", product: "Sérum Éclat Vitamine C", price: "34,90 €", likes: "12.4k", comments: "284" },
   { id: "v2", username: "skincare_goddess", niche: "Beauté", src: "https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4", product: "Crème Nuit Anti-Âge", price: "42,00 €", likes: "8.9k", comments: "156" },
   { id: "v3", username: "fashion_nova", niche: "Mode", src: "https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4", product: "Sac Cabas Cuir Végan", price: "59,90 €", likes: "21.1k", comments: "412" },
@@ -12,18 +16,139 @@ const VIDEOS = [
 ];
 
 const T = {
-  fr: { title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche." },
-  en: { title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search." },
-  it: { title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca." },
+  fr: {
+    title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche.",
+    browseTab: "Parcourir 🎬", sellTab: "Vendre ma Vidéo 🎥",
+    sellTitle: "🎥 Vendez vos Vidéos UGC aux Marques",
+    sellDesc: "Publiez le fichier brut de votre vidéo (jamais posté publiquement) et fixez votre prix. Les marques l'achètent pour l'utiliser dans leurs publicités — vous touchez le prix que vous avez fixé.",
+    videoProductLabel: "Produit mis en avant", videoPriceLabel: "Prix de vente (€)", videoNicheLabel: "Niche", videoFileLabel: "Fichier vidéo (MP4, max 50 Mo)",
+    publishVideoBtn: "Publier la vidéo", publishingVideo: "Publication en cours...",
+    myVideosTitle: "Mes vidéos publiées", noVideosYet: "Vous n'avez encore publié aucune vidéo.",
+    videoPublishedToast: "Vidéo publiée avec succès sur le Marketplace !", deleteVideoBtn: "Retirer",
+  },
+  en: {
+    title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.",
+    browseTab: "Browse 🎬", sellTab: "Sell my Video 🎥",
+    sellTitle: "🎥 Sell your UGC Videos to Brands",
+    sellDesc: "Upload the raw file of your video (never posted publicly) and set your price. Brands buy it to use in their ads — you keep the price you set.",
+    videoProductLabel: "Featured product", videoPriceLabel: "Sale price (€)", videoNicheLabel: "Niche", videoFileLabel: "Video file (MP4, max 50MB)",
+    publishVideoBtn: "Publish video", publishingVideo: "Publishing...",
+    myVideosTitle: "My published videos", noVideosYet: "You haven't published any video yet.",
+    videoPublishedToast: "Video successfully published to the Marketplace!", deleteVideoBtn: "Remove",
+  },
+  it: {
+    title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.",
+    browseTab: "Sfoglia 🎬", sellTab: "Vendi il mio Video 🎥",
+    sellTitle: "🎥 Vendi i tuoi Video UGC ai Brand",
+    sellDesc: "Carica il file grezzo del tuo video (mai pubblicato pubblicamente) e fissa il tuo prezzo. I brand lo acquistano per le loro pubblicità — tu incassi il prezzo che hai fissato.",
+    videoProductLabel: "Prodotto in evidenza", videoPriceLabel: "Prezzo di vendita (€)", videoNicheLabel: "Nicchia", videoFileLabel: "File video (MP4, max 50MB)",
+    publishVideoBtn: "Pubblica il video", publishingVideo: "Pubblicazione in corso...",
+    myVideosTitle: "I miei video pubblicati", noVideosYet: "Non hai ancora pubblicato nessun video.",
+    videoPublishedToast: "Video pubblicato con successo sul Marketplace!", deleteVideoBtn: "Rimuovi",
+  },
 };
 
-export default function VideoMarketplaceTab({ c, mono, uiLang }) {
+export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
   const [toast, setToast] = useState(null);
   const [dmVideo, setDmVideo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeNiche, setActiveNiche] = useState("all");
+  const [realVideos, setRealVideos] = useState([]);
+  const [viewMode, setViewMode] = useState("browse"); // browse | sell
+  const [myVideos, setMyVideos] = useState([]);
+  const [loadingMyVideos, setLoadingMyVideos] = useState(false);
+  const [newVideo, setNewVideo] = useState({ username: "", product: "", price: "", niche: "beauty" });
+  const [videoFile, setVideoFile] = useState(null);
+  const [isPublishingVideo, setIsPublishingVideo] = useState(false);
+  const [sellToast, setSellToast] = useState(null);
   const t = T[uiLang] || T.fr;
 
+  const showSellToast = (message, type = "success") => {
+    setSellToast({ message, type });
+    setTimeout(() => setSellToast(null), 4000);
+  };
+
+  const fetchMyVideos = async () => {
+    if (!supabase || !userId) return;
+    setLoadingMyVideos(true);
+    const { data, error } = await supabase
+      .from("marketplace_videos")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (!error) setMyVideos(data || []);
+    setLoadingMyVideos(false);
+  };
+
+  useEffect(() => {
+    if (viewMode === "sell") fetchMyVideos();
+  }, [viewMode, userId]);
+
+  // Real creator uploads (published via the "Vendre ma Vidéo" tab) shown first,
+  // demo videos fill out the feed underneath.
+  const fetchRealVideos = () => {
+    if (!supabase) return;
+    supabase
+      .from("marketplace_videos")
+      .select("*")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data) return;
+        setRealVideos(data.map(v => ({
+          id: v.id,
+          username: v.username,
+          niche: v.niche,
+          src: v.video_url,
+          product: v.product,
+          price: `${Number(v.price).toFixed(2)} €`,
+          likes: "—",
+          comments: "—",
+        })));
+      });
+  };
+
+  useEffect(() => { fetchRealVideos(); }, []);
+
+  const handlePublishVideo = async (e) => {
+    e.preventDefault();
+    if (!supabase || !userId || !videoFile || !newVideo.product || !newVideo.price) return;
+    setIsPublishingVideo(true);
+    try {
+      const cleanUsername = (newVideo.username || "créateur").replace("@", "").trim();
+      const path = `${userId}/${Date.now()}-${videoFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("marketplace-videos").upload(path, videoFile);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("marketplace-videos").getPublicUrl(path);
+      const { error: insertError } = await supabase.from("marketplace_videos").insert({
+        user_id: userId,
+        username: cleanUsername,
+        niche: newVideo.niche,
+        product: newVideo.product,
+        price: parseFloat(newVideo.price),
+        video_url: publicUrl,
+      });
+      if (insertError) throw insertError;
+      showSellToast(t.videoPublishedToast, "success");
+      setNewVideo({ username: cleanUsername, product: "", price: "", niche: newVideo.niche });
+      setVideoFile(null);
+      fetchMyVideos();
+      fetchRealVideos();
+    } catch (err) {
+      showSellToast(err.message || "Erreur lors de la publication.", "error");
+    } finally {
+      setIsPublishingVideo(false);
+    }
+  };
+
+  const handleDeleteVideo = async (video) => {
+    if (!supabase) return;
+    await supabase.from("marketplace_videos").delete().eq("id", video.id);
+    setMyVideos(prev => prev.filter(v => v.id !== video.id));
+    fetchRealVideos();
+  };
+
+  const VIDEOS = [...realVideos, ...DEMO_VIDEOS];
   const niches = ["all", ...new Set(VIDEOS.map(v => v.niche))];
   const filteredVideos = VIDEOS.filter(video => {
     const matchesNiche = activeNiche === "all" || video.niche === activeNiche;
@@ -73,6 +198,150 @@ export default function VideoMarketplaceTab({ c, mono, uiLang }) {
         <p className="video-feed-subtitle" style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>{t.subtitle}</p>
       </div>
 
+      {/* Browse / Sell toggle — creators sell where they (and brands) already browse */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+        {["browse", "sell"].map(mode => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            style={{
+              padding: "9px 20px", borderRadius: 30, border: `1.5px solid ${viewMode === mode ? "transparent" : c.border}`,
+              background: viewMode === mode ? "linear-gradient(135deg, #8B5CF6, #EC4899)" : "transparent",
+              color: viewMode === mode ? "#fff" : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s"
+            }}
+          >
+            {mode === "browse" ? t.browseTab : t.sellTab}
+          </button>
+        ))}
+      </div>
+
+      {viewMode === "sell" ? (
+        <div style={{ maxWidth: 640, margin: "0 auto", animation: "fadeIn 0.3s" }}>
+          <div style={{ background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 20, padding: 26, marginBottom: 24, position: "relative" }}>
+            {sellToast && (
+              <div style={{
+                position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", whiteSpace: "nowrap",
+                background: sellToast.type === "error" ? "#EF4444" : "#10B981", color: "#fff", padding: "8px 18px",
+                borderRadius: 20, fontSize: 12.5, fontWeight: 700, boxShadow: "0 8px 20px rgba(0,0,0,0.25)"
+              }}>
+                {sellToast.message}
+              </div>
+            )}
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: c.text, margin: "0 0 6px 0" }}>{t.sellTitle}</h3>
+              <p style={{ color: c.textMuted, fontSize: 13.5, margin: 0, lineHeight: 1.5 }}>{t.sellDesc}</p>
+            </div>
+
+            <form onSubmit={handlePublishVideo}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Handle Profil (Username)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ex: @diariatou__sow"
+                  value={newVideo.username}
+                  onChange={e => setNewVideo({ ...newVideo, username: e.target.value })}
+                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                />
+              </div>
+
+              <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+                <div>
+                  <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.videoProductLabel}</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="ex: Sérum Éclat Vitamine C"
+                    value={newVideo.product}
+                    onChange={e => setNewVideo({ ...newVideo, product: e.target.value })}
+                    style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.videoPriceLabel}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    placeholder="ex: 34.90"
+                    value={newVideo.price}
+                    onChange={e => setNewVideo({ ...newVideo, price: e.target.value })}
+                    style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.videoNicheLabel}</label>
+                <select
+                  value={newVideo.niche}
+                  onChange={e => setNewVideo({ ...newVideo, niche: e.target.value })}
+                  style={{ width: "100%", padding: "10.5px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13.5 }}
+                >
+                  <option value="beauty">Beauty / Skincare</option>
+                  <option value="food">Food / Nutrition</option>
+                  <option value="fitness">Fitness / Wellness</option>
+                  <option value="fashion">Fashion / Mode</option>
+                  <option value="lifestyle">Lifestyle</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.videoFileLabel}</label>
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm"
+                  required
+                  onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13 }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isPublishingVideo}
+                style={{
+                  width: "100%", padding: "14px", borderRadius: 10, border: "none",
+                  background: `linear-gradient(135deg, #8B5CF6, #EC4899)`, color: "#fff",
+                  fontWeight: 700, fontSize: 14, cursor: isPublishingVideo ? "not-allowed" : "pointer", fontFamily: mono,
+                  boxShadow: "0 4px 16px rgba(139,92,246,0.3)", opacity: isPublishingVideo ? 0.7 : 1
+                }}
+              >
+                {isPublishingVideo ? t.publishingVideo : t.publishVideoBtn}
+              </button>
+            </form>
+          </div>
+
+          <div style={{ background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 20, padding: 26 }}>
+            <h4 style={{ fontSize: 15, fontWeight: 800, color: c.text, margin: "0 0 16px 0" }}>{t.myVideosTitle}</h4>
+            {loadingMyVideos ? (
+              <p style={{ color: c.textDim, fontSize: 13 }}>...</p>
+            ) : myVideos.length === 0 ? (
+              <p style={{ color: c.textDim, fontSize: 13 }}>{t.noVideosYet}</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {myVideos.map(video => (
+                  <div key={video.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: c.bg, borderRadius: 10, border: `1px solid ${c.border}` }}>
+                    <video src={video.video_url} muted style={{ width: 48, height: 64, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{video.product}</div>
+                      <div style={{ fontSize: 11.5, color: c.textDim }}>{video.niche} · {Number(video.price).toFixed(2)} €</div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteVideo(video)}
+                      style={{ padding: "6px 12px", borderRadius: 8, border: `1px solid ${c.error}55`, background: "transparent", color: c.error, fontSize: 11.5, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+                    >
+                      {t.deleteVideoBtn}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Search & niche filters — lets brands find specific creator UGC by keyword */}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 20 }}>
         <div style={{ position: "relative", width: "100%", maxWidth: 420 }}>
@@ -175,6 +444,8 @@ export default function VideoMarketplaceTab({ c, mono, uiLang }) {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {dmVideo && <DirectMessagePanel video={dmVideo} uiLang={uiLang} onClose={() => setDmVideo(null)} />}
 

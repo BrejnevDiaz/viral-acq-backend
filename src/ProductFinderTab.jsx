@@ -288,7 +288,7 @@ for (let i = 13; i <= 100; i++) {
   });
 }
 
-export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLang, userTier = "free" }) {
+export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLang, userTier = "free", openUpgradeModal }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [selectedSource, setSelectedSource] = useState("all");
@@ -747,9 +747,19 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
                 </div>
 
                 {userTier === "free" || userTier === "standard" ? (
-                  <div style={{ display: "block", background: "rgba(224, 92, 43, 0.05)", border: "1.5px dashed rgba(224, 92, 43, 0.4)", color: "#e05c2b", padding: 12, borderRadius: 10, textAlign: "center", fontSize: 12, fontWeight: 700, fontFamily: mono }}>
+                  <button
+                    onClick={() => openUpgradeModal?.({
+                      tab: "productfinder",
+                      title: uiLang === "fr" ? "🔒 Fournisseur Réservé aux VIP" : uiLang === "it" ? "🔒 Fornitore Riservato ai VIP" : "🔒 Supplier Reserved for VIP",
+                      reason: uiLang === "fr"
+                        ? "L'accès direct au fournisseur (lien fiable, testé et négocié) est réservé aux forfaits VIP Pro et VIP Elite. Passez au niveau supérieur pour débloquer cette fiche produit."
+                        : uiLang === "it" ? "L'accesso diretto al fornitore è riservato ai piani VIP Pro ed Elite. Passa a un piano superiore per sbloccare questa scheda prodotto."
+                        : "Direct supplier access (vetted, negotiated link) is reserved for VIP Pro and VIP Elite plans. Upgrade to unlock this product sheet."
+                    })}
+                    style={{ display: "block", width: "100%", background: "rgba(224, 92, 43, 0.05)", border: "1.5px dashed rgba(224, 92, 43, 0.4)", color: "#e05c2b", padding: 12, borderRadius: 10, textAlign: "center", fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer" }}
+                  >
                     🔒 {uiLang === "fr" ? "Débloquer Fournisseur avec VIP" : "Unlock Supplier with VIP"}
-                  </div>
+                  </button>
                 ) : (
                   <a href={activeProduct.supplierUrl} target="_blank" rel="noreferrer" style={{ display: "block", textDecoration: "none", background: "#e05c2b1a", border: "1.5px solid #e05c2b", color: "#e05c2b", padding: 12, borderRadius: 10, textAlign: "center", fontSize: 12.5, fontWeight: 700, fontFamily: mono, transition: "filter 0.2s" }} onMouseOver={e=>e.currentTarget.style.filter="brightness(1.1)"} onMouseOut={e=>e.currentTarget.style.filter="none"}>
                     {t.supplierLbl}

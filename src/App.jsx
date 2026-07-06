@@ -155,14 +155,15 @@ export default function ProspectionAgent() {
     isLoggedIn, userId, userEmail,
     authMode, setAuthMode, 
     showLoginModal, setShowLoginModal,
-    emailInput, setEmailInput, 
+    emailInput, setEmailInput,
     passInput, setPassInput,
-    handleAuth, authLoading, authError 
+    handleAuth, authLoading, authError,
+    signInWithGoogle
   } = useAuth();
   const { userRole, userTier, showUpgradeModal, upgradeModalData,
           isUpgradingSim, upgradeSimSuccess, openUpgradeModal,
           closeUpgradeModal, upgradeTier, checkAnalysisAllowance,
-          requestTabAccess } = useRole();
+          requestTabAccess, signupRole, setSignupRole } = useRole();
 
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -304,7 +305,8 @@ export default function ProspectionAgent() {
           openAuthWithIntent={openAuthWithIntent}
           emailInput={emailInput} setEmailInput={setEmailInput}
           passInput={passInput} setPassInput={setPassInput}
-          handleAuth={handleAuth}
+          signupRole={signupRole} setSignupRole={setSignupRole}
+          handleAuth={handleAuth} signInWithGoogle={signInWithGoogle}
           authLoading={authLoading} authError={authError}
           showContactModal={showContactModal} setShowContactModal={setShowContactModal}
           contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
@@ -328,7 +330,8 @@ export default function ProspectionAgent() {
           openAuthWithIntent={openAuthWithIntent}
           emailInput={emailInput} setEmailInput={setEmailInput}
           passInput={passInput} setPassInput={setPassInput}
-          handleAuth={handleAuth}
+          signupRole={signupRole} setSignupRole={setSignupRole}
+          handleAuth={handleAuth} signInWithGoogle={signInWithGoogle}
           authLoading={authLoading} authError={authError}
           showContactModal={showContactModal} setShowContactModal={setShowContactModal}
           contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
@@ -350,7 +353,8 @@ export default function ProspectionAgent() {
           openAuthWithIntent={openAuthWithIntent}
           emailInput={emailInput} setEmailInput={setEmailInput}
           passInput={passInput} setPassInput={setPassInput}
-          handleAuth={handleAuth}
+          signupRole={signupRole} setSignupRole={setSignupRole}
+          handleAuth={handleAuth} signInWithGoogle={signInWithGoogle}
           authLoading={authLoading} authError={authError}
           showContactModal={showContactModal} setShowContactModal={setShowContactModal}
           contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus}
@@ -393,7 +397,7 @@ export default function ProspectionAgent() {
         ) : currentTab === "adspy" ? (
           <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} />
         ) : currentTab === "productfinder" ? (
-          <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} />
+          <ProductFinderTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} userTier={userTier} openUpgradeModal={openUpgradeModal} />
         ) : currentTab === "acquisition" ? (
           <SourcingCRMTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} results={results} setResults={setResults} stats={stats} backendOk={backendOk} setEmailsSent={setEmailsSent} />
         ) : currentTab === "vetting" ? (
@@ -409,7 +413,7 @@ export default function ProspectionAgent() {
         ) : currentTab === "resources" ? (
           <ResourcesTab c={c} mono={mono} uiLang={uiLang} />
         ) : currentTab === "videomarketplace" ? (
-          <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} />
+          <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} userId={userId} />
         ) : (
           <MatchmakingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         )}
@@ -473,7 +477,7 @@ export default function ProspectionAgent() {
               <p style={{ fontSize: 13.5, color: c.textMuted, margin: 0, lineHeight: 1.5 }}>{upgradeModalData.reason}</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
+            <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
 
               {/* Plus card option */}
               <div style={{

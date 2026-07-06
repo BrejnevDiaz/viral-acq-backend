@@ -85,6 +85,20 @@ export function AuthProvider({ children }) {
 
   const signOut = () => supabase.auth.signOut();
 
+  // Redirects to Google, then back to the current page — onAuthStateChange
+  // picks up the resulting session the same way it does for password auth.
+  const signInWithGoogle = async (uiLang = "fr") => {
+    setAuthError("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) {
+      setAuthError(uiLang === "fr" ? "Connexion Google impossible. Réessayez." : uiLang === "it" ? "Accesso con Google non riuscito. Riprova." : "Google sign-in failed. Please try again.");
+      console.error("Google auth error:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       isLoggedIn, userId, userEmail,
@@ -93,7 +107,7 @@ export function AuthProvider({ children }) {
       passInput, setPassInput,
       authError, authLoading,
       showLoginModal, setShowLoginModal,
-      handleAuth, signOut,
+      handleAuth, signOut, signInWithGoogle,
     }}>
       {children}
     </AuthContext.Provider>

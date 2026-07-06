@@ -1,6 +1,6 @@
 import { L } from "./landingTheme";
 
-export default function LandingCreators({ setAuthMode, setShowLoginModal, uiLang }) {
+export default function LandingCreators({ setAuthMode, setShowLoginModal, setSignupRole, uiLang }) {
   return (
     <>
           {/* SECTION CRÉATEURS / INFLUENCEURS */}
@@ -48,7 +48,7 @@ export default function LandingCreators({ setAuthMode, setShowLoginModal, uiLang
                           </div>
                       </div>
                       
-                      <button onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }} className="hover-lift" style={{ background: '#10B981', color: '#000', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 30px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
+                      <button onClick={() => { setSignupRole?.('creator'); setAuthMode('signup'); setShowLoginModal(true); }} className="hover-lift" style={{ background: '#10B981', color: '#000', border: 'none', padding: '16px 32px', borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 10px 30px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: 12, margin: '0 auto' }}>
                           {uiLang === 'fr' ? 'Rejoindre le Réseau — 100% Gratuit' : uiLang === 'it' ? 'Unisciti alla Rete — 100% Gratis' : 'Join the Network — 100% Free'}
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                       </button>

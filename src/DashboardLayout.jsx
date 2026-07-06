@@ -70,6 +70,7 @@ export default function DashboardLayout({
           }
           .sidebar-mobile-backdrop { display: block !important; }
           .mobile-nav-bar { display: flex !important; }
+          .desktop-topbar { display: none !important; }
           .main-content { padding: 16px !important; }
         }
         @media (min-width: 769px) {

@@ -18,7 +18,8 @@ export default function BlogPage({
   openAuthWithIntent,
   emailInput, setEmailInput,
   passInput, setPassInput,
-  handleAuth,
+  signupRole, setSignupRole,
+  handleAuth, signInWithGoogle,
   authLoading, authError,
   showContactModal, setShowContactModal,
   contactFormStatus, setContactFormStatus,
@@ -82,7 +83,7 @@ export default function BlogPage({
       />
 
       <ContactModal uiLang={uiLang} showContactModal={showContactModal} setShowContactModal={setShowContactModal} contactFormStatus={contactFormStatus} setContactFormStatus={setContactFormStatus} />
-      <AuthModal uiLang={uiLang} showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal} authMode={authMode} setAuthMode={setAuthMode} emailInput={emailInput} setEmailInput={setEmailInput} passInput={passInput} setPassInput={setPassInput} handleAuth={handleAuth} authLoading={authLoading} authError={authError} />
+      <AuthModal uiLang={uiLang} showLoginModal={showLoginModal} setShowLoginModal={setShowLoginModal} authMode={authMode} setAuthMode={setAuthMode} emailInput={emailInput} setEmailInput={setEmailInput} passInput={passInput} setPassInput={setPassInput} signupRole={signupRole} setSignupRole={setSignupRole} handleAuth={handleAuth} signInWithGoogle={signInWithGoogle} authLoading={authLoading} authError={authError} />
     </div>
   );
 }

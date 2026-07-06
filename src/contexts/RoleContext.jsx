@@ -57,8 +57,19 @@ export function RoleProvider({ children }) {
           .eq("id", userId)
           .single();
         if (profile) {
-          setUserRole(profile.role);
-          setUserTier(profile.role === "admin" ? "admin" : profile.plan);
+          // Signup role choice (brand/creator toggle in AuthModal) is stashed
+          // in localStorage rather than written inline at signup, so it applies
+          // the same way whether the user just signed up with email/password
+          // or came back from the Google OAuth redirect.
+          const pendingRole = localStorage.getItem("va_pending_role");
+          let role = profile.role;
+          if (pendingRole && pendingRole !== profile.role && profile.role !== "admin") {
+            const { error } = await supabase.from("profiles").update({ role: pendingRole }).eq("id", userId);
+            if (!error) role = pendingRole;
+          }
+          localStorage.removeItem("va_pending_role");
+          setUserRole(role);
+          setUserTier(role === "admin" ? "admin" : profile.plan);
           const today = new Date().toISOString().split("T")[0];
           const { data: usage } = await supabase
             .from("shop_analysis_usage")

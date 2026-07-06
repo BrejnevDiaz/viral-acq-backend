@@ -8,11 +8,17 @@
 CREATE TABLE IF NOT EXISTS public.profiles (
   id         UUID        PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
   email      TEXT        NOT NULL,
-  role       TEXT        NOT NULL DEFAULT 'user'     CHECK (role IN ('user', 'admin')),
+  role       TEXT        NOT NULL DEFAULT 'user'     CHECK (role IN ('user', 'creator', 'admin')),
   plan       TEXT        NOT NULL DEFAULT 'free'     CHECK (plan IN ('free', 'standard', 'pro', 'elite')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Existing databases: widen the constraint to allow 'creator' (App.jsx already
+-- gates the dashboard on role === 'creator', but signup never wrote that value
+-- until now — this was a wired-but-unreachable feature).
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'creator', 'admin'));
 
 -- Auto-create profile row on every new signup.
 -- brejnevdiaz@gmail.com est automatiquement promu admin + elite.
@@ -93,6 +99,40 @@ ALTER TABLE public.api_cache ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "service_role_only" ON public.api_cache
   USING (auth.role() = 'service_role');
+
+-- ─── Marketplace Videos (UGC vendu par les créateurs) ─────────────────────────
+-- Le fichier vidéo brut vit dans le bucket Storage "marketplace-videos"
+-- (créé via script, public en lecture) ; cette table stocke ses métadonnées.
+CREATE TABLE IF NOT EXISTS public.marketplace_videos (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  username    TEXT        NOT NULL,
+  niche       TEXT        NOT NULL DEFAULT 'lifestyle',
+  product     TEXT        NOT NULL,
+  price       NUMERIC(10,2) NOT NULL CHECK (price >= 0),
+  video_url   TEXT        NOT NULL,
+  status      TEXT        NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'hidden')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.marketplace_videos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "marketplace_videos_read_all"   ON public.marketplace_videos FOR SELECT USING (status = 'active');
+CREATE POLICY "marketplace_videos_insert_own" ON public.marketplace_videos FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "marketplace_videos_update_own" ON public.marketplace_videos FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "marketplace_videos_delete_own" ON public.marketplace_videos FOR DELETE USING (auth.uid() = user_id);
+
+-- Policies RLS sur le bucket Storage lui-même (distinctes de celles de la table
+-- ci-dessus) : sans elles, l'upload échoue avec "new row violates row-level
+-- security policy" même si la table marketplace_videos est correctement configurée.
+-- Le chemin uploadé est "<user_id>/<timestamp>-<filename>", d'où le test sur
+-- le 1er segment du chemin pour restreindre chacun à son propre dossier.
+CREATE POLICY "marketplace_videos_storage_read_all" ON storage.objects FOR SELECT
+  USING (bucket_id = 'marketplace-videos');
+CREATE POLICY "marketplace_videos_storage_insert_own" ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'marketplace-videos' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "marketplace_videos_storage_delete_own" ON storage.objects FOR DELETE
+  USING (bucket_id = 'marketplace-videos' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ─── Admin assignment (run after brejnevdiaz@gmail.com has signed up) ─────────
 -- UPDATE public.profiles SET role = 'admin' WHERE email = 'brejnevdiaz@gmail.com';

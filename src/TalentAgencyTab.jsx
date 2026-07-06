@@ -1027,7 +1027,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                 </p>
 
                 {/* Criteria parameters */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, fontSize: 11.5 }}>
+                <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, fontSize: 11.5 }}>
                   <div>
                     <span style={{ color: c.textDim, display: "block", fontSize: 9.5, fontFamily: mono, textTransform: "uppercase" }}>{t.niche}</span>
                     <span style={{ color: c.accent, fontWeight: 700, textTransform: "uppercase" }}>{g.niche}</span>
@@ -1073,7 +1073,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
           </div>
 
           <form onSubmit={handleRegister}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div>
                 <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Handle Profil (Username)</label>
                 <input
@@ -1128,7 +1128,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
               <div>
                 <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Niche Principale</label>
                 <select
@@ -1156,7 +1156,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+            <div className="grid-1-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
               <div>
                 <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>Taux d'Engagement (%)</label>
                 <input

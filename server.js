@@ -133,7 +133,7 @@ app.post("/api/google-search", ...requireBrand, async (req, res) => {
 // → Apify facebook-ads-library-scraper en fallback si peu de résultats.
 // Cache Supabase 6 heures.
 app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
-  const { query = "", niche = "all", platform = "all" } = req.body;
+  const { query = "", niche = "all", platform = "all", skipPaidFallback = false } = req.body;
   const tavilyKey  = process.env.TAVILY_API_KEY;
   const apifyToken = process.env.APIFY_API_TOKEN;
 
@@ -209,8 +209,41 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
       }
     }
 
-    // ── Apify Meta Ads Library (fallback si peu de résultats) ────────────
-    if (apifyToken && raw.length < 5 && (platform === "all" || platform === "facebook" || platform === "instagram")) {
+    // ── Google : Tavily → Google Ads Transparency Center (pas d'oEmbed,
+    // vignette générique par niche comme pour Instagram). Ce site n'est
+    // indexé par Tavily que pour des noms de marque précis (pas de mots-clés
+    // génériques type "skincare"), et seulement en search_depth "advanced"
+    // (basic ne renvoie quasi rien) — qui coûte davantage de crédits Tavily.
+    // Comme pour le fallback Apify, on le saute donc au chargement silencieux
+    // pour ne jamais consommer de quota juste en ouvrant l'onglet.
+    if (!skipPaidFallback && (platform === "google" || platform === "all")) {
+      const q = `site:adstransparency.google.com "${cleanQuery}"`;
+      const r = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tavilyKey}` },
+        body: JSON.stringify({ query: q, max_results: 6, search_depth: "advanced" }),
+      });
+      const data = await r.json();
+      const nicheThumb = { beauty: "photo-1522335789203-aabd1fc54bc9", food: "photo-1506126613408-eca07ce68773", fitness: "photo-1517838277536-f5f99be501cd" };
+      const thumbKey = niche === "all" ? "beauty" : niche;
+      for (const item of data.results || []) {
+        const advMatch = item.url.match(/advertiser\/(AR[A-Za-z0-9]+)/);
+        if (!advMatch) continue;
+        // The advertiser name lives in `content` (e.g. "Nike, Inc. The information..."),
+        // not `title` — Tavily's title for every result here is the generic
+        // page heading "Ad Details - Google Ads Transparency Center".
+        const advertiser = item.content?.split(/[.\n]/)[0]?.trim() || cleanQuery;
+        raw.push({ url: item.url, platform: "google", creator: `@${advertiser.toLowerCase().replace(/[^a-z0-9]+/g, "")}`, embedUrl: null,
+          thumbnail: `https://images.unsplash.com/${nicheThumb[thumbKey] || "photo-1611162617474-5b21e879e113"}?w=400&q=80`,
+          title: advertiser.slice(0, 110), niche: niche === "all" ? "beauty" : niche });
+      }
+    }
+
+    // ── Apify Meta Ads Library (fallback si peu de résultats) — jamais
+    // déclenché en silencieux (auto-load) : c'est le seul appel payant
+    // (crédits Apify) de cette route, il ne doit se lancer que sur une
+    // recherche explicite de l'utilisateur. ─────────────────────────────
+    if (!skipPaidFallback && apifyToken && raw.length < 5 && (platform === "all" || platform === "facebook" || platform === "instagram")) {
       try {
         const apify = new ApifyClient({ token: apifyToken });
         const run = await apify.actor("apify/facebook-ads-library-scraper").call({
@@ -227,7 +260,7 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
           const daysActive = ad.start_date ? Math.round((Date.now() - new Date(ad.start_date * 1000)) / 86400000) : 14;
           raw.push({
             url:      ad.ad_archive_id ? `https://www.facebook.com/ads/library/?id=${ad.ad_archive_id}` : "https://www.facebook.com/ads/library/",
-            platform: "instagram",
+            platform: "facebook",
             creator:  `@${(ad.page_name || "brand").toLowerCase().replace(/\s+/g, "")}`,
             embedUrl: null,
             thumbnail: imageUrl || `https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80`,

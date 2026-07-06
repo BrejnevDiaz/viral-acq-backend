@@ -1,10 +1,10 @@
 import { L } from "./landingTheme";
 
-export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) {
+export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal, setSignupRole }) {
   return (
     <>
           {/* Hero Section */}
-          <main style={{ position: 'relative', zIndex: 10, paddingTop: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: 100 }}>
+          <main className="hero-container-mobile" style={{ position: 'relative', zIndex: 10, paddingTop: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', paddingBottom: 100, paddingLeft: 20, paddingRight: 20, boxSizing: 'border-box' }}>
             <h1 style={{
               fontSize: 'clamp(48px, 6vw, 76px)', fontWeight: 800, lineHeight: 1.05, letterSpacing: '-2px',
               maxWidth: 900, margin: '0 0 24px 0', animation: 'fadeInUp 0.7s ease-out'
@@ -23,10 +23,10 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
               {uiLang === 'fr' ? "La plateforme d'élite réservée aux marques qui refusent la médiocrité. Espionnez les publicités de vos concurrents, recrutez les meilleurs créateurs UGC, et transformez chaque euro en croissance explosive — avant qu'il ne soit trop tard." : uiLang === 'it' ? "La piattaforma d'élite riservata ai brand che rifiutano la mediocrità. Spia le pubblicità dei tuoi concorrenti, recluta i migliori creatori UGC e trasforma ogni euro in una crescita esplosiva — prima che sia troppo tardi." : "The elite platform built for brands that refuse to settle for average. Spy on your competitors' winning ads, recruit the best UGC creators, and turn every dollar spent into explosive growth — before it's too late."}
             </p>
 
-            <div style={{ display: 'flex', gap: 16, animation: 'fadeInUp 0.7s ease-out 0.2s both' }}>
+            <div className="text-center-mobile" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16, animation: 'fadeInUp 0.7s ease-out 0.2s both', padding: '0 16px' }}>
 
-                <button 
-                  onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
+                <button
+                  onClick={() => { setSignupRole?.('brand'); setAuthMode('signup'); setShowLoginModal(true); }}
                   style={{
                     background: 'linear-gradient(90deg, #8B5CF6, #7C3AED)',
                     color: '#fff', border: 'none', padding: '16px 32px', borderRadius: 12,
@@ -40,7 +40,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal }) 
                   {uiLang === 'fr' ? 'Je suis une Marque — Scaler Maintenant →' : uiLang === 'it' ? 'Sono un Brand — Scala Ora →' : 'I am a Brand — Scale Now →'}
                 </button>
                 <button
-                  onClick={() => { setAuthMode('signup'); setShowLoginModal(true); }}
+                  onClick={() => { setSignupRole?.('creator'); setAuthMode('signup'); setShowLoginModal(true); }}
                   style={{
                     background: L.surface, border: `1px solid ${L.borderStrong}`,
                     color: L.text, padding: '16px 32px', borderRadius: 12,

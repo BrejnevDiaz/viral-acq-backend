@@ -20,7 +20,7 @@ export default function DesktopTopbar({
   resultsCount, statsTotal, emailsSent, t, uiLang,
 }) {
   return (
-    <div style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 80 }}>
+    <div className="desktop-topbar" style={{ background: c.surface, borderBottom: `1px solid ${c.border}`, padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, position: "sticky", top: 0, zIndex: 80 }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <h2 className="outfit" style={{ fontSize: 18, fontWeight: 800, margin: 0, color: c.text, display: "flex", alignItems: "center" }}>
           {(() => {

@@ -547,7 +547,7 @@ export default function SourcingCRMTab({
               <div key={idx} style={{ background: c.card, border: `1px solid ${isOpen ? c.borderActive : c.border}`, borderRadius: 13, padding: "16px 18px", transition: "border-color 0.2s, background 0.3s" }}>
 
                 {/* Brand info */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "nowrap" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
 
                   {/* Real Brand/Creator Logo (Minea-like Clearbit enrichment) */}
                   {(() => {
