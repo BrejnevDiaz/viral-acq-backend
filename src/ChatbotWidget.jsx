@@ -39,32 +39,35 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
     setMessages(prev => [...prev, { role: "user", text }]);
     setInputValue("");
 
-    // Non-Elite users asking advanced e-com strategy questions get a deterministic
-    // upsell instead of a real (or simulated) answer — no API call needed for this gate.
-    if (!isElite && isAdvancedEcomQuestion(text)) {
-      setIsTyping(true);
-      setTimeout(() => {
-        setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
-        setIsTyping(false);
-      }, 700);
-      return;
-    }
-
     setIsTyping(true);
     try {
-      const res = await apiFetch(`${API_URL}/api/chatbot`, {
+      // Gideon RAG : le serveur détermine le tier de savoir depuis le JWT
+      // (profiles.plan/role) — créateurs Standard = viralité/UGC, VIP Pro =
+      // marketing, VIP Elite = tout. Free reçoit restricted:true → upsell.
+      const res = await apiFetch(`${API_URL}/api/gideon`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildChatRequestPayload(text, history, uiLang)),
+        body: JSON.stringify({
+          question: text,
+          conversationHistory: history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
+        }),
       });
-      if (!res.ok) throw new Error("Chatbot API not ready yet");
+      if (!res.ok) throw new Error("Gideon API not ready yet");
       const data = await res.json();
-      setMessages(prev => [...prev, { role: "bot", text: data.reply }]);
+      if (data.restricted) {
+        setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
+      } else {
+        setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
+      }
     } catch {
-      // Backend not configured yet (missing OPENAI_API_KEY) — fall back to the
-      // local simulation so the widget still feels useful in the meantime.
-      const reply = getBotResponse(text, uiLang);
-      setMessages(prev => [...prev, { role: "bot", text: reply }]);
+      // Backend indisponible ou non configuré — repli sur la simulation locale
+      // (avec le gate upsell historique) pour que le widget reste utile.
+      if (!isElite && isAdvancedEcomQuestion(text)) {
+        setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
+      } else {
+        const reply = getBotResponse(text, uiLang);
+        setMessages(prev => [...prev, { role: "bot", text: reply }]);
+      }
     } finally {
       setIsTyping(false);
     }
@@ -120,6 +123,11 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
                 }}>
                   {m.text}
                 </div>
+                {m.sources && m.sources.length > 0 && (
+                  <div style={{ marginTop: 4, fontSize: 10.5, color: "#71717A", maxWidth: "80%" }}>
+                    📚 {uiLang === "fr" ? "Basé sur" : uiLang === "it" ? "Basato su" : "Based on"} : {[...new Set(m.sources.map(s => s.file))].slice(0, 2).join(", ")}
+                  </div>
+                )}
                 {m.isUpsell && (
                   <button onClick={onUpgradeClick} className="hover-lift" style={{
                     marginTop: 8, padding: "8px 16px", borderRadius: 8, border: "none",

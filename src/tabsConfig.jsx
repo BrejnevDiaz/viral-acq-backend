@@ -2,7 +2,7 @@
 import {
   AdSpyIcon, ProductFinderIcon, ShopAnalyzerIcon, SourcingCRMIcon, VettingIAIcon,
   MatchmakingIcon, BriefcaseIcon, BrandPortalIcon, ContractGeneratorIcon, ResourcesIcon,
-  VideoMarketplaceIcon,
+  VideoMarketplaceIcon, TrophyIcon, BrainIcon,
 } from "./dashboardIcons";
 
 // ─── Single source of truth for the dashboard nav tabs ───────────────────────
@@ -19,6 +19,9 @@ export const TABS = [
   { id: "shopanalyzer",      group: "research", Icon: ShopAnalyzerIcon,
     label: { fr: "Shop Analyzer", en: "Shop Analyzer", it: "Shop Analyzer" },
     shortLabel: { fr: "Shop Analyzer", en: "Shop Analyzer", it: "Shop Analyzer" } },
+  { id: "creatorscore",      group: "tools",    Icon: TrophyIcon,
+    label: { fr: "Creator Score", en: "Creator Score", it: "Creator Score" },
+    shortLabel: { fr: "Score", en: "Score", it: "Score" } },
   { id: "acquisition",       group: "tools",    Icon: SourcingCRMIcon,
     label: { fr: "Sourcing CRM", en: "Sourcing CRM", it: "Sourcing CRM" },
     shortLabel: { fr: "Sourcing", en: "Sourcing", it: "Sourcing" } },
@@ -43,6 +46,10 @@ export const TABS = [
   { id: "resources",         group: "tools",    Icon: ResourcesIcon,
     label: { fr: "Ressources & FAQ", en: "Resources & FAQ", it: "Risorse & FAQ" },
     shortLabel: { fr: "Resources", en: "Resources", it: "Risorse" } },
+  // adminOnly : filtré dans Sidebar + rendu gated dans App.jsx (role admin).
+  { id: "knowledge",          group: "tools",    Icon: BrainIcon, adminOnly: true,
+    label: { fr: "Connaissances IA", en: "AI Knowledge", it: "Conoscenze IA" },
+    shortLabel: { fr: "Savoir IA", en: "AI Knowledge", it: "Sapere IA" } },
 ];
 
 export default TABS;

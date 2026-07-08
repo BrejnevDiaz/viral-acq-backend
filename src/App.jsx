@@ -12,6 +12,10 @@ import ContractGeneratorTab from "./ContractGeneratorTab";
 import ResourcesTab from "./ResourcesTab";
 import AccountSettings from "./AccountSettings";
 import VideoMarketplaceTab from "./VideoMarketplaceTab";
+import CreatorScoreTab from "./CreatorScoreTab";
+import KnowledgeAdminTab from "./KnowledgeAdminTab";
+import PaywallModal from "./PaywallModal";
+import OfferBanner from "./OfferBanner";
 import ChatbotWidget from "./ChatbotWidget";
 import LandingPage from "./LandingPage";
 import FooterInfoPage from "./FooterInfoPage";
@@ -152,9 +156,9 @@ export default function ProspectionAgent() {
   const [backendOk, setBackendOk]       = useState(null);
   const [emailsSent, setEmailsSent]     = useState(0);
 
-  const { 
+  const {
     isLoggedIn, userId, userEmail,
-    authMode, setAuthMode, 
+    authMode, setAuthMode,
     showLoginModal, setShowLoginModal,
     emailInput, setEmailInput,
     passInput, setPassInput,
@@ -209,7 +213,7 @@ export default function ProspectionAgent() {
         st.byNiche[r.niche] = (st.byNiche[r.niche] || 0) + 1;
       });
       setStats(st);
-      
+
       // Enregistrer sur le backend
       apiFetch(`${API_URL}/api/leads`, {
         method: "POST",
@@ -386,15 +390,15 @@ export default function ProspectionAgent() {
         })}
       >
 
-        
-        {userRole === 'creator' && currentTab !== 'talentagency' && currentTab !== 'resources' && currentTab !== 'videomarketplace' ? (
+        <OfferBanner c={c} mono={mono} uiLang={uiLang} />
+        {userRole === 'creator' && currentTab !== 'talentagency' && currentTab !== 'resources' && currentTab !== 'videomarketplace' && currentTab !== 'creatorscore' ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#09090b', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', padding: 40 }}>
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             </div>
             <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{uiLang === 'fr' ? 'Espace réservé aux Marques' : uiLang === 'it' ? 'Area riservata ai Brand' : 'Brand Only Area'}</h2>
             <p style={{ color: '#A1A1AA', fontSize: 15, maxWidth: 400, lineHeight: 1.6, marginBottom: 32 }}>
-              {uiLang === 'fr' 
+              {uiLang === 'fr'
                 ? "En tant que Créateur UGC, cette section de recherche et d'espionnage ne vous est pas accessible. Votre espace de gestion des missions se trouve dans l'onglet Talents & Gigs."
                 : "As a UGC Creator, this research and spy section is locked. Your mission management workspace is in the Talents & Gigs tab."}
             </p>
@@ -402,6 +406,10 @@ export default function ProspectionAgent() {
               {uiLang === 'fr' ? 'Aller à mes missions' : uiLang === 'it' ? 'Vai alle mie missioni' : 'Go to my missions'}
             </button>
           </div>
+        ) : currentTab === "knowledge" && userRole === "admin" ? (
+          <KnowledgeAdminTab c={c} mono={mono} uiLang={uiLang} API_URL={API_URL} />
+        ) : currentTab === "creatorscore" ? (
+          <CreatorScoreTab c={c} mono={mono} uiLang={uiLang} onImportLead={importLeadFromAdSpy} />
         ) : currentTab === "adspy" ? (
           <AdSpyTab c={c} mono={mono} API_URL={API_URL} onImportLead={importLeadFromAdSpy} uiLang={uiLang} setCurrentTab={setCurrentTab} setRedirectShop={setRedirectShop} userTier={userTier} openUpgradeModal={openUpgradeModal} />
         ) : currentTab === "productfinder" ? (
@@ -428,6 +436,9 @@ export default function ProspectionAgent() {
           <MatchmakingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         )}
       </DashboardLayout>
+
+      {/* ── PAYWALL CONTEXTUEL (déblocage créateurs + offre 48h) ── */}
+      <PaywallModal c={c} mono={mono} uiLang={uiLang} />
 
       {/* ── UPGRADE MODAL (STUNNING GLASSMORPHIC COMPARISON DESIGN) ── */}
       {showUpgradeModal && (
@@ -480,7 +491,7 @@ export default function ProspectionAgent() {
 
             {/* Close */}
             <button onClick={closeUpgradeModal} style={{ position: "absolute", top: 20, right: 20, background: "none", border: "none", color: c.textDim, fontSize: 20, cursor: "pointer" }}>✖</button>
-            
+
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <span style={{ fontSize: 36 }}>💎</span>
               <h3 style={{ fontSize: 20, fontWeight: 900, color: c.text, margin: "8px 0 6px 0", letterSpacing: "-0.5px" }}>{upgradeModalData.title}</h3>
@@ -585,7 +596,7 @@ export default function ProspectionAgent() {
       )}
 
 
-      
+
       {/* Global toast notification */}
       {appToast && (
         <div style={{

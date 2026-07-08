@@ -8,9 +8,26 @@ import { ApifyClient } from 'apify-client';
 import { saveLead, getLeadsToFollowUp, getAllLeads, deleteLeads } from "./db.js";
 import { startCampaign, getCampaignState } from "./campaignManager.js";
 import { supabase } from "./supabaseClient.js";
-import { requireBrand, requireAnyUser } from "./authMiddleware.js";
+import { requireBrand, requireAnyUser, requireAuth, requireRole } from "./authMiddleware.js";
 import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
+import { ingestKnowledge } from "./knowledgeIngestion.js";
+import { queryGideon } from "./gideonEngine.js";
+import { extractPdfText } from "./pdfText.js";
+import multer from "multer";
+
+// requireRole() sans argument = seul le rôle 'admin' passe (il bypass toujours).
+const requireAdmin = [requireAuth, requireRole()];
+
+// Upload PDF en mémoire (max 25 Mo, PDF uniquement)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Seuls les fichiers PDF sont acceptés"));
+  },
+});
 
 // ─── Load .env ───────────────────────────────────────────────────────────────
 try {
@@ -1477,12 +1494,137 @@ Données :
 app.get( "/api/talent-agency/roster",  ...requireAnyUser, (_, res) => res.json({ talents: [] }));
 app.post("/api/talent-agency/add",     ...requireAnyUser, (_, res) => res.json({ success: true }));
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GIDEON RAG — Knowledge Base API (porté depuis le repo principal)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── POST /api/ingest-knowledge — Upload & process a PDF (admin) ────────────
+app.post("/api/ingest-knowledge", ...requireAdmin, upload.single("pdf"), async (req, res) => {
+  const { category = "general", tier = "elite" } = req.body;
+
+  if (!req.file) {
+    return res.status(400).json({ error: "Aucun fichier PDF fourni" });
+  }
+
+  const validTiers = ["creator_standard", "vip_pro", "elite"];
+  if (!validTiers.includes(tier)) {
+    return res.status(400).json({ error: `Tier invalide. Valeurs acceptées: ${validTiers.join(", ")}` });
+  }
+
+  try {
+    console.log(`📥 Ingestion PDF: "${req.file.originalname}" (${(req.file.size / 1024).toFixed(0)} KB) → catégorie: ${category}, tier: ${tier}`);
+
+    const pdfData = await extractPdfText(req.file.buffer);
+    const text = pdfData.text;
+
+    if (!text || text.trim().length < 100) {
+      return res.status(400).json({ error: "Le PDF ne contient pas assez de texte exploitable" });
+    }
+
+    console.log(`   📄 ${pdfData.numpages} pages, ${text.length} caractères extraits`);
+
+    const result = await ingestKnowledge({
+      text,
+      filename: req.file.originalname,
+      category,
+      tier,
+    });
+
+    res.json({
+      success: true,
+      message: `"${req.file.originalname}" ingéré avec succès`,
+      ...result,
+    });
+
+  } catch (err) {
+    console.error("❌ Ingestion error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /api/gideon — Chat with Gideon AI Coach ────────────────────────────
+// Le plan/rôle viennent de req.user (JWT validé) — jamais du body : un free ne
+// peut pas se déclarer elite en forgeant la requête.
+app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
+  const { question, conversationHistory = [] } = req.body;
+
+  if (!question || !question.trim()) {
+    return res.status(400).json({ error: "Question requise" });
+  }
+
+  try {
+    const userPlan = req.user?.plan || "free";
+    const userRole = req.user?.role || "user";
+    console.log(`🤖 Gideon [${userRole}/${userPlan}]: "${question.slice(0, 80)}..."`);
+    const result = await queryGideon({ question, userPlan, userRole, conversationHistory });
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Gideon error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── GET /api/knowledge-uploads — List all uploaded knowledge files (admin) ──
+app.get("/api/knowledge-uploads", ...requireAdmin, async (req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.json({ uploads: [] });
+    }
+
+    const { createClient: sc } = await import("@supabase/supabase-js");
+    const sb = sc(supabaseUrl, supabaseKey);
+    const { data } = await sb
+      .from("knowledge_uploads")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+
+    res.json({ uploads: data || [] });
+  } catch {
+    res.json({ uploads: [] });
+  }
+});
+
+// ─── DELETE /api/knowledge-uploads/:id — Delete a knowledge file (admin) ─────
+app.delete("/api/knowledge-uploads/:id", ...requireAdmin, async (req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: "Supabase non configuré" });
+    }
+
+    const { createClient: sc } = await import("@supabase/supabase-js");
+    const sb = sc(supabaseUrl, supabaseKey);
+
+    const { data: uploadRow } = await sb
+      .from("knowledge_uploads")
+      .select("filename")
+      .eq("id", req.params.id)
+      .single();
+
+    if (uploadRow) {
+      await sb.from("knowledge_chunks").delete().eq("source_file", uploadRow.filename);
+      await sb.from("knowledge_uploads").delete().eq("id", req.params.id);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   const tavily    = process.env.TAVILY_API_KEY && process.env.TAVILY_API_KEY !== "TON_API_KEY_TAVILY";
   const anthropic = process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY.includes("XXXX");
   const gmail     = process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD && !process.env.GMAIL_APP_PASSWORD.includes("xxxx");
+  const openai    = !!process.env.OPENAI_API_KEY;
   console.log(`\n✅ Proxy backend → http://localhost:${PORT}`);
   console.log(`   Tavily      : ${tavily    ? "✅" : "❌ — va sur app.tavily.com"}`);
   console.log(`   Anthropic   : ${anthropic ? "✅ Scoring + Email IA actif" : "⚠️  Template email (sans IA)"}`);
   console.log(`   Gmail SMTP  : ${gmail     ? "✅ Envoi email actif" : "⚠️  Configure GMAIL_APP_PASSWORD dans .env"}`);
+  console.log(`   OpenAI/RAG  : ${openai    ? "✅ Gideon Coach IA actif" : "⚠️  Ajoute OPENAI_API_KEY pour Gideon"}`);
 });

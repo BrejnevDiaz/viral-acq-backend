@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Sidebar from "./Sidebar";
 import MobileTopbar from "./MobileTopbar";
 import DesktopTopbar from "./DesktopTopbar";
@@ -16,8 +17,17 @@ export default function DashboardLayout({
   userRole, backendOk, resultsCount, statsTotal, emailsSent, t,
   children,
 }) {
+  // Sidebar pliée (desktop) — persistée pour retrouver sa préférence au reload.
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(() => {
+    try { return localStorage.getItem("va_sidebar_collapsed") === "1"; } catch { return false; }
+  });
+  const setSidebarCollapsed = (v) => {
+    setSidebarCollapsedState(v);
+    try { localStorage.setItem("va_sidebar_collapsed", v ? "1" : "0"); } catch { /* session-only */ }
+  };
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: c.bg, color: c.text, fontFamily: sans, transition: "background 0.3s, color 0.3s" }}>
+    <div className="dashboard-shell" style={{ display: "flex", minHeight: "100vh", background: c.bg, color: c.text, fontFamily: sans, transition: "background 0.3s, color 0.3s" }}>
       {/* ── Left Sidebar (Minea-inspired) ─────────────────────────────────── */}
       <Sidebar
         c={c} mono={mono} currentTab={currentTab} handleTabChange={handleTabChange}
@@ -26,10 +36,11 @@ export default function DashboardLayout({
         profileMenuOpen={profileMenuOpen} setProfileMenuOpen={setProfileMenuOpen}
         userId={userId} uiLang={uiLang} setUiLang={setUiLang} theme={theme} setTheme={setTheme}
         mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
+        collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed}
       />
 
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div className="dashboard-shell-column" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
         {/* Mobile Header Navigation Bar */}
         <MobileTopbar
@@ -60,14 +71,26 @@ export default function DashboardLayout({
         a{text-decoration:none}a:hover{text-decoration:underline}
         input{transition:border-color 0.15s}
 
+        /* Anti-débordement horizontal (desktop inclus) : les flex items ont
+           min-width:auto par défaut, donc tout contenu large (ligne d'inputs,
+           texte insécable) pousse la page plus large que le viewport au lieu
+           de rétrécir. Zéroter min-width sur toute la chaîne du shell laisse
+           le contenu se caler dans l'espace restant. */
+        .dashboard-shell, .dashboard-shell-column, .main-content {
+          min-width: 0;
+        }
+        .main-content { overflow-x: hidden; }
+
         @media (max-width: 768px) {
           .sidebar-container { display: none !important; }
           .sidebar-container.mobile-drawer-open {
             display: flex !important; position: fixed !important; top: 0; left: 0;
             width: 82vw !important; max-width: 300px; height: 100dvh !important;
-            z-index: 300; box-shadow: 20px 0 60px rgba(0,0,0,0.6);
-            animation: sidebarSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 300 !important; box-shadow: 20px 0 60px rgba(0,0,0,0.6);
+            transform: translateX(0) !important;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
           }
+          .sidebar-collapse-btn { display: none !important; }
           .sidebar-mobile-backdrop { display: block !important; }
           .mobile-nav-bar { display: flex !important; }
           .desktop-topbar { display: none !important; }

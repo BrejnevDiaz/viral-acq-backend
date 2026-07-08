@@ -5,13 +5,16 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { RoleProvider } from './contexts/RoleContext.jsx'
+import { PaywallProvider } from './contexts/PaywallContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <RoleProvider>
-          <App />
+          <PaywallProvider>
+            <App />
+          </PaywallProvider>
         </RoleProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -38,7 +38,7 @@ export default function AccountSettings({ c, mono, uiLang, userId, userEmail, us
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+      <div className="filters-sidebar-row" style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
         {/* Left tab nav */}
         <div style={{ flex: "0 0 220px", display: "flex", flexDirection: "column", gap: 4, background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 10 }}>
           {SECTIONS.map(s => (

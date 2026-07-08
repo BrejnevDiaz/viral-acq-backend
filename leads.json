@@ -50,5 +50,22 @@
       "pinterest": null
     },
     "decisionMaker": null
+  },
+  {
+    "id": "17834363047675ukga",
+    "name": "baratta_jessica",
+    "url": "https://instagram.com/baratta_jessica",
+    "platform": "instagram",
+    "platformId": "instagram",
+    "niche": "food",
+    "region": "EU",
+    "contact": "jessica@talent.viralacquisition.it",
+    "emailTo": "jessica@talent.viralacquisition.it",
+    "emailStatus": "draft",
+    "score": 85,
+    "size": "Startup",
+    "reasoning": "Imported from AdSpy",
+    "sourcedAt": "2026-07-07T14:58:24.767Z",
+    "ownerId": "d74dee3e-d000-4966-a72f-b65029cf23e8"
   }
 ]

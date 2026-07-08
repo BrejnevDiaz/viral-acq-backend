@@ -696,7 +696,7 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
         <p style={{ color: c.textMuted, margin: 0, fontSize: 14, lineHeight: 1.5, maxWidth: 700 }}>{t.desc}</p>
       </div>
 
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+      <div className="filters-sidebar-row" style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
 
       {/* ─── Advanced Filters Sidebar ─────────────────────────────────────── */}
       <aside style={{ flex: "0 0 220px", position: "sticky", top: 20, background: c.card, border: `1px solid ${c.border}`, borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", gap: 18 }}>

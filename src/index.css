@@ -167,6 +167,34 @@ h1, h2, h3, h4, h5, h6, .outfit {
   .grid-1-mobile {
     grid-template-columns: 1fr !important;
   }
+
+  /* --- Tab-local "advanced filters" sidebars (AdSpy, Shop Analyzer,
+     Product Finder) stack above their content instead of squeezing into
+     a fixed-width column next to it. --- */
+  .filters-sidebar-row {
+    flex-direction: column !important;
+  }
+  .filters-sidebar-row > aside,
+  .filters-sidebar-row > div {
+    flex-basis: auto !important;
+    width: 100% !important;
+    position: static !important;
+  }
+
+  /* --- Mobile overflow safety net ---
+     Root cause of most "dashboard is too wide on mobile" symptoms: a flex
+     item's default min-width is `auto`, not 0, so any long unbroken text
+     (tip banners, descriptions, badges) inside a `display:flex` row will
+     refuse to shrink/wrap and force the whole page wider instead. Forcing
+     min-width:0 on every descendant of the dashboard body lets text wrap
+     and containers shrink as expected, without hunting down each instance
+     tab by tab. Grids/images are unaffected since this only removes the
+     *minimum*, not the actual sizing. */
+  .main-content, .main-content * {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
 }
 
 /* Default state for mobile-only classes on desktop */
