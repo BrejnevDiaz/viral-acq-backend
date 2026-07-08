@@ -466,7 +466,7 @@ Signature :
   const getCombinedInfluencers = () => {
     const combined = [...influencers];
     agencyTalents.forEach(at => {
-      if (at.status !== "pending" && !combined.some(i => i.username === at.username || i.username.replace('@','') === at.username.replace('@',''))) {
+      if (at.status !== "pending" && !combined.some(i => i.username === at.username || (i.username || '').replace('@','') === (at.username || '').replace('@',''))) {
         combined.push({ ...at, isRoster: true });
       }
     });
@@ -949,18 +949,18 @@ Signature :
                           {isBrandToInf ? (
                             <>
                               {validatedInfs.length > 0 && (
-                                <optgroup label={`✓ ${uiLang === "fr" ? "Déjà validés avec" : uiLang === "it" ? "Già validati con" : "Already validated with"} ${pitchModal.source.name}`}>
-                                  {validatedInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés</option>)}
+                                <optgroup label={`✅ ${uiLang === "fr" ? "Déjà validés avec" : uiLang === "it" ? "Già validati con" : "Already validated with"} ${pitchModal.source.name}`}>
+                                  {validatedInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {(i.followers || 0).toLocaleString('fr-FR')} abonnés</option>)}
                                 </optgroup>
                               )}
                               {matchInfs.length > 0 && (
-                                <optgroup label={`✨ Suggestions IA (Niche: ${pitchModal.source.niche})`}>
-                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
+                                <optgroup label={`💡 Suggestions IA (Niche: ${pitchModal.source.niche})`}>
+                                  {matchInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {(i.followers || 0).toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                               {otherInfs.length > 0 && (
                                 <optgroup label="Autres Talents">
-                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {i.followers.toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
+                                  {otherInfs.map(i => <option key={i.id} value={i.id} style={optionStyle}>@{i.username} ({i.niche}) — {(i.followers || 0).toLocaleString('fr-FR')} abonnés {i.isRoster ? ' Roster' : ''}</option>)}
                                 </optgroup>
                               )}
                             </>

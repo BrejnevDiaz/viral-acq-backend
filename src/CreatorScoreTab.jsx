@@ -27,11 +27,18 @@ export default function CreatorScoreTab({ c, mono, uiLang = "fr", onImportLead }
   const { userRole } = useRole();
   const { isUnlocked, unlockCreator, creditsLeft, hasFullReveal, allowance, openPaywall } = usePaywall();
   const [toast, setToast] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState("ALL");
   // Re-render trigger after an unlock (context state changes flow down, but a
   // local tick keeps row buttons in sync immediately on the same click).
   const [, setTick] = useState(0);
 
-  const ranked = useMemo(() => rankTalents(loadTalents()), []);
+  const ranked = useMemo(() => {
+    let talents = loadTalents();
+    if (selectedRegion !== "ALL") {
+      talents = talents.filter(t => (t.region || "IT") === selectedRegion);
+    }
+    return rankTalents(talents);
+  }, [selectedRegion]);
   const movers = useMemo(() => topMovers(ranked, 3), [ranked]);
 
   const fr = uiLang === "fr", it = uiLang === "it";
@@ -76,6 +83,18 @@ export default function CreatorScoreTab({ c, mono, uiLang = "fr", onImportLead }
               : it ? "La classifica viva dei creator UGC. Ricalcolata ogni notte da views, engagement e reattività."
               : "The live UGC creator ranking. Recalculated nightly from views, engagement and responsiveness."}
           </p>
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            {[{id: "ALL", label: "🌍 Global"}, {id: "FR", label: "🇫🇷 France"}, {id: "IT", label: "🇮🇹 Italia"}, {id: "US", label: "🇺🇸 USA"}].map(r => (
+              <button key={r.id} onClick={() => setSelectedRegion(r.id)} style={{
+                padding: "6px 12px", borderRadius: 20, border: `1px solid ${selectedRegion === r.id ? c.accent : c.border}`,
+                background: selectedRegion === r.id ? `${c.accent}22` : "transparent",
+                color: selectedRegion === r.id ? c.accent : c.textMuted,
+                fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
+              }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
         {!isCreator && !hasFullReveal && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

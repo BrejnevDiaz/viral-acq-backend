@@ -16,7 +16,8 @@ export const MOCK_TALENTS = [
     profileUrl: "https://instagram.com/diariatou__sow",
     avatar: "https://viralacquisition.it/assets/avatars/diarry_sow.jpg",
     status: "active", // active | pending
-    email: "diariatou@talent.viralacquisition.it"
+    email: "diariatou@talent.viralacquisition.it",
+    region: "FR"
   },
   {
     id: "t_2",
@@ -28,7 +29,8 @@ export const MOCK_TALENTS = [
     profileUrl: "https://instagram.com/thatsnora",
     avatar: "https://viralacquisition.it/assets/avatars/nora_coppini.jpg",
     status: "active",
-    email: "nora@talent.viralacquisition.it"
+    email: "nora@talent.viralacquisition.it",
+    region: "FR"
   },
   {
     id: "t_3",
@@ -40,7 +42,8 @@ export const MOCK_TALENTS = [
     profileUrl: "https://instagram.com/baratta_jessica",
     avatar: "https://viralacquisition.it/assets/avatars/jessica_baratta.jpg",
     status: "active",
-    email: "jessica@talent.viralacquisition.it"
+    email: "jessica@talent.viralacquisition.it",
+    region: "IT"
   },
   {
     id: "t_4",
@@ -52,7 +55,8 @@ export const MOCK_TALENTS = [
     profileUrl: "https://instagram.com/katerinmasi_",
     avatar: "https://viralacquisition.it/assets/avatars/catherine_masiello.jpg",
     status: "active",
-    email: "katerina@talent.viralacquisition.it"
+    email: "katerina@talent.viralacquisition.it",
+    region: "IT"
   },
   {
     id: "t_5",
@@ -64,7 +68,8 @@ export const MOCK_TALENTS = [
     profileUrl: "https://instagram.com/glamourousclaudia93",
     avatar: "https://viralacquisition.it/assets/avatars/claudia_daniela.jpg",
     status: "active",
-    email: "claudia@talent.viralacquisition.it"
+    email: "claudia@talent.viralacquisition.it",
+    region: "IT"
   },
   {
     id: "t_6",
@@ -75,7 +80,8 @@ export const MOCK_TALENTS = [
     platform: "instagram",
     avatar: "https://viralacquisition.it/assets/avatars/claudia_guercio.jpg",
     status: "active",
-    email: "clau@talent.viralacquisition.it"
+    email: "clau@talent.viralacquisition.it",
+    region: "IT"
   },
   {
     id: "t_7",
@@ -86,7 +92,8 @@ export const MOCK_TALENTS = [
     platform: "instagram",
     avatar: "https://viralacquisition.it/assets/avatars/vincenza_oliva.jpg",
     status: "active",
-    email: "enza@talent.viralacquisition.it"
+    email: "enza@talent.viralacquisition.it",
+    region: "IT"
   },
   {
     id: "t_8",
@@ -97,7 +104,8 @@ export const MOCK_TALENTS = [
     platform: "instagram",
     avatar: "https://viralacquisition.it/assets/avatars/maria_teresa.jpg",
     status: "active",
-    email: "mary@talent.viralacquisition.it"
+    email: "mary@talent.viralacquisition.it",
+    region: "IT"
   }
 ];
 
