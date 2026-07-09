@@ -30,7 +30,7 @@ export const requireAuth = async (req, res, next) => {
     let role = "creator";
     let plan = "free";
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+    const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     if (supabaseUrl && anonKey) {
       try {
         const scoped = createClient(supabaseUrl, anonKey, {
