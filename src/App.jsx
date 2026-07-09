@@ -168,7 +168,13 @@ export default function ProspectionAgent() {
   const { userRole, userTier, showUpgradeModal, upgradeModalData,
           isUpgradingSim, upgradeSimSuccess, openUpgradeModal,
           closeUpgradeModal, upgradeTier, checkAnalysisAllowance,
-          requestTabAccess, signupRole, setSignupRole } = useRole();
+          switchUserRole, requestTabAccess, signupRole, setSignupRole } = useRole();
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  const handleSwitchToBrand = async () => {
+    setIsSwitchingRole(true);
+    await switchUserRole("brand");
+    setIsSwitchingRole(false);
+  };
 
   const [currentTab, setCurrentTab]       = useState("adspy");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -498,6 +504,29 @@ export default function ProspectionAgent() {
               <p style={{ fontSize: 13.5, color: c.textMuted, margin: 0, lineHeight: 1.5 }}>{upgradeModalData.reason}</p>
             </div>
 
+            {userRole === "creator" && (
+              <div style={{
+                background: `${c.accent}15`, border: `1px solid ${c.accent}55`, borderRadius: 12, padding: 12,
+                marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14
+              }}>
+                <div style={{ fontSize: 13, color: c.textDim, flex: 1, fontFamily: mono, lineHeight: 1.4 }}>
+                  <strong style={{ color: c.text }}>{uiLang === "fr" ? "Statut Actuel : Créateur" : uiLang === "it" ? "Status: Creator" : "Current Status: Creator"}</strong><br/>
+                  {uiLang === "fr" ? "Les forfaits ci-dessous sont dédiés aux Marques et Agences." : uiLang === "it" ? "I piani sottostanti sono dedicati a Brand e Agenzie." : "The plans below are dedicated to Brands and Agencies."}
+                </div>
+                <button
+                  onClick={handleSwitchToBrand}
+                  disabled={isSwitchingRole}
+                  style={{
+                    background: c.accent, color: "#fff", border: "none", padding: "8px 14px", borderRadius: 8,
+                    fontSize: 12, fontWeight: 700, cursor: isSwitchingRole ? "wait" : "pointer", flexShrink: 0, fontFamily: mono,
+                    boxShadow: `0 4px 12px ${c.accent}44`
+                  }}
+                >
+                  {isSwitchingRole ? "..." : (uiLang === "fr" ? "Basculer vers Marque ➔" : uiLang === "it" ? "Passa a Brand ➔" : "Switch to Brand ➔")}
+                </button>
+              </div>
+            )}
+
             {/* Monthly / Annual toggle — annual nudges toward a longer commitment */}
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginBottom: 22 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: billingCycle === "monthly" ? c.text : c.textDim, fontFamily: mono }}>
@@ -525,10 +554,19 @@ export default function ProspectionAgent() {
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.accentSoft, color: c.accent, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Plus</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>Plan Plus</h4>
-                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "AdSpy complet pour le dropshipping + CRM 20 leads." : uiLang === "it" ? "AdSpy completo per il dropshipping + CRM 20 lead." : "Full AdSpy for dropshipping + 20-lead CRM."}
-                  </p>
+                  <h4 style={{ margin: "4px 0 12px 0", fontSize: 18, fontWeight: 800, color: c.text }}>Plan Plus</h4>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      uiLang === "fr" ? "AdSpy complet dropshipping" : "Full dropshipping AdSpy",
+                      uiLang === "fr" ? "CRM Sourcing (20 leads)" : "Sourcing CRM (20 leads)",
+                      uiLang === "fr" ? "Déblocages illimités" : "Unlimited unlocks"
+                    ].map((feat, i) => (
+                      <li key={i} style={{ fontSize: 12, color: c.textDim, lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <svg style={{ flexShrink: 0, marginTop: 2, color: c.accent }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 18, fontWeight: 900, color: c.accent, fontFamily: mono }}>
@@ -542,15 +580,28 @@ export default function ProspectionAgent() {
 
               {/* VIP Pro card option */}
               <div style={{
-                background: c.bg, border: `1.5px solid ${c.accent2}44`, borderRadius: 16, padding: 16,
-                display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative"
+                background: c.bg, border: `1.5px solid ${c.accent2}`, borderRadius: 16, padding: 16,
+                display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative",
+                boxShadow: `0 0 24px ${c.accent2}22`, transform: "scale(1.03)"
               }}>
+                <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: c.accent2, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 12px", borderRadius: 20, fontFamily: mono, whiteSpace: "nowrap", boxShadow: `0 4px 10px ${c.accent2Soft}` }}>
+                  {uiLang === "fr" ? "LE PLUS POPULAIRE" : "MOST POPULAR"}
+                </span>
                 <div>
-                  <span style={{ fontSize: 10, background: c.accent2Soft, color: c.accent2, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Pro</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>VIP Pro Plan</h4>
-                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "Accès illimité aux outils (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blogs par mois." : uiLang === "it" ? "Accesso illimitato (Spy, CRM, Sourcing) + 1 Coaching Live & 2 Blog al mese." : "Full workspace access + 1 Live Coaching & 2 case study blogs/mo."}
-                  </p>
+                  <span style={{ fontSize: 10, background: c.accent2Soft, color: c.accent2, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", margin: "8px 0" }}>Pro</span>
+                  <h4 style={{ margin: "4px 0 12px 0", fontSize: 18, fontWeight: 800, color: c.text }}>VIP Pro Plan</h4>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      uiLang === "fr" ? "Outils illimités (Spy, CRM)" : "Unlimited tools (Spy, CRM)",
+                      uiLang === "fr" ? "Sourcing influenceurs avancé" : "Advanced influencer Sourcing",
+                      uiLang === "fr" ? "1 Coaching Live mensuel" : "1 Monthly Live Coaching"
+                    ].map((feat, i) => (
+                      <li key={i} style={{ fontSize: 12, color: c.textDim, lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <svg style={{ flexShrink: 0, marginTop: 2, color: c.accent2 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 18, fontWeight: 900, color: c.accent2, fontFamily: mono }}>
@@ -569,10 +620,19 @@ export default function ProspectionAgent() {
               }}>
                 <div>
                   <span style={{ fontSize: 10, background: c.successSoft, color: c.success, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", marginBottom: 6 }}>Elite</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: c.text }}>VIP Elite Plan</h4>
-                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>
-                    {uiLang === "fr" ? "Accès illimité à TOUTE l'application e-commerce + Coaching Vidéo Hebdomadaire & Blog en illimité." : uiLang === "it" ? "Accesso totale all'app e-commerce + Video Coaching Settimanale e Blog illimitato." : "Total e-commerce access + Weekly Video Coaching & unlimited strategy blog."}
-                  </p>
+                  <h4 style={{ margin: "4px 0 12px 0", fontSize: 18, fontWeight: 800, color: c.text }}>VIP Elite Plan</h4>
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      uiLang === "fr" ? "TOUTE l'application en illimité" : "Everything entirely unlimited",
+                      uiLang === "fr" ? "Coaching Vidéo Hebdomadaire" : "Weekly Video Coaching",
+                      uiLang === "fr" ? "Accès prioritaire aux talents" : "Priority access to new talent"
+                    ].map((feat, i) => (
+                      <li key={i} style={{ fontSize: 12, color: c.textDim, lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <svg style={{ flexShrink: 0, marginTop: 2, color: c.success }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontSize: 18, fontWeight: 900, color: c.success, fontFamily: mono }}>

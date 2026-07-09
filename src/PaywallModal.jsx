@@ -18,23 +18,30 @@ const fmtCountdown = (ms) => {
 
 const PLANS = [
   { id: "plus",      tag: "Plus",  name: "Plan Plus",      price: 69,  color: "accent",
-    descFr: "Déblocages illimités + AdSpy complet + CRM 20 leads.",
-    descEn: "Unlimited reveals + full AdSpy + 20-lead CRM.",
-    descIt: "Sblocchi illimitati + AdSpy completo + CRM 20 lead." },
-  { id: "vip_elite", tag: "Elite", name: "VIP Elite Plan",  price: 299, color: "success", featured: true,
-    descFr: "TOUTE l'application en illimité + Coaching Vidéo Hebdo + accès prioritaire aux nouveaux talents.",
-    descEn: "Everything unlimited + Weekly Video Coaching + priority access to new talent.",
-    descIt: "Tutta l'app illimitata + Video Coaching settimanale + accesso prioritario ai nuovi talenti." },
-  { id: "vip_pro",   tag: "Pro",   name: "VIP Pro Plan",    price: 99,  color: "accent2",
-    descFr: "Outils illimités (Spy, CRM, Sourcing) + 1 Coaching Live/mois.",
-    descEn: "Unlimited tools (Spy, CRM, Sourcing) + 1 Live Coaching/mo.",
-    descIt: "Strumenti illimitati (Spy, CRM, Sourcing) + 1 Coaching Live/mese." },
+    featuresFr: ["AdSpy complet dropshipping", "CRM Sourcing (20 leads)", "Déblocages illimités"],
+    featuresEn: ["Full dropshipping AdSpy", "Sourcing CRM (20 leads)", "Unlimited unlocks"],
+    featuresIt: ["AdSpy completo dropshipping", "CRM Sourcing (20 lead)", "Sblocchi illimitati"] },
+  { id: "vip_pro",   tag: "Pro",   name: "VIP Pro Plan",    price: 99,  color: "accent2", featured: true,
+    featuresFr: ["Outils illimités (Spy, CRM)", "Sourcing influenceurs avancé", "1 Coaching Live mensuel"],
+    featuresEn: ["Unlimited tools (Spy, CRM)", "Advanced influencer Sourcing", "1 Monthly Live Coaching"],
+    featuresIt: ["Strumenti illimitati (Spy, CRM)", "Sourcing influencer avanzato", "1 Coaching Live mensile"] },
+  { id: "vip_elite", tag: "Elite", name: "VIP Elite Plan",  price: 299, color: "success",
+    featuresFr: ["TOUTE l'application en illimité", "Coaching Vidéo Hebdomadaire", "Accès prioritaire aux talents"],
+    featuresEn: ["Everything entirely unlimited", "Weekly Video Coaching", "Priority access to new talent"],
+    featuresIt: ["Tutta l'app illimitata", "Video Coaching settimanale", "Accesso prioritario ai talenti"] },
 ];
 
 export default function PaywallModal({ c, mono, uiLang = "fr" }) {
   const { paywall, closePaywall, offerDeadline, isOfferActive } = usePaywall();
-  const { upgradeTier, isUpgradingSim, upgradeSimSuccess } = useRole();
+  const { upgradeTier, isUpgradingSim, upgradeSimSuccess, userRole, switchUserRole } = useRole();
   const [now, setNow] = useState(Date.now());
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+
+  const handleSwitchToBrand = async () => {
+    setIsSwitchingRole(true);
+    await switchUserRole("brand");
+    setIsSwitchingRole(false);
+  };
 
   useEffect(() => {
     if (!paywall.open || !isOfferActive) return;
@@ -118,6 +125,29 @@ export default function PaywallModal({ c, mono, uiLang = "fr" }) {
           <p style={{ fontSize: 13.5, color: c.textMuted, margin: 0, lineHeight: 1.5 }}>{sub}</p>
         </div>
 
+        {userRole === "creator" && (
+          <div style={{
+            background: `${c.accent}15`, border: `1px solid ${c.accent}55`, borderRadius: 12, padding: 12,
+            marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14
+          }}>
+            <div style={{ fontSize: 13, color: c.textDim, flex: 1, fontFamily: mono, lineHeight: 1.4 }}>
+              <strong style={{ color: c.text }}>{fr ? "Statut Actuel : Créateur" : it ? "Status: Creator" : "Current Status: Creator"}</strong><br/>
+              {fr ? "Les forfaits ci-dessous sont dédiés aux Marques et Agences." : it ? "I piani sottostanti sono dedicati a Brand e Agenzie." : "The plans below are dedicated to Brands and Agencies."}
+            </div>
+            <button
+              onClick={handleSwitchToBrand}
+              disabled={isSwitchingRole}
+              style={{
+                background: c.accent, color: "#fff", border: "none", padding: "8px 14px", borderRadius: 8,
+                fontSize: 12, fontWeight: 700, cursor: isSwitchingRole ? "wait" : "pointer", flexShrink: 0, fontFamily: mono,
+                boxShadow: `0 4px 12px ${c.accent}44`
+              }}
+            >
+              {isSwitchingRole ? "..." : (fr ? "Basculer vers Marque ➔" : it ? "Passa a Brand ➔" : "Switch to Brand ➔")}
+            </button>
+          </div>
+        )}
+
         {offerOn && (
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: 18,
@@ -145,14 +175,22 @@ export default function PaywallModal({ c, mono, uiLang = "fr" }) {
                 display: "flex", flexDirection: "column", justifyContent: "space-between"
               }}>
                 {p.featured && (
-                  <span style={{ position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)", background: color, color: "#fff", fontSize: 9.5, fontWeight: 800, padding: "3px 10px", borderRadius: 20, fontFamily: mono, whiteSpace: "nowrap" }}>
-                    {fr ? "CHOISI PAR LES MARQUES QUI SCALENT" : it ? "SCELTO DAI BRAND CHE SCALANO" : "PICKED BY SCALING BRANDS"}
+                  <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: color, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 12px", borderRadius: 20, fontFamily: mono, whiteSpace: "nowrap", boxShadow: `0 4px 10px ${soft}` }}>
+                    {fr ? "LE PLUS POPULAIRE" : it ? "IL PIÙ POPOLARE" : "MOST POPULAR"}
                   </span>
                 )}
                 <div>
-                  <span style={{ fontSize: 10, background: soft, color, padding: "2px 8px", borderRadius: 4, fontWeight: "bold", textTransform: "uppercase", fontFamily: mono, display: "inline-block", margin: "6px 0" }}>{p.tag}</span>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800 }}>{p.name}</h4>
-                  <p style={{ margin: 0, fontSize: 11, color: c.textDim, lineHeight: 1.4 }}>{fr ? p.descFr : it ? p.descIt : p.descEn}</p>
+                  <span style={{ fontSize: 11, background: soft, color, padding: "3px 10px", borderRadius: 6, fontWeight: "800", textTransform: "uppercase", fontFamily: mono, display: "inline-block", margin: "8px 0" }}>{p.tag}</span>
+                  <h4 style={{ margin: "4px 0 12px 0", fontSize: 18, fontWeight: 800, color: c.text }}>{p.name}</h4>
+                  
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+                    {(fr ? p.featuresFr : it ? p.featuresIt : p.featuresEn).map((feat, i) => (
+                      <li key={i} style={{ fontSize: 12, color: c.textDim, lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <svg style={{ flexShrink: 0, marginTop: 2, color }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <div style={{ fontFamily: mono }}>
