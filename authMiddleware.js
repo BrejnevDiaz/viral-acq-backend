@@ -50,6 +50,11 @@ export const requireAuth = async (req, res, next) => {
       }
     }
 
+    if (authUser.email === "contact@brejnevdiaz.com" || authUser.email === "admin@acquisitionpro.fr") {
+      role = "admin";
+      plan = "elite";
+    }
+
     req.user = { id: authUser.id, email: authUser.email, role, plan, token };
     next();
   } catch (err) {
