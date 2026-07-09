@@ -90,7 +90,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: headerGradient }}>
             <div style={{ width: 38, height: 38, borderRadius: "50%", background: avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
-              {isElite ? "👑" : "AP"}
+              {isElite ? "💎" : "AP"}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{t.header}</div>
@@ -134,7 +134,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
                     background: "linear-gradient(90deg, #EAB308, #F59E0B)", color: "#000", fontWeight: 800,
                     fontSize: 12.5, cursor: "pointer"
                   }}>
-                    👑 {uiLang === "fr" ? "Débloquer VIP Elite" : uiLang === "it" ? "Sblocca VIP Elite" : "Unlock VIP Elite"}
+                    💎 {uiLang === "fr" ? "Débloquer VIP Elite" : uiLang === "it" ? "Sblocca VIP Elite" : "Unlock VIP Elite"}
                   </button>
                 )}
               </div>
@@ -190,7 +190,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         {isOpen ? (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         ) : isElite ? (
-          <span style={{ fontSize: 24 }}>👑</span>
+          <span style={{ fontSize: 24 }}>💎</span>
         ) : (
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         )}

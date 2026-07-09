@@ -65,21 +65,21 @@ export const ELITE_UI_TEXT = {
     bubbleLabel: "Parler au Coach IA",
     header: "Elite Coach IA",
     subheader: "Coaching e-commerce avancé · VIP Elite",
-    greeting: "👑 Bienvenue dans le Coach IA VIP Elite. Pose-moi tes questions stratégiques les plus pointues sur le scaling, les campagnes, le budget publicitaire ou la structuration de ton business — je suis calibré pour aller plus loin que le support classique.",
+    greeting: "💎 Bienvenue dans le Coach IA VIP Elite. Pose-moi tes questions stratégiques les plus pointues sur le scaling, les campagnes, le budget publicitaire ou la structuration de ton business — je suis calibré pour aller plus loin que le support classique.",
     placeholder: "Pose ta question au Coach...",
   },
   en: {
     bubbleLabel: "Talk to the AI Coach",
     header: "Elite Coach AI",
     subheader: "Advanced e-commerce coaching · VIP Elite",
-    greeting: "👑 Welcome to the VIP Elite AI Coach. Ask me your toughest strategic questions on scaling, campaigns, ad budget, or business structure — I'm built to go further than standard support.",
+    greeting: "💎 Welcome to the VIP Elite AI Coach. Ask me your toughest strategic questions on scaling, campaigns, ad budget, or business structure — I'm built to go further than standard support.",
     placeholder: "Ask the Coach...",
   },
   it: {
     bubbleLabel: "Parla con il Coach IA",
     header: "Elite Coach IA",
     subheader: "Coaching e-commerce avanzato · VIP Elite",
-    greeting: "👑 Benvenuto nel Coach IA VIP Elite. Fammi le tue domande strategiche più avanzate su scaling, campagne, budget pubblicitario o struttura del business — sono calibrato per andare oltre il supporto standard.",
+    greeting: "💎 Benvenuto nel Coach IA VIP Elite. Fammi le tue domande strategiche più avanzate su scaling, campagne, budget pubblicitario o struttura del business — sono calibrato per andare oltre il supporto standard.",
     placeholder: "Chiedi al Coach...",
   },
 };
@@ -98,9 +98,9 @@ export function isAdvancedEcomQuestion(userText) {
 }
 
 export const UPSELL_MESSAGE = {
-  fr: "C'est exactement le type de question que traite le Coach IA Mindeo Blueprint 👑 — réservé au forfait VIP Elite. Le support standard reste disponible pour tout ce qui concerne la plateforme, mais pour du conseil stratégique e-commerce avancé, il te faut débloquer VIP Elite.",
-  en: "That's exactly the kind of question the Mindeo Blueprint AI Coach handles 👑 — reserved for the VIP Elite plan. Standard support is still here for anything platform-related, but for advanced e-commerce strategy, you'll need to unlock VIP Elite.",
-  it: "È esattamente il tipo di domanda gestita dal Coach IA Mindeo Blueprint 👑 — riservato al piano VIP Elite. Il supporto standard resta disponibile per tutto ciò che riguarda la piattaforma, ma per una consulenza strategica e-commerce avanzata devi sbloccare VIP Elite.",
+  fr: "C'est exactement le type de question que traite le Coach IA Mindeo Blueprint 💎 — réservé au forfait VIP Elite. Le support standard reste disponible pour tout ce qui concerne la plateforme, mais pour du conseil stratégique e-commerce avancé, il te faut débloquer VIP Elite.",
+  en: "That's exactly the kind of question the Mindeo Blueprint AI Coach handles 💎 — reserved for the VIP Elite plan. Standard support is still here for anything platform-related, but for advanced e-commerce strategy, you'll need to unlock VIP Elite.",
+  it: "È esattamente il tipo di domanda gestita dal Coach IA Mindeo Blueprint 💎 — riservato al piano VIP Elite. Il supporto standard resta disponibile per tutto ciò che riguarda la piattaforma, ma per una consulenza strategica e-commerce avanzata devi sbloccare VIP Elite.",
 };
 
 // Lightweight keyword-matching simulation — replace with a real API call once
