@@ -173,21 +173,18 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
 
   // 5. Generate response
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Cost-effective but powerful
-      messages,
-      max_tokens: 1000,
-      temperature: 0.7,
+    const { answer, model } = await generateAnswer({
+      system: systemPrompt + contextBlock,
+      history: conversationHistory,
+      question: question
     });
-
-    const answer = completion.choices[0]?.message?.content || "Désolé, je n'ai pas pu générer une réponse.";
 
     return {
       answer,
       sources,
       tier,
       restricted: false,
-      model: "gpt-4o-mini",
+      model,
     };
   } catch (err) {
     console.error("❌ Gideon generation error:", err.message);
