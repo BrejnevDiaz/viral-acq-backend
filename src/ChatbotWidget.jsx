@@ -59,9 +59,10 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
       } else {
         setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
       }
-    } catch {
+    } catch (err) {
       // Backend indisponible ou non configuré — repli sur la simulation locale
       // (avec le gate upsell historique) pour que le widget reste utile.
+      console.error("⚠️ Gideon API error:", err);
       if (!isElite && isAdvancedEcomQuestion(text)) {
         setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
       } else {
