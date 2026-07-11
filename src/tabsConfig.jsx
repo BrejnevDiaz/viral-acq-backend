@@ -2,7 +2,7 @@
 import {
   AdSpyIcon, ProductFinderIcon, ShopAnalyzerIcon, SourcingCRMIcon, VettingIAIcon,
   MatchmakingIcon, BriefcaseIcon, BrandPortalIcon, ContractGeneratorIcon, ResourcesIcon,
-  VideoMarketplaceIcon, TrophyIcon, BrainIcon,
+  VideoMarketplaceIcon, TrophyIcon, BrainIcon, ChatIcon,
 } from "./dashboardIcons";
 
 // ─── Single source of truth for the dashboard nav tabs ───────────────────────
@@ -50,6 +50,9 @@ export const TABS = [
   { id: "knowledge",          group: "tools",    Icon: BrainIcon, adminOnly: true,
     label: { fr: "Connaissances IA", en: "AI Knowledge", it: "Conoscenze IA" },
     shortLabel: { fr: "Savoir IA", en: "AI Knowledge", it: "Sapere IA" } },
+  { id: "coach",              group: "tools",    Icon: ChatIcon,
+    label: { fr: "Coach IA Elite", en: "Elite AI Coach", it: "Coach IA Elite" },
+    shortLabel: { fr: "Coach IA", en: "AI Coach", it: "Coach IA" } },
 ];
 
 export default TABS;

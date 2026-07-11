@@ -20,6 +20,7 @@ import ChatbotWidget from "./ChatbotWidget";
 import LandingPage from "./LandingPage";
 import FooterInfoPage from "./FooterInfoPage";
 import BlogPage from "./BlogPage";
+import CoachIATab from "./CoachIATab";
 import { FOOTER_PAGE_ROUTES } from "./footerPagesContent";
 import DashboardLayout from "./DashboardLayout";
 import { apiFetch } from "./utils/apiClient";
@@ -438,6 +439,8 @@ export default function ProspectionAgent() {
           <AccountSettings c={c} mono={mono} uiLang={uiLang} userId={userId} userEmail={userEmail} userTier={userTier} setShowUpgradeModal={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez à un Forfait Supérieur" : "💎 Upgrade Your Plan", reason: "" })} />
         ) : currentTab === "videomarketplace" ? (
           <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} userId={userId} />
+        ) : currentTab === "coach" ? (
+          <CoachIATab c={c} mono={mono} uiLang={uiLang} userTier={userTier} API_URL={API_URL} onUpgradeClick={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez au VIP Elite" : "💎 Upgrade to VIP Elite", reason: "" })} />
         ) : (
           <MatchmakingTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         )}
