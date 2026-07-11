@@ -107,7 +107,7 @@ export async function generateAnswer({ system, history = [], question }) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents,
-          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
         }),
       }
     );
@@ -122,7 +122,7 @@ export async function generateAnswer({ system, history = [], question }) {
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
       messages: [{ role: "system", content: system }, ...history.slice(-10), { role: "user", content: question }],
-      max_tokens: 1000,
+      max_tokens: 2048,
       temperature: 0.7,
     }),
   });
