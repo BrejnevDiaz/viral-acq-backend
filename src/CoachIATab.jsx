@@ -101,7 +101,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         {messages.map((m, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}>
             {m.role === "bot" && <div style={{ fontSize: 12, color: c.textDim, fontWeight: 600, marginLeft: 16 }}>{t.header}</div>}
-            <div style={{
+            <div className={m.role === "bot" ? "markdown-body" : ""} style={{
               maxWidth: "75%", padding: "16px 20px", borderRadius: m.role === "user" ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
               background: m.role === "user" ? "linear-gradient(135deg, #8B5CF6, #7C3AED)" : c.surface,
               color: m.role === "user" ? "#fff" : c.text, fontSize: 15, lineHeight: 1.6,
@@ -109,7 +109,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
               boxShadow: m.role === "user" ? "0 8px 16px rgba(124,58,237,0.2)" : "0 4px 12px rgba(0,0,0,0.05)"
             }}>
               {m.role === "bot" ? (
-                <ReactMarkdown className="markdown-body">{m.text}</ReactMarkdown>
+                <ReactMarkdown>{m.text || ""}</ReactMarkdown>
               ) : (
                 m.text
               )}
