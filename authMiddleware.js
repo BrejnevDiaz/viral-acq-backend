@@ -12,6 +12,11 @@ export const requireAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (!token) {
+      // Bypass local explicite pour faciliter les tests sans se connecter
+      if (process.env.ALLOW_DEV_AUTH === "true") {
+        req.user = { id: "local-bypass", email: "admin@acquisitionpro.fr", role: "admin", plan: "elite", token: null };
+        return next();
+      }
       return res.status(401).json({ error: "Authentification requise" });
     }
     if (!supabase) {
