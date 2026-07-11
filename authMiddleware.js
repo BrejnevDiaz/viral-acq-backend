@@ -50,7 +50,7 @@ export const requireAuth = async (req, res, next) => {
       }
     }
 
-    if (authUser.email === "contact@brejnevdiaz.com" || authUser.email === "admin@acquisitionpro.fr") {
+    if (authUser.email === "contact@brejnevdiaz.com" || authUser.email === "admin@acquisitionpro.fr" || authUser.email === "brejnevdiaz@gmail.com") {
       role = "admin";
       plan = "elite";
     }
