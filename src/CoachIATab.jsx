@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_MESSAGE } from "./chatbotKnowledge";
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
+import ReactMarkdown from "react-markdown";
 
 export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", API_URL, onUpgradeClick }) {
   const [inputValue, setInputValue] = useState("");
@@ -107,7 +108,11 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
               border: m.role === "user" ? "none" : `1px solid ${c.border}`,
               boxShadow: m.role === "user" ? "0 8px 16px rgba(124,58,237,0.2)" : "0 4px 12px rgba(0,0,0,0.05)"
             }}>
-              {m.text}
+              {m.role === "bot" ? (
+                <ReactMarkdown className="markdown-body">{m.text}</ReactMarkdown>
+              ) : (
+                m.text
+              )}
             </div>
             {m.sources && m.sources.length > 0 && (
               <div style={{ marginTop: 4, fontSize: 12, color: c.textMuted, maxWidth: "75%" }}>
@@ -172,6 +177,16 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
           30% { transform: translateY(-5px); opacity: 1; }
         }
+        .markdown-body {
+          font-family: inherit;
+        }
+        .markdown-body p { margin: 0 0 1em 0; }
+        .markdown-body p:last-child { margin: 0; }
+        .markdown-body strong { font-weight: 700; color: ${isElite ? '#EAB308' : 'inherit'}; }
+        .markdown-body ul, .markdown-body ol { margin: 0 0 1em 0; padding-left: 1.5em; }
+        .markdown-body li { margin-bottom: 0.5em; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { margin: 1em 0 0.5em 0; font-weight: 700; }
+        .markdown-body h1:first-child, .markdown-body h2:first-child, .markdown-body h3:first-child { margin-top: 0; }
       `}</style>
     </div>
   );
