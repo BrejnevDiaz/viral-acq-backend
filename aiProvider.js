@@ -11,7 +11,7 @@ const GEMINI_EMBED_MODEL = "gemini-embedding-001";
 const GEMINI_CHAT_MODEL = "gemini-2.5-flash";
 const OPENAI_EMBED_MODEL = "text-embedding-3-small";
 const OPENAI_CHAT_MODEL = "gpt-4o-mini";
-export const EMBEDDING_DIM = 1536;
+export const EMBEDDING_DIM = 768;
 
 export const activeProvider = () =>
   process.env.GEMINI_API_KEY ? "gemini" : process.env.OPENAI_API_KEY ? "openai" : null;
@@ -73,7 +73,7 @@ export async function embedTexts(texts, { taskType = "RETRIEVAL_DOCUMENT" } = {}
   const data = await fetchWithRetry("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-    body: JSON.stringify({ model: OPENAI_EMBED_MODEL, input: texts }),
+    body: JSON.stringify({ model: OPENAI_EMBED_MODEL, input: texts, dimensions: EMBEDDING_DIM }),
   });
   return data.data.map((d) => d.embedding);
 }
