@@ -126,8 +126,15 @@ Gideon analyse désormais les fichiers joints aux messages (screenshot de dashbo
 
 **⏭️ Restes connus non bloquants (chantier #16)** : pas de purge TTL des fichiers anciens (à ajouter en cron si le Storage grossit) ; si le stream casse *après* des chunks, la bulle partielle garde son curseur et une 2ᵉ bulle s'ajoute (bug préexistant, plus probable avec de gros payloads) ; grille de plans où `plus` a moins de droits que `standard` (cohérent avec `GIDEON_DAILY_LIMITS`, à confirmer côté produit).
 
+### ✅ Prod activée le 27/07 (clôture du chantier #16)
+- `supabase/gideon_uploads.sql` **exécuté** (bucket privé + 3 policies + colonne `attachments` vérifiés en SQL). Ne pas rejouer.
+- Variables Railway **configurées** (clés IA + Supabase service_role) ; `ALLOW_DEV_AUTH` supprimé de la prod. Backend public : `https://viral-acq-backend-production.up.railway.app`.
+- ⚠️ **Piège majeur trouvé ce jour-là** : `src/App.jsx:146` fait `const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001"`. `VITE_API_URL` n'était **pas défini sur Vercel** → le site de prod demandait à chaque visiteur d'appeler SA propre machine sur le port 3001. Invisible en interne (notre backend local tourne), fatal pour un vrai client. Désormais défini sur Vercel, scope Production. **`import.meta.env` est inliné au build → changer cette variable exige un REDÉPLOIEMENT**, la définir ne suffit pas.
+- Upload multimodal **validé en production** : pièce jointe analysée, et au tour suivant Gideon distingue correctement « pas de nouveau fichier » du document précédent (grâce à la note d'historique injectée par le front).
+- À traiter avant commercialisation : restreindre `app.use(cors())` (server.js:58) au domaine de prod — l'API est ouverte à toutes origines. Risque limité (auth par header Bearer, qu'un site tiers ne possède pas) mais pas propre.
+- Amélioration suggérée non faite : faire échouer explicitement le build/démarrage en production si `VITE_API_URL` est absent, au lieu du repli silencieux sur localhost.
+
 ### ⏳ Reste à faire
-0. **Chantier #16 — avant de tester l'upload** : exécuter `supabase/gideon_uploads.sql`, puis configurer les variables Railway pour activer le Coach en prod (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY` service_role, `VITE_SUPABASE_ANON_KEY` — et surtout PAS `ALLOW_DEV_AUTH`). Puis `npm run build` local avant push.
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).
 3. Vérifier visuellement le streaming (texte qui s'écrit en direct) après redémarrage serveur + `npm run dev` + hard refresh (Ctrl+Shift+R).
