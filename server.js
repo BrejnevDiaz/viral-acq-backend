@@ -12,7 +12,8 @@ import { requireBrand, requireAnyUser, requireAuth, requireRole } from "./authMi
 import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
-import { queryGideon } from "./gideonEngine.js";
+import { queryGideon, queryGideonStream } from "./gideonEngine.js";
+import { fetchHistory, saveExchange, clearHistory, countToday } from "./gideonHistory.js";
 import { extractPdfText } from "./pdfText.js";
 import multer from "multer";
 
@@ -1542,6 +1543,37 @@ app.post("/api/ingest-knowledge", ...requireAdmin, upload.single("pdf"), async (
   }
 });
 
+// ─── Quotas Gideon — messages par jour selon le plan ─────────────────────────
+// Comptés sur les lignes role='user' de gideon_messages (jour UTC). Les admins
+// et les plans Elite sont illimités. Si le comptage est impossible (bypass
+// local sans token), pas de quota — le développement n'est jamais bloqué.
+const GIDEON_DAILY_LIMITS = {
+  free: 0, // déjà bloqué en amont par queryGideon (restricted)
+  plus: 20,
+  standard: 30,
+  pro: 100,
+  vip_pro: 100,
+  elite: Infinity,
+  vip_elite: Infinity,
+};
+const gideonDailyLimit = (plan, role) =>
+  role === "admin" ? Infinity : (GIDEON_DAILY_LIMITS[plan] ?? 0);
+
+const GIDEON_QUOTA_MESSAGE =
+  "🚦 Tu as atteint ta limite quotidienne de messages avec Gideon — elle se réinitialise chaque jour. Envie de continuer sans attendre ? Passe au forfait supérieur pour débloquer plus de coaching (illimité en VIP Elite) 💎";
+
+// Retourne { quota, exceeded } — quota est null si non applicable.
+async function checkGideonQuota(user) {
+  const limit = gideonDailyLimit(user?.plan || "free", user?.role || "user");
+  if (!Number.isFinite(limit)) return { quota: null, exceeded: false };
+  const used = await countToday(user);
+  if (used === null) return { quota: null, exceeded: false };
+  return {
+    quota: { used, limit, remaining: Math.max(0, limit - used) },
+    exceeded: used >= limit,
+  };
+}
+
 // ─── POST /api/gideon — Chat with Gideon AI Coach ────────────────────────────
 // Le plan/rôle viennent de req.user (JWT validé) — jamais du body : un free ne
 // peut pas se déclarer elite en forgeant la requête.
@@ -1556,10 +1588,119 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
     const userPlan = req.user?.plan || "free";
     const userRole = req.user?.role || "user";
     console.log(`🤖 Gideon [${userRole}/${userPlan}]: "${question.slice(0, 80)}..."`);
+
+    // Quota journalier
+    const { quota, exceeded } = await checkGideonQuota(req.user);
+    if (exceeded) {
+      return res.json({ answer: GIDEON_QUOTA_MESSAGE, sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
+    }
+
     const result = await queryGideon({ question, userPlan, userRole, conversationHistory });
+    if (quota && !result.restricted) {
+      result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
+    }
+    // Persistance fire-and-forget : ne retarde jamais la réponse
+    if (!result.restricted && result.answer) {
+      saveExchange(req.user, question, result.answer, result.sources).catch(() => {});
+    }
     res.json(result);
   } catch (err) {
     console.error("❌ Gideon error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /api/gideon/stream — Chat with Gideon (réponse streamée SSE) ──────
+// Même sécurité que /api/gideon (plan/rôle depuis le JWT, jamais du body).
+// Protocole SSE émis :
+//   event: sources → { sources, tier }        (dès la fin de la recherche RAG)
+//   event: chunk   → { text }                 (fragments de réponse)
+//   event: done    → { answer, sources, tier, restricted, model } (état final)
+//   event: error   → { message }              (le front bascule sur /api/gideon)
+app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
+  const { question, conversationHistory = [] } = req.body;
+
+  if (!question || !question.trim()) {
+    return res.status(400).json({ error: "Question requise" });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // désactive le buffering des proxys (nginx/Railway)
+  res.flushHeaders?.();
+
+  const send = (event, data) => {
+    if (res.writableEnded) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  // Si le client ferme l'onglet en cours de génération, on arrête d'écrire.
+  // ATTENTION : on écoute la RÉPONSE, pas la requête — req émet "close" dès que
+  // son body est consommé (comportement Node moderne), ce qui couperait tout.
+  let closed = false;
+  res.on("close", () => { if (!res.writableEnded) closed = true; });
+
+  try {
+    const userPlan = req.user?.plan || "free";
+    const userRole = req.user?.role || "user";
+    console.log(`🤖 Gideon stream [${userRole}/${userPlan}]: "${question.slice(0, 80)}..."`);
+
+    // Quota journalier — envoyé en event done (les headers SSE sont déjà partis)
+    const { quota, exceeded } = await checkGideonQuota(req.user);
+    if (exceeded) {
+      send("done", { answer: GIDEON_QUOTA_MESSAGE, sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
+      return; // le finally fait res.end()
+    }
+
+    const result = await queryGideonStream({
+      question,
+      userPlan,
+      userRole,
+      conversationHistory,
+      onSources: (sources, tier) => { if (!closed) send("sources", { sources, tier }); },
+      onChunk: (text) => { if (!closed) send("chunk", { text }); },
+    });
+
+    if (quota && !result.restricted) {
+      result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
+    }
+    if (!closed) send("done", result);
+
+    // Persistance fire-and-forget (même si le client a fermé l'onglet :
+    // la réponse a été générée, on la garde dans l'historique)
+    if (!result.restricted && result.answer) {
+      saveExchange(req.user, question, result.answer, result.sources).catch(() => {});
+    }
+  } catch (err) {
+    console.error("❌ Gideon stream error:", err.message);
+    if (!closed) send("error", { message: "Une erreur s'est produite pendant la génération." });
+  } finally {
+    if (!res.writableEnded) res.end();
+  }
+});
+
+// ─── GET /api/gideon/history — Historique de conversation de l'utilisateur ──
+// Renvoie aussi le quota du jour pour que le compteur s'affiche dès l'arrivée
+// sur le Coach (pas seulement après le premier message).
+app.get("/api/gideon/history", ...requireAnyUser, async (req, res) => {
+  try {
+    const messages = await fetchHistory(req.user);
+    const { quota } = await checkGideonQuota(req.user);
+    res.json({ messages, quota });
+  } catch (err) {
+    console.error("❌ Gideon history error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── DELETE /api/gideon/history — "Nouvelle conversation" ───────────────────
+app.delete("/api/gideon/history", ...requireAnyUser, async (req, res) => {
+  try {
+    await clearHistory(req.user);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("❌ Gideon history clear error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1602,12 +1743,17 @@ app.delete("/api/knowledge-uploads/:id", ...requireAdmin, async (req, res) => {
 
     const { data: uploadRow } = await sb
       .from("knowledge_uploads")
-      .select("filename")
+      .select("filename, status")
       .eq("id", req.params.id)
       .single();
 
     if (uploadRow) {
-      await sb.from("knowledge_chunks").delete().eq("source_file", uploadRow.filename);
+      // On ne supprime les chunks QUE si cette ligne est l'ingestion réussie.
+      // Supprimer une ligne "error" (fossile d'une tentative ratée) ne doit
+      // jamais détruire le savoir ingéré par la tentative qui a réussi.
+      if (uploadRow.status === "completed") {
+        await sb.from("knowledge_chunks").delete().eq("source_file", uploadRow.filename);
+      }
       await sb.from("knowledge_uploads").delete().eq("id", req.params.id);
     }
 

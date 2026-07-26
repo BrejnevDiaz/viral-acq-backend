@@ -56,3 +56,46 @@ Tu ne dois pas inventer de nouveau style. Utilise ces règles :
 - **Textes** : sur fond sombre `#ffffff` (Principal) et `#A1A1AA` (Secondaire) ; sur fond clair `L.text`/`c.text` et `L.textMuted`/`c.textMuted` selon la palette active — ne jamais coder une couleur de texte en dur sans vérifier le fond réel derrière elle.
 - **Polices** : `Outfit` (Titres) et `Inter` (Corps de texte).
 - **Micro-interactions** : Hover avec translation légère vers le haut (`translateY(-2px)`) et augmentation du glow box-shadow.
+
+---
+
+## CHANGELOG — Session du 11-12/07/2026 (Claude, Coach IA Gideon)
+
+**⚠️ Deux copies du repo coexistent** : `Documents/acquisition-pro` (principal, celui de Gemini) et `.gemini/antigravity/scratch/prospect-agent` (copie). Les deux sont synchronisées à la fin de cette session — toute modification future doit être appliquée aux deux (ou la copie abandonnée).
+
+### 1. Streaming SSE du Coach IA
+- `aiProvider.js` → `generateAnswerStream()` (Gemini `streamGenerateContent?alt=sse`, OpenAI `stream:true`).
+- `gideonEngine.js` → refactoré : pipeline commun `prepareGideon()` (gate d'accès + RAG + prompt), `queryGideon` + `queryGideonStream`.
+- `server.js` → `POST /api/gideon/stream` (events SSE : `sources`, `chunk`, `done`, `error`). ⚠️ Piège corrigé : écouter `res.on("close")`, PAS `req.on("close")` (req émet "close" dès le body consommé en Node moderne → coupait tout le flux).
+- Front (`CoachIATab.jsx`, `ChatbotWidget.jsx`, nouveau `src/utils/gideonStream.js`) → effet machine à écrire + curseur clignotant (doré Elite), triple repli : stream → `/api/gideon` → simulation locale.
+
+### 2. Persistance des conversations
+- Table `gideon_messages` (SQL : `supabase/gideon_messages.sql`, ✅ exécuté en prod le 11/07) avec RLS par utilisateur.
+- `gideonHistory.js` → `fetchHistory` / `saveExchange` / `clearHistory` / `countToday` via client scoped au JWT.
+- Routes `GET|DELETE /api/gideon/history` + sauvegarde auto fire-and-forget après chaque réponse.
+- Front : historique rechargé au montage (Coach) / à l'ouverture (widget), bouton "＋ Nouvelle conversation" dans le header.
+- NB : en bypass local (`ALLOW_DEV_AUTH=true`, pas de token) la persistance est désactivée par design.
+
+### 3. Quotas journaliers par plan
+- `server.js` : `GIDEON_DAILY_LIMITS` (plus 20, standard 30, pro/vip_pro 100, elite/admin illimités), comptage via `countToday` sur `gideon_messages` (jour UTC).
+- Épuisement → message d'upsell + bouton "💎 Débloquer VIP Elite" (champ `quotaExceeded` dans la réponse).
+- `CoachIATab.jsx` : compteur "X messages restants aujourd'hui" sous l'input (orange ≤ 5 restants), invisible pour les illimités.
+
+### 4. Chaîne de secours Gemini → OpenAI → Claude (résilience quota)
+- `aiProvider.js` réécrit : embeddings TOUJOURS Gemini (base vectorielle 768 dims). Génération : chaîne de secours Gemini → OpenAI (gpt-4o-mini) → Claude (claude-haiku-4-5, via ANTHROPIC_API_KEY déjà en .env) — bascule auto au premier échec (429...), pas de retries lents si un secours existe. Trois fournisseurs indépendants.
+- En stream : bascule seulement si AUCUN fragment n'a été émis (sinon erreur propagée → le front se replie sur /api/gideon qui a la même chaîne).
+- Contexte : le quota journalier Gemini free tier a été épuisé le 11/07 au soir — d'où cette protection.
+- Un prompt de relève complet pour Gemini existe : `PROMPT_RELEVE_GEMINI.md` (racine du repo principal).
+
+### 5. Sécurité / nettoyage
+- `authMiddleware.js` : bypass local via `ALLOW_DEV_AUTH === "true"` explicite (fait par Gemini sur recommandation Claude — ne JAMAIS définir cette variable en prod).
+- `supabase/knowledge_schema.sql` : mis à jour pour refléter la prod (vector 768, migration Gemini) — l'ancien fichier déclarait 1536.
+- `supabase/knowledge_rls_patch.sql` : **⏳ EN ATTENTE D'EXÉCUTION** — supprime les policies `USING(true)` qui exposent les 91 PDF à quiconque a la clé anon. PRÉREQUIS : vérifier que `SUPABASE_KEY` du `.env` backend est la clé service_role.
+
+### ⏳ Reste à faire
+1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
+2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).
+3. Vérifier visuellement le streaming (texte qui s'écrit en direct) après redémarrage serveur + `npm run dev` + hard refresh (Ctrl+Shift+R).
+4. Commit + push sur les deux dépôts GitHub (`acquisition-pro`, `viral-acq-backend`).
+5. Avant commercialisation : activer la facturation Gemini (le free tier n'est pas viable pour des clients payants).
+6. Le SaaS n'est PAS encore commercial — plusieurs sections (recherche produit...) renvoient des résultats factices.

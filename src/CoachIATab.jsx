@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_MESSAGE } from "./chatbotKnowledge";
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
+import { streamGideon } from "./utils/gideonStream";
 import ReactMarkdown from "react-markdown";
 
 export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", API_URL, onUpgradeClick }) {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [quota, setQuota] = useState(null); // { used, limit, remaining } — null si illimité
   const scrollRef = useRef(null);
 
   const isElite = getTierRank(userTier) >= TIER_RANK.elite;
@@ -19,6 +21,35 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     }
   }, [messages, isTyping]);
 
+  // Historique persisté : chargé une fois au montage (table gideon_messages).
+  // Silencieux en cas d'échec — le Coach démarre simplement une conversation vide.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/gideon/history`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data.quota) setQuota(data.quota);
+        if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages.map(m => ({
+            role: m.role === "user" ? "user" : "bot",
+            text: m.content,
+            sources: Array.isArray(m.sources) && m.sources.length > 0 ? m.sources : undefined,
+          })));
+        }
+      } catch { /* backend hors-ligne — pas d'historique */ }
+    })();
+    return () => { cancelled = true; };
+  }, [API_URL]);
+
+  // Bouton "Nouvelle conversation" : efface côté serveur puis localement
+  const handleNewConversation = async () => {
+    if (isTyping) return;
+    setMessages([]);
+    try { await apiFetch(`${API_URL}/api/gideon/history`, { method: "DELETE" }); } catch { /* no-op */ }
+  };
+
   const handleSend = async () => {
     const text = inputValue.trim();
     if (!text || isTyping) return;
@@ -27,29 +58,67 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     setInputValue("");
 
     setIsTyping(true);
+    const conversationHistory = history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+
+    // Remplace le contenu du dernier message bot (celui en cours de stream)
+    const updateLastBot = (patch) => setMessages(prev => {
+      const next = [...prev];
+      next[next.length - 1] = { ...next[next.length - 1], ...patch };
+      return next;
+    });
+
     try {
-      const res = await apiFetch(`${API_URL}/api/gideon`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: text,
-          conversationHistory: history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
-        }),
+      // 1. Streaming SSE — la réponse s'écrit en direct, effet "machine à écrire"
+      let started = false;
+      const data = await streamGideon({
+        API_URL,
+        question: text,
+        conversationHistory,
+        onChunk: (fullText) => {
+          if (!started) {
+            started = true;
+            setIsTyping(false); // les 3 points laissent place au texte qui s'écrit
+            setMessages(prev => [...prev, { role: "bot", text: fullText, streaming: true }]);
+          } else {
+            updateLastBot({ text: fullText });
+          }
+        },
       });
-      if (!res.ok) throw new Error("Gideon API not ready yet");
-      const data = await res.json();
-      if (data.restricted) {
+      // État final : texte complet + sources + upsell éventuel + quota
+      if (data.quota) setQuota(data.quota);
+      if (started) {
+        updateLastBot({ ...(data.answer ? { text: data.answer } : {}), sources: data.sources, isUpsell: !!data.restricted || !!data.quotaExceeded, streaming: false });
+      } else if (data.restricted || data.quotaExceeded) {
         setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
       } else {
         setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
       }
-    } catch (err) {
-      console.error("⚠️ Gideon API error:", err);
-      if (!isElite && isAdvancedEcomQuestion(text)) {
-        setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
-      } else {
-        const reply = getBotResponse(text, uiLang);
-        setMessages(prev => [...prev, { role: "bot", text: reply }]);
+    } catch (streamErr) {
+      // 2. Repli : endpoint non-streamé classique
+      console.warn("⚠️ Gideon stream indisponible, repli sur /api/gideon:", streamErr);
+      try {
+        const res = await apiFetch(`${API_URL}/api/gideon`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text, conversationHistory }),
+        });
+        if (!res.ok) throw new Error("Gideon API not ready yet");
+        const data = await res.json();
+        if (data.quota) setQuota(data.quota);
+        if (data.restricted || data.quotaExceeded) {
+          setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
+        } else {
+          setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
+        }
+      } catch (err) {
+        // 3. Dernier repli : simulation locale hors-ligne
+        console.error("⚠️ Gideon API error:", err);
+        if (!isElite && isAdvancedEcomQuestion(text)) {
+          setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
+        } else {
+          const reply = getBotResponse(text, uiLang);
+          setMessages(prev => [...prev, { role: "bot", text: reply }]);
+        }
       }
     } finally {
       setIsTyping(false);
@@ -79,6 +148,23 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             {t.subheader}
           </div>
         </div>
+        {messages.length > 0 && (
+          <button
+            onClick={handleNewConversation}
+            className="hover-lift"
+            title={uiLang === "fr" ? "Nouvelle conversation" : uiLang === "it" ? "Nuova conversazione" : "New conversation"}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 18px",
+              borderRadius: 12, border: `1px solid ${isElite ? "rgba(234,179,8,0.35)" : c.border}`,
+              background: "transparent", color: isElite ? "#EAB308" : c.textDim,
+              fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+              transition: "all 0.2s",
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            {uiLang === "fr" ? "Nouvelle conversation" : uiLang === "it" ? "Nuova conversazione" : "New conversation"}
+          </button>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -109,7 +195,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
               boxShadow: m.role === "user" ? "0 8px 16px rgba(124,58,237,0.2)" : "0 4px 12px rgba(0,0,0,0.05)"
             }}>
               {m.role === "bot" ? (
-                <ReactMarkdown>{m.text || ""}</ReactMarkdown>
+                <>
+                  <ReactMarkdown>{m.text || ""}</ReactMarkdown>
+                  {m.streaming && <span className="stream-cursor" />}
+                </>
               ) : (
                 m.text
               )}
@@ -166,6 +255,15 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
+        {quota && quota.limit > 0 && (
+          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, textAlign: "right", color: quota.remaining <= 5 ? "#F59E0B" : c.textMuted, transition: "color 0.3s" }}>
+            {uiLang === "fr"
+              ? `${quota.remaining} message${quota.remaining > 1 ? "s" : ""} restant${quota.remaining > 1 ? "s" : ""} aujourd'hui`
+              : uiLang === "it"
+              ? `${quota.remaining} messaggi rimanenti oggi`
+              : `${quota.remaining} messages left today`}
+          </div>
+        )}
       </div>
       
       <style>{`
@@ -177,6 +275,13 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
           30% { transform: translateY(-5px); opacity: 1; }
         }
+        .stream-cursor {
+          display: inline-block; width: 9px; height: 17px; margin-left: 3px;
+          vertical-align: text-bottom; border-radius: 2px;
+          background: ${isElite ? "#EAB308" : "#8B5CF6"};
+          animation: streamBlink 0.9s steps(2, start) infinite;
+        }
+        @keyframes streamBlink { to { visibility: hidden; } }
         .markdown-body {
           font-family: inherit;
         }

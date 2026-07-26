@@ -4,13 +4,21 @@
 // prioritaire, sinon OPENAI_API_KEY. IMPORTANT : les embeddings stockés et les
 // embeddings de requête doivent venir du MÊME provider — si tu changes de
 // provider après ingestion, il faut ré-ingérer (les espaces vectoriels sont
-// incompatibles). Dimension fixée à 1536 des deux côtés → le schéma Supabase
-// vector(1536) reste valable tel quel.
+// incompatibles). Dimension fixée à 768 des deux côtés → le schéma Supabase
+// vector(768) reste valable tel quel.
+//
+// RÉSILIENCE (chaîne de secours) : si Gemini échoue à la GÉNÉRATION (quota 429
+// épuisé, panne...), la génération bascule automatiquement sur le provider
+// suivant disponible : Gemini → OpenAI → Claude (Anthropic). Les EMBEDDINGS
+// restent toujours sur Gemini (compatibilité avec la base vectorielle ingérée)
+// — seule la rédaction de la réponse change de moteur. Trois fournisseurs
+// indépendants : le Coach ne tombe jamais en panne de quota.
 
 const GEMINI_EMBED_MODEL = "gemini-embedding-001";
 const GEMINI_CHAT_MODEL = "gemini-2.5-flash";
 const OPENAI_EMBED_MODEL = "text-embedding-3-small";
 const OPENAI_CHAT_MODEL = "gpt-4o-mini";
+const ANTHROPIC_CHAT_MODEL = "claude-haiku-4-5-20251001";
 export const EMBEDDING_DIM = 768;
 
 export const activeProvider = () =>
@@ -78,6 +86,82 @@ export async function embedTexts(texts, { taskType = "RETRIEVAL_DOCUMENT" } = {}
   return data.data.map((d) => d.embedding);
 }
 
+// ─── Helpers génération ──────────────────────────────────────────────────────
+const geminiContents = (history, question) => [
+  ...history.slice(-10).map((m) => ({
+    role: m.role === "user" ? "user" : "model",
+    parts: [{ text: m.content }],
+  })),
+  { role: "user", parts: [{ text: question }] },
+];
+
+const openaiMessages = (system, history, question) => [
+  { role: "system", content: system },
+  ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
+  { role: "user", content: question },
+];
+
+async function geminiGenerate({ system, history, question, tries = 4 }) {
+  const key = process.env.GEMINI_API_KEY;
+  const data = await fetchWithRetry(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: geminiContents(history, question),
+        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+      }),
+    },
+    tries
+  );
+  const answer = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+  return { answer, model: GEMINI_CHAT_MODEL };
+}
+
+async function openaiGenerate({ system, history, question }) {
+  const data = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify({
+      model: OPENAI_CHAT_MODEL,
+      messages: openaiMessages(system, history, question),
+      max_tokens: 2048,
+      temperature: 0.7,
+    }),
+  });
+  return { answer: data.choices?.[0]?.message?.content || "", model: OPENAI_CHAT_MODEL };
+}
+
+const anthropicHeaders = () => ({
+  "Content-Type": "application/json",
+  "x-api-key": process.env.ANTHROPIC_API_KEY,
+  "anthropic-version": "2023-06-01",
+});
+
+const anthropicBody = (system, history, question, stream = false) => JSON.stringify({
+  model: ANTHROPIC_CHAT_MODEL,
+  max_tokens: 2048,
+  temperature: 0.7,
+  system,
+  messages: [
+    ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
+    { role: "user", content: question },
+  ],
+  ...(stream ? { stream: true } : {}),
+});
+
+async function anthropicGenerate({ system, history, question }) {
+  const data = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: anthropicHeaders(),
+    body: anthropicBody(system, history, question),
+  }, 1);
+  const answer = (data.content || []).map((b) => b.text || "").join("");
+  return { answer, model: ANTHROPIC_CHAT_MODEL };
+}
+
 // ─── Génération de réponse (chat) ────────────────────────────────────────────
 /**
  * @param {Object} params
@@ -90,41 +174,156 @@ export async function generateAnswer({ system, history = [], question }) {
   const provider = activeProvider();
   if (!provider) throw new Error("Aucune clé IA : ajoute GEMINI_API_KEY ou OPENAI_API_KEY dans .env");
 
-  if (provider === "gemini") {
-    const key = process.env.GEMINI_API_KEY;
-    const contents = [
-      ...history.slice(-10).map((m) => ({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.content }],
-      })),
-      { role: "user", parts: [{ text: question }] },
-    ];
-    const data = await fetchWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:generateContent?key=${key}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents,
-          generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
-        }),
+  // Chaîne de secours selon les clés disponibles : Gemini → OpenAI → Claude.
+  // S'il y a au moins un secours, pas de retries lents (20-60s) sur Gemini :
+  // on bascule immédiatement au premier échec.
+  const chain = [];
+  if (provider === "gemini") chain.push(["gemini", (hasBackup) => geminiGenerate({ system, history, question, tries: hasBackup ? 1 : 4 })]);
+  if (process.env.OPENAI_API_KEY) chain.push(["openai", () => openaiGenerate({ system, history, question })]);
+  if (process.env.ANTHROPIC_API_KEY) chain.push(["claude", () => anthropicGenerate({ system, history, question })]);
+
+  let lastErr;
+  for (let i = 0; i < chain.length; i++) {
+    const [name, fn] = chain[i];
+    try {
+      return await fn(chain.length > 1);
+    } catch (err) {
+      lastErr = err;
+      if (i < chain.length - 1) {
+        console.warn(`⚠️ Génération ${name} KO (${String(err.message).slice(0, 80)}…) — bascule sur ${chain[i + 1][0]}`);
       }
-    );
-    const answer = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
-    return { answer, model: GEMINI_CHAT_MODEL };
+    }
+  }
+  throw lastErr;
+}
+
+// ─── Génération streamée (SSE) ───────────────────────────────────────────────
+// Lit un flux SSE (Gemini streamGenerateContent ou OpenAI stream:true) et
+// appelle onChunk(texte) à chaque fragment. Retourne la réponse complète.
+async function readSseStream(res, provider, onChunk) {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+  const model = provider === "gemini" ? GEMINI_CHAT_MODEL : provider === "claude" ? ANTHROPIC_CHAT_MODEL : OPENAI_CHAT_MODEL;
+
+  for await (const chunk of res.body) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop(); // dernière ligne potentiellement incomplète
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      let json;
+      try { json = JSON.parse(payload); } catch { continue; }
+      const text = provider === "gemini"
+        ? (json.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "")
+        : provider === "claude"
+        ? (json.type === "content_block_delta" ? (json.delta?.text || "") : "")
+        : (json.choices?.[0]?.delta?.content || "");
+      if (text) {
+        full += text;
+        onChunk?.(text);
+      }
+    }
   }
 
-  // OpenAI
-  const data = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
+  return { answer: full, model };
+}
+
+async function openaiStream({ system, history, question, onChunk }) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
-      messages: [{ role: "system", content: system }, ...history.slice(-10), { role: "user", content: question }],
+      messages: openaiMessages(system, history, question),
       max_tokens: 2048,
       temperature: 0.7,
+      stream: true,
     }),
   });
-  return { answer: data.choices?.[0]?.message?.content || "", model: OPENAI_CHAT_MODEL };
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${body.slice(0, 300)}`);
+  }
+  return readSseStream(res, "openai", onChunk);
+}
+
+async function anthropicStream({ system, history, question, onChunk }) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: anthropicHeaders(),
+    body: anthropicBody(system, history, question, true),
+  });
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${body.slice(0, 300)}`);
+  }
+  return readSseStream(res, "claude", onChunk);
+}
+
+async function geminiStream({ system, history, question, onChunk }) {
+  const key = process.env.GEMINI_API_KEY;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:streamGenerateContent?alt=sse&key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: geminiContents(history, question),
+        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+      }),
+    }
+  );
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`${res.status} ${body.slice(0, 300)}`);
+  }
+  return readSseStream(res, "gemini", onChunk);
+}
+
+/**
+ * Même contrat que generateAnswer, mais appelle onChunk(texte) à chaque
+ * fragment reçu. Chaîne de secours Gemini → OpenAI → Claude : un provider qui
+ * échoue AVANT d'avoir émis le moindre fragment est remplacé par le suivant.
+ * Si du texte a déjà été streamé au client, l'erreur est propagée (impossible
+ * de repartir de zéro sans doubler le texte) — l'appelant (la route SSE) émet
+ * alors un event error et le front se replie sur /api/gideon, qui a la même
+ * chaîne de secours.
+ * @param {Object} params
+ * @param {string} params.system
+ * @param {Object[]} params.history
+ * @param {string} params.question
+ * @param {(text: string) => void} params.onChunk
+ * @returns {Promise<{ answer: string, model: string }>}
+ */
+export async function generateAnswerStream({ system, history = [], question, onChunk }) {
+  const provider = activeProvider();
+  if (!provider) throw new Error("Aucune clé IA : ajoute GEMINI_API_KEY ou OPENAI_API_KEY dans .env");
+
+  const chain = [];
+  if (provider === "gemini") chain.push(["gemini", geminiStream]);
+  if (process.env.OPENAI_API_KEY) chain.push(["openai", openaiStream]);
+  if (process.env.ANTHROPIC_API_KEY) chain.push(["claude", anthropicStream]);
+
+  let emitted = false;
+  const guardedChunk = (text) => { emitted = true; onChunk?.(text); };
+
+  let lastErr;
+  for (let i = 0; i < chain.length; i++) {
+    const [name, fn] = chain[i];
+    try {
+      return await fn({ system, history, question, onChunk: guardedChunk });
+    } catch (err) {
+      lastErr = err;
+      if (emitted) throw err; // du texte est déjà parti vers le client
+      if (i < chain.length - 1) {
+        console.warn(`⚠️ Stream ${name} KO (${String(err.message).slice(0, 80)}…) — bascule sur ${chain[i + 1][0]}`);
+      }
+    }
+  }
+  throw lastErr;
 }

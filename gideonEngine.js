@@ -7,7 +7,7 @@
 // adapté aux tiers réels de cette app (tierConfig.js) + rôle utilisateur.
 
 import { createClient } from "@supabase/supabase-js";
-import { embedTexts, generateAnswer, activeProvider } from "./aiProvider.js";
+import { embedTexts, generateAnswer, generateAnswerStream, activeProvider } from "./aiProvider.js";
 
 // ─── Tier Mapping ───────────────────────────────────────────────────────────
 // Le plan vient de profiles.plan (source serveur via authMiddleware, jamais du
@@ -91,26 +91,87 @@ Réponds toujours en français sauf si l'utilisateur écrit dans une autre langu
  * @returns {Object} { answer, sources, tier }
  */
 export async function queryGideon({ question, userPlan = "free", userRole = "user", conversationHistory = [] }) {
-  // Determine the user's knowledge tier
+  const prep = await prepareGideon({ question, userPlan, userRole });
+  if (prep.early) return prep.early;
+
+  try {
+    const { answer, model } = await generateAnswer({
+      system: prep.system,
+      history: conversationHistory,
+      question,
+    });
+    return { answer, sources: prep.sources, tier: prep.tier, restricted: false, model };
+  } catch (err) {
+    console.error("❌ Gideon generation error:", err.message);
+    return {
+      answer: "⚠️ Une erreur s'est produite. Réessayez dans quelques instants.",
+      sources: [],
+      tier: prep.tier,
+      restricted: false,
+    };
+  }
+}
+
+// ─── Query Knowledge Base (streaming) ────────────────────────────────────────
+/**
+ * Variante streamée de queryGideon : même pipeline RAG, mais la génération est
+ * poussée fragment par fragment via onChunk. onSources est appelé dès que la
+ * recherche vectorielle est terminée (avant la génération) pour que le front
+ * puisse afficher les sources sans attendre la fin de la réponse.
+ * Contrairement à queryGideon, les erreurs de génération sont PROPAGÉES (throw)
+ * pour que la route puisse émettre un event SSE "error" et que le front bascule
+ * sur le mode non-streamé.
+ * @param {Object} params
+ * @param {string} params.question
+ * @param {string} params.userPlan
+ * @param {string} params.userRole
+ * @param {Object[]} params.conversationHistory
+ * @param {(text: string) => void} params.onChunk
+ * @param {(sources: Object[], tier: string) => void} [params.onSources]
+ * @returns {Object} { answer, sources, tier, restricted, model }
+ */
+export async function queryGideonStream({ question, userPlan = "free", userRole = "user", conversationHistory = [], onChunk, onSources }) {
+  const prep = await prepareGideon({ question, userPlan, userRole });
+  if (prep.early) return prep.early; // restricted / clé manquante → réponse directe, pas de stream
+
+  onSources?.(prep.sources, prep.tier);
+
+  const { answer, model } = await generateAnswerStream({
+    system: prep.system,
+    history: conversationHistory,
+    question,
+    onChunk,
+  });
+  return { answer, sources: prep.sources, tier: prep.tier, restricted: false, model };
+}
+
+// ─── Pipeline partagé (gate d'accès + RAG + system prompt) ──────────────────
+// Retourne soit { early } (réponse immédiate sans génération : free restreint,
+// clé IA manquante), soit { system, sources, tier } prêt pour la génération.
+async function prepareGideon({ question, userPlan, userRole }) {
   const tier = resolveKnowledgeTier(userPlan, userRole);
 
   // Free users can't use Gideon
   if (userPlan === "free" && userRole !== "admin") {
     return {
-      answer: "🔒 L'accès à Gideon Coach IA est réservé aux abonnés. Passez au forfait Standard (Créateur) ou Plus (Marque) pour débloquer votre coach IA personnalisé !",
-      sources: [],
-      tier: null,
-      restricted: true,
+      early: {
+        answer: "🔒 L'accès à Gideon Coach IA est réservé aux abonnés. Passez au forfait Standard (Créateur) ou Plus (Marque) pour débloquer votre coach IA personnalisé !",
+        sources: [],
+        tier: null,
+        restricted: true,
+      },
     };
   }
 
   // If no AI key, return a helpful message
   if (!activeProvider()) {
     return {
-      answer: "⚠️ Gideon n'est pas encore configuré (clé IA manquante — GEMINI_API_KEY ou OPENAI_API_KEY). Contactez l'administrateur.",
-      sources: [],
-      tier,
-      restricted: false,
+      early: {
+        answer: "⚠️ Gideon n'est pas encore configuré (clé IA manquante — GEMINI_API_KEY ou OPENAI_API_KEY). Contactez l'administrateur.",
+        sources: [],
+        tier,
+        restricted: false,
+      },
     };
   }
 
@@ -165,35 +226,5 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
     ? `\n\n═══ CONNAISSANCES EXCLUSIVES (formations du fondateur) ═══\nUtilise ces extraits pour enrichir ta réponse. Ne les cite pas mot pour mot, reformule avec ta propre voix.\n\n${knowledgeContext}\n\n═══ FIN DES CONNAISSANCES ═══`
     : "";
 
-  // 4. Build messages array
-  const messages = [
-    { role: "system", content: systemPrompt + contextBlock },
-    ...conversationHistory.slice(-10), // Keep last 10 messages for context
-    { role: "user", content: question },
-  ];
-
-  // 5. Generate response
-  try {
-    const { answer, model } = await generateAnswer({
-      system: systemPrompt + contextBlock,
-      history: conversationHistory,
-      question: question
-    });
-
-    return {
-      answer,
-      sources,
-      tier,
-      restricted: false,
-      model,
-    };
-  } catch (err) {
-    console.error("❌ Gideon generation error:", err.message);
-    return {
-      answer: "⚠️ Une erreur s'est produite. Réessayez dans quelques instants.",
-      sources: [],
-      tier,
-      restricted: false,
-    };
-  }
+  return { system: systemPrompt + contextBlock, sources, tier };
 }

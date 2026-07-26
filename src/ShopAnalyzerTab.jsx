@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { apiFetch } from "./utils/apiClient";
+import ComingSoonOverlay from "./ComingSoonOverlay";
 
 // Mock database of hot trending e-commerce Shopify shops
 const MOCK_SHOPS = [
@@ -680,7 +681,9 @@ export default function ShopAnalyzerTab({ c, mono, API_URL, onImportLead, uiLang
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", position: "relative" }}>
-      
+      {/* Données encore simulées — section masquée jusqu'au branchement réel */}
+      <ComingSoonOverlay c={c} uiLang={uiLang} />
+
       {/* Title */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 24, fontWeight: 800, color: c.text, margin: "0 0 8px 0", letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 12 }}>

@@ -1,22 +1,29 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 -- GIDEON RAG — Knowledge Base Schema (Supabase + pgvector)
 -- ═══════════════════════════════════════════════════════════════════════════
+-- Version conforme à la PRODUCTION (migration Gemini, embeddings 768 dims).
 -- Run this in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/etppvzemtmhdfistjlmy/sql
+-- ⚠️ Les DROP effacent la base de connaissances existante — ré-ingérer les PDF après.
 
--- 1. Enable the pgvector extension (if not already enabled)
+-- 1. Enable the pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
+-- Drop existing items (Gemini migration)
+DROP FUNCTION IF EXISTS match_knowledge(vector, text, int);
+DROP TABLE IF EXISTS knowledge_chunks CASCADE;
+DROP TABLE IF EXISTS knowledge_uploads CASCADE;
 
 -- 2. Create the knowledge_chunks table
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
   id              BIGSERIAL PRIMARY KEY,
-  content         TEXT NOT NULL,                    -- The raw text chunk
-  embedding       vector(1536),                     -- OpenAI text-embedding-3-small output
-  category        TEXT NOT NULL DEFAULT 'general',  -- e.g. 'marketing', 'viralite', 'ecommerce', 'ugc', 'negotiation'
-  tier            TEXT NOT NULL DEFAULT 'elite',    -- Access tier: 'creator_standard', 'vip_pro', 'elite'
-  source_file     TEXT,                             -- Original PDF filename
-  chunk_index     INTEGER DEFAULT 0,               -- Position within the source document
-  metadata        JSONB DEFAULT '{}',               -- Extra metadata (page number, chapter title, etc.)
+  content         TEXT NOT NULL,
+  embedding       vector(768),
+  category        TEXT NOT NULL DEFAULT 'general',
+  tier            TEXT NOT NULL DEFAULT 'elite',
+  source_file     TEXT,
+  chunk_index     INTEGER DEFAULT 0,
+  metadata        JSONB DEFAULT '{}',
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -27,9 +34,8 @@ CREATE INDEX IF NOT EXISTS knowledge_chunks_embedding_idx
   WITH (lists = 100);
 
 -- 4. Create the similarity search function
--- This function finds the most relevant knowledge chunks for a given query
 CREATE OR REPLACE FUNCTION match_knowledge(
-  query_embedding vector(1536),
+  query_embedding vector(768),
   match_tier TEXT DEFAULT 'elite',
   match_count INT DEFAULT 5
 )
@@ -54,10 +60,6 @@ BEGIN
     1 - (kc.embedding <=> query_embedding) AS similarity
   FROM knowledge_chunks kc
   WHERE
-    -- Tier-based access control:
-    -- 'elite' can access everything
-    -- 'vip_pro' can access 'vip_pro' and 'creator_standard'
-    -- 'creator_standard' can only access 'creator_standard'
     CASE
       WHEN match_tier = 'elite' THEN TRUE
       WHEN match_tier = 'vip_pro' THEN kc.tier IN ('vip_pro', 'creator_standard')
@@ -76,17 +78,16 @@ CREATE TABLE IF NOT EXISTS knowledge_uploads (
   category        TEXT NOT NULL,
   tier            TEXT NOT NULL,
   chunks_count    INTEGER DEFAULT 0,
-  status          TEXT DEFAULT 'processing',  -- 'processing', 'completed', 'error'
+  status          TEXT DEFAULT 'processing',
   error_message   TEXT,
   uploaded_at     TIMESTAMPTZ DEFAULT NOW(),
   completed_at    TIMESTAMPTZ
 );
 
--- 6. Row Level Security (optional but recommended)
+-- 6. Row Level Security
 ALTER TABLE knowledge_chunks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE knowledge_uploads ENABLE ROW LEVEL SECURITY;
 
--- Allow the service role to do everything
 CREATE POLICY "Service role full access on knowledge_chunks"
   ON knowledge_chunks FOR ALL
   USING (true)
@@ -96,7 +97,3 @@ CREATE POLICY "Service role full access on knowledge_uploads"
   ON knowledge_uploads FOR ALL
   USING (true)
   WITH CHECK (true);
-
--- ═══════════════════════════════════════════════════════════════════════════
--- DONE! After running this, add OPENAI_API_KEY to your .env file
--- ═══════════════════════════════════════════════════════════════════════════

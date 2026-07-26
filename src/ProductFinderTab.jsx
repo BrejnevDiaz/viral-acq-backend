@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { apiFetch } from "./utils/apiClient";
+import ComingSoonOverlay from "./ComingSoonOverlay";
 
 // Pre-loaded high-converting winning dropshipping products
 const BASE_MOCK_PRODUCTS = [
@@ -544,7 +545,9 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", position: "relative" }}>
-      
+      {/* Données encore simulées — section masquée jusqu'au branchement réel */}
+      <ComingSoonOverlay c={c} uiLang={uiLang} />
+
       {/* Title */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 24, fontWeight: 800, color: c.text, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>{t.title}</h2>

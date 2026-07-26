@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_MESSAGE, buildChatRequestPayload } from "./chatbotKnowledge";
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
+import { streamGideon } from "./utils/gideonStream";
 
 export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_URL, onUpgradeClick }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef(null);
+  const historyLoaded = useRef(false);
 
   const isElite = getTierRank(userTier) >= TIER_RANK.elite;
   const t = (isElite ? ELITE_UI_TEXT[uiLang] : UI_TEXT[uiLang]) || (isElite ? ELITE_UI_TEXT.fr : UI_TEXT.fr);
@@ -32,6 +34,29 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
     }
   }, [messages, isTyping]);
 
+  // Historique persisté : chargé à la première ouverture du widget (même
+  // conversation que CoachIATab — c'est le même coach). Silencieux si échec.
+  useEffect(() => {
+    if (!isOpen || historyLoaded.current) return;
+    historyLoaded.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/gideon/history`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(prev => (prev.length > 0 ? prev : data.messages.map(m => ({
+            role: m.role === "user" ? "user" : "bot",
+            text: m.content,
+            sources: Array.isArray(m.sources) && m.sources.length > 0 ? m.sources : undefined,
+          }))));
+        }
+      } catch { /* backend hors-ligne */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, API_URL]);
+
   const handleSend = async () => {
     const text = inputValue.trim();
     if (!text || isTyping) return;
@@ -40,34 +65,66 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
     setInputValue("");
 
     setIsTyping(true);
+    // Gideon RAG : le serveur détermine le tier de savoir depuis le JWT
+    // (profiles.plan/role) — créateurs Standard = viralité/UGC, VIP Pro =
+    // marketing, VIP Elite = tout. Free reçoit restricted:true → upsell.
+    const conversationHistory = history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+
+    const updateLastBot = (patch) => setMessages(prev => {
+      const next = [...prev];
+      next[next.length - 1] = { ...next[next.length - 1], ...patch };
+      return next;
+    });
+
     try {
-      // Gideon RAG : le serveur détermine le tier de savoir depuis le JWT
-      // (profiles.plan/role) — créateurs Standard = viralité/UGC, VIP Pro =
-      // marketing, VIP Elite = tout. Free reçoit restricted:true → upsell.
-      const res = await apiFetch(`${API_URL}/api/gideon`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: text,
-          conversationHistory: history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
-        }),
+      // 1. Streaming SSE — la réponse s'écrit en direct
+      let started = false;
+      const data = await streamGideon({
+        API_URL,
+        question: text,
+        conversationHistory,
+        onChunk: (fullText) => {
+          if (!started) {
+            started = true;
+            setIsTyping(false);
+            setMessages(prev => [...prev, { role: "bot", text: fullText, streaming: true }]);
+          } else {
+            updateLastBot({ text: fullText });
+          }
+        },
       });
-      if (!res.ok) throw new Error("Gideon API not ready yet");
-      const data = await res.json();
-      if (data.restricted) {
+      if (started) {
+        updateLastBot({ ...(data.answer ? { text: data.answer } : {}), sources: data.sources, isUpsell: !!data.restricted || !!data.quotaExceeded, streaming: false });
+      } else if (data.restricted || data.quotaExceeded) {
         setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
       } else {
         setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
       }
-    } catch (err) {
-      // Backend indisponible ou non configuré — repli sur la simulation locale
-      // (avec le gate upsell historique) pour que le widget reste utile.
-      console.error("⚠️ Gideon API error:", err);
-      if (!isElite && isAdvancedEcomQuestion(text)) {
-        setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
-      } else {
-        const reply = getBotResponse(text, uiLang);
-        setMessages(prev => [...prev, { role: "bot", text: reply }]);
+    } catch (streamErr) {
+      // 2. Repli : endpoint non-streamé classique
+      console.warn("⚠️ Gideon stream indisponible, repli sur /api/gideon:", streamErr);
+      try {
+        const res = await apiFetch(`${API_URL}/api/gideon`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: text, conversationHistory }),
+        });
+        if (!res.ok) throw new Error("Gideon API not ready yet");
+        const data = await res.json();
+        if (data.restricted || data.quotaExceeded) {
+          setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
+        } else {
+          setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
+        }
+      } catch (err) {
+        // 3. Dernier repli : simulation locale hors-ligne
+        console.error("⚠️ Gideon API error:", err);
+        if (!isElite && isAdvancedEcomQuestion(text)) {
+          setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
+        } else {
+          const reply = getBotResponse(text, uiLang);
+          setMessages(prev => [...prev, { role: "bot", text: reply }]);
+        }
       }
     } finally {
       setIsTyping(false);
