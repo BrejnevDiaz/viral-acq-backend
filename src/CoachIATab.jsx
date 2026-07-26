@@ -10,6 +10,8 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState([]);
   const [quota, setQuota] = useState(null); // { used, limit, remaining } — null si illimité
+  const [conversations, setConversations] = useState([]); // panneau latéral
+  const [activeConvId, setActiveConvId] = useState(null);
   const scrollRef = useRef(null);
 
   const isElite = getTierRank(userTier) >= TIER_RANK.elite;
@@ -21,33 +23,66 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     }
   }, [messages, isTyping]);
 
-  // Historique persisté : chargé une fois au montage (table gideon_messages).
-  // Silencieux en cas d'échec — le Coach démarre simplement une conversation vide.
+  const mapRows = (rows) => rows.map(m => ({
+    role: m.role === "user" ? "user" : "bot",
+    text: m.content,
+    sources: Array.isArray(m.sources) && m.sources.length > 0 ? m.sources : undefined,
+  }));
+
+  const refreshConversations = async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/api/gideon/conversations`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.conversations)) setConversations(data.conversations);
+    } catch { /* backend hors-ligne */ }
+  };
+
+  // Au montage : panneau des conversations + chargement de la plus récente.
+  // Silencieux en cas d'échec — le Coach démarre simplement vide.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      refreshConversations();
       try {
         const res = await apiFetch(`${API_URL}/api/gideon/history`);
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled && data.quota) setQuota(data.quota);
-        if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
-          setMessages(data.messages.map(m => ({
-            role: m.role === "user" ? "user" : "bot",
-            text: m.content,
-            sources: Array.isArray(m.sources) && m.sources.length > 0 ? m.sources : undefined,
-          })));
-        }
+        if (cancelled) return;
+        if (data.quota) setQuota(data.quota);
+        if (data.conversationId) setActiveConvId(data.conversationId);
+        if (Array.isArray(data.messages) && data.messages.length > 0) setMessages(mapRows(data.messages));
       } catch { /* backend hors-ligne — pas d'historique */ }
     })();
     return () => { cancelled = true; };
   }, [API_URL]);
 
-  // Bouton "Nouvelle conversation" : efface côté serveur puis localement
-  const handleNewConversation = async () => {
+  // Bascule vers une conversation du panneau
+  const loadConversation = async (id) => {
+    if (isTyping || id === activeConvId) return;
+    try {
+      const res = await apiFetch(`${API_URL}/api/gideon/history?conversationId=${encodeURIComponent(id)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setActiveConvId(id);
+      setMessages(Array.isArray(data.messages) ? mapRows(data.messages) : []);
+      if (data.quota) setQuota(data.quota);
+    } catch { /* no-op */ }
+  };
+
+  // Nouvelle conversation : vide localement — créée côté serveur au premier
+  // message (titre auto = début de la question)
+  const handleNewConversation = () => {
     if (isTyping) return;
     setMessages([]);
-    try { await apiFetch(`${API_URL}/api/gideon/history`, { method: "DELETE" }); } catch { /* no-op */ }
+    setActiveConvId(null);
+  };
+
+  const handleDeleteConversation = async (id, e) => {
+    e.stopPropagation();
+    try { await apiFetch(`${API_URL}/api/gideon/conversations/${id}`, { method: "DELETE" }); } catch { /* no-op */ }
+    if (id === activeConvId) { setMessages([]); setActiveConvId(null); }
+    refreshConversations();
   };
 
   const handleSend = async () => {
@@ -74,6 +109,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         API_URL,
         question: text,
         conversationHistory,
+        conversationId: activeConvId,
         onChunk: (fullText) => {
           if (!started) {
             started = true;
@@ -86,6 +122,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       });
       // État final : texte complet + sources + upsell éventuel + quota
       if (data.quota) setQuota(data.quota);
+      if (data.conversationId) {
+        if (!activeConvId) setActiveConvId(data.conversationId);
+        refreshConversations(); // le titre / l'ordre du panneau ont pu changer
+      }
       if (started) {
         updateLastBot({ ...(data.answer ? { text: data.answer } : {}), sources: data.sources, isUpsell: !!data.restricted || !!data.quotaExceeded, streaming: false });
       } else if (data.restricted || data.quotaExceeded) {
@@ -100,11 +140,15 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         const res = await apiFetch(`${API_URL}/api/gideon`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, conversationHistory }),
+          body: JSON.stringify({ question: text, conversationHistory, conversationId: activeConvId }),
         });
         if (!res.ok) throw new Error("Gideon API not ready yet");
         const data = await res.json();
         if (data.quota) setQuota(data.quota);
+        if (data.conversationId) {
+          if (!activeConvId) setActiveConvId(data.conversationId);
+          refreshConversations();
+        }
         if (data.restricted || data.quotaExceeded) {
           setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
         } else {
@@ -148,24 +192,52 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             {t.subheader}
           </div>
         </div>
-        {messages.length > 0 && (
-          <button
-            onClick={handleNewConversation}
-            className="hover-lift"
-            title={uiLang === "fr" ? "Nouvelle conversation" : uiLang === "it" ? "Nuova conversazione" : "New conversation"}
-            style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "10px 18px",
-              borderRadius: 12, border: `1px solid ${isElite ? "rgba(234,179,8,0.35)" : c.border}`,
-              background: "transparent", color: isElite ? "#EAB308" : c.textDim,
-              fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-              transition: "all 0.2s",
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            {uiLang === "fr" ? "Nouvelle conversation" : uiLang === "it" ? "Nuova conversazione" : "New conversation"}
-          </button>
-        )}
       </div>
+
+      {/* Corps : panneau des conversations + colonne chat */}
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <div className="conv-sidebar" style={{ width: 250, flexShrink: 0, borderRight: `1px solid ${c.border}`, background: c.surface, display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: 14 }}>
+            <button onClick={handleNewConversation} className="hover-lift" style={{
+              width: "100%", padding: "12px 14px", borderRadius: 12,
+              border: `1px solid ${isElite ? "rgba(234,179,8,0.35)" : c.border}`,
+              background: "transparent", color: isElite ? "#EAB308" : c.text,
+              fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s",
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              {uiLang === "fr" ? "Nouvelle conversation" : uiLang === "it" ? "Nuova conversazione" : "New conversation"}
+            </button>
+          </div>
+          <div style={{ flex: 1, overflowY: "auto", padding: "0 10px 14px" }}>
+            {conversations.map((conv) => (
+              <div key={conv.id} onClick={() => loadConversation(conv.id)} className="conv-item" style={{
+                padding: "10px 12px", borderRadius: 10, marginBottom: 4, cursor: "pointer",
+                background: conv.id === activeConvId ? (isElite ? "rgba(234,179,8,0.12)" : "rgba(139,92,246,0.10)") : "transparent",
+                border: `1px solid ${conv.id === activeConvId ? (isElite ? "rgba(234,179,8,0.35)" : "rgba(139,92,246,0.3)") : "transparent"}`,
+                display: "flex", alignItems: "center", gap: 6, transition: "background 0.15s",
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: c.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{conv.title}</div>
+                  <div style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>
+                    {new Date(conv.updated_at).toLocaleDateString(uiLang === "fr" ? "fr-FR" : uiLang === "it" ? "it-IT" : "en-US", { day: "numeric", month: "short" })}
+                  </div>
+                </div>
+                <button onClick={(e) => handleDeleteConversation(conv.id, e)} className="conv-delete" aria-label="Delete conversation" style={{ border: "none", background: "transparent", color: c.textMuted, cursor: "pointer", padding: 4, borderRadius: 6, flexShrink: 0 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                </button>
+              </div>
+            ))}
+            {conversations.length === 0 && (
+              <div style={{ padding: "10px 12px", fontSize: 12.5, color: c.textMuted, lineHeight: 1.5 }}>
+                {uiLang === "fr" ? "Tes conversations sauvegardées apparaîtront ici." : uiLang === "it" ? "Le tue conversazioni salvate appariranno qui." : "Your saved conversations will appear here."}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Colonne chat */}
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
 
       {/* Messages Area */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "32px", display: "flex", flexDirection: "column", gap: 24, background: c.bg }}>
@@ -265,7 +337,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           </div>
         )}
       </div>
-      
+
+        </div>
+      </div>
+
       <style>{`
         .chat-typing-dot {
           width: 8px; height: 8px; border-radius: 50%; background: ${c.textMuted};
@@ -282,6 +357,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           animation: streamBlink 0.9s steps(2, start) infinite;
         }
         @keyframes streamBlink { to { visibility: hidden; } }
+        .conv-delete { opacity: 0; transition: opacity 0.15s, color 0.15s; }
+        .conv-item:hover .conv-delete { opacity: 1; }
+        .conv-delete:hover { color: #EF4444 !important; }
+        @media (max-width: 900px) { .conv-sidebar { display: none; } }
         .markdown-body {
           font-family: inherit;
         }

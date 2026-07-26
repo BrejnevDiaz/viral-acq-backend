@@ -11,6 +11,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
   const [messages, setMessages] = useState([]);
   const scrollRef = useRef(null);
   const historyLoaded = useRef(false);
+  const [convId, setConvId] = useState(null); // conversation active (partagée avec CoachIATab)
 
   const isElite = getTierRank(userTier) >= TIER_RANK.elite;
   const t = (isElite ? ELITE_UI_TEXT[uiLang] : UI_TEXT[uiLang]) || (isElite ? ELITE_UI_TEXT.fr : UI_TEXT.fr);
@@ -45,6 +46,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         const res = await apiFetch(`${API_URL}/api/gideon/history`);
         if (!res.ok) return;
         const data = await res.json();
+        if (!cancelled && data.conversationId) setConvId(data.conversationId);
         if (!cancelled && Array.isArray(data.messages) && data.messages.length > 0) {
           setMessages(prev => (prev.length > 0 ? prev : data.messages.map(m => ({
             role: m.role === "user" ? "user" : "bot",
@@ -83,6 +85,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         API_URL,
         question: text,
         conversationHistory,
+        conversationId: convId,
         onChunk: (fullText) => {
           if (!started) {
             started = true;
@@ -93,6 +96,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
           }
         },
       });
+      if (data.conversationId && !convId) setConvId(data.conversationId);
       if (started) {
         updateLastBot({ ...(data.answer ? { text: data.answer } : {}), sources: data.sources, isUpsell: !!data.restricted || !!data.quotaExceeded, streaming: false });
       } else if (data.restricted || data.quotaExceeded) {
@@ -107,10 +111,11 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         const res = await apiFetch(`${API_URL}/api/gideon`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, conversationHistory }),
+          body: JSON.stringify({ question: text, conversationHistory, conversationId: convId }),
         });
         if (!res.ok) throw new Error("Gideon API not ready yet");
         const data = await res.json();
+        if (data.conversationId && !convId) setConvId(data.conversationId);
         if (data.restricted || data.quotaExceeded) {
           setMessages(prev => [...prev, { role: "bot", text: data.answer, isUpsell: true }]);
         } else {

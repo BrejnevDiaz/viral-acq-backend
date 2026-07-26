@@ -1,11 +1,12 @@
-// ─── Gideon — Persistance de l'historique des conversations ──────────────────
-// Lit/écrit dans la table Supabase gideon_messages (voir supabase/gideon_messages.sql)
-// via un client scoped au token JWT de l'utilisateur → la RLS s'applique, un
-// utilisateur ne touche que ses propres messages.
+// ─── Gideon — Persistance de l'historique et des conversations ────────────────
+// Tables Supabase : gideon_conversations (titres, façon ChatGPT) et
+// gideon_messages (rattachés via conversation_id). Voir supabase/*.sql.
+// Tous les accès passent par un client scoped au token JWT de l'utilisateur →
+// la RLS s'applique, chacun ne touche que ses propres données.
 // Cas dégradés gérés silencieusement (le chat fonctionne sans persistance) :
 // - pas de token (bypass local ALLOW_DEV_AUTH) → no-op
-// - Supabase non configuré → no-op
-// - erreur d'insertion/lecture → log serveur, jamais d'erreur remontée au front
+// - Supabase absent ou migration non exécutée → log serveur, jamais d'erreur
+//   remontée au front
 import { createClient } from "@supabase/supabase-js";
 
 const scopedClient = (token) => {
@@ -17,45 +18,127 @@ const scopedClient = (token) => {
   });
 };
 
-/**
- * Derniers messages de l'utilisateur, du plus ancien au plus récent.
- * @returns {Promise<{role: string, content: string, sources: Object[], created_at: string}[]>}
- */
-export async function fetchHistory(user, limit = 50) {
+// ─── Conversations ────────────────────────────────────────────────────────────
+
+/** Liste des conversations de l'utilisateur, la plus récente d'abord. */
+export async function listConversations(user, limit = 30) {
   const client = scopedClient(user?.token);
   if (!client) return [];
+  const { data, error } = await client
+    .from("gideon_conversations")
+    .select("id, title, updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error("⚠️ Gideon conversations list error:", error.message);
+    return [];
+  }
+  return data || [];
+}
+
+/** Crée une conversation (titre tronqué à 80 caractères). */
+export async function createConversation(user, title = "Nouvelle conversation") {
+  const client = scopedClient(user?.token);
+  if (!client) return null;
+  const { data, error } = await client
+    .from("gideon_conversations")
+    .insert({ user_id: user.id, title: String(title).slice(0, 80) })
+    .select("id, title, updated_at")
+    .single();
+  if (error) {
+    console.error("⚠️ Gideon conversation create error:", error.message);
+    return null;
+  }
+  return data;
+}
+
+/** Supprime une conversation (ses messages suivent par CASCADE). */
+export async function deleteConversation(user, conversationId) {
+  const client = scopedClient(user?.token);
+  if (!client || !conversationId) return;
+  const { error } = await client
+    .from("gideon_conversations")
+    .delete()
+    .eq("id", conversationId)
+    .eq("user_id", user.id);
+  if (error) console.error("⚠️ Gideon conversation delete error:", error.message);
+}
+
+/**
+ * Garantit une conversation cible avant sauvegarde : si aucun id fourni, en
+ * crée une avec le début de la question comme titre. Retourne l'id (ou null
+ * si persistance impossible — bypass local, migration absente...).
+ */
+export async function ensureConversation(user, conversationId, question) {
+  if (conversationId) return conversationId;
+  const conv = await createConversation(user, (question || "Nouvelle conversation").slice(0, 60));
+  return conv?.id || null;
+}
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+/**
+ * Messages d'une conversation, du plus ancien au plus récent.
+ * Sans conversationId → la conversation la plus récente de l'utilisateur.
+ * @returns {Promise<{conversationId: string|null, messages: Object[]}>}
+ */
+export async function fetchHistory(user, conversationId = null, limit = 50) {
+  const client = scopedClient(user?.token);
+  if (!client) return { conversationId: null, messages: [] };
+
+  let convId = conversationId;
+  if (!convId) {
+    const convs = await listConversations(user, 1);
+    convId = convs[0]?.id || null;
+    if (!convId) return { conversationId: null, messages: [] };
+  }
+
   const { data, error } = await client
     .from("gideon_messages")
     .select("role, content, sources, created_at")
     .eq("user_id", user.id)
-    // Tri secondaire sur role : question + réponse sont insérées dans la même
-    // transaction → created_at identique. En DESC, "assistant" < "user" doit
-    // sortir la réponse d'abord pour qu'après reverse() la question précède.
+    .eq("conversation_id", convId)
+    // Tri secondaire sur role : question + réponse partagent le même
+    // created_at (même transaction). En DESC, "assistant" sort d'abord pour
+    // qu'après reverse() la question précède la réponse.
     .order("created_at", { ascending: false })
     .order("role", { ascending: true })
     .limit(limit);
   if (error) {
     console.error("⚠️ Gideon history fetch error:", error.message);
-    return [];
+    return { conversationId: convId, messages: [] };
   }
-  return (data || []).reverse(); // chronologique pour l'affichage
+  return { conversationId: convId, messages: (data || []).reverse() };
 }
 
 /**
- * Sauvegarde une paire question/réponse. Fire-and-forget côté route :
- * ne bloque jamais la réponse au client.
+ * Sauvegarde une paire question/réponse dans une conversation, puis remonte
+ * la conversation en tête de liste (updated_at). Fire-and-forget côté route.
  */
-export async function saveExchange(user, question, answer, sources = []) {
+export async function saveExchange(user, conversationId, question, answer, sources = []) {
   const client = scopedClient(user?.token);
   if (!client || !question || !answer) return;
   // IMPORTANT : les deux lignes doivent avoir les MÊMES colonnes — en insert
   // multiple, supabase-js envoie null pour toute clé manquante (au lieu de
   // laisser le DEFAULT s'appliquer), ce qui violerait le NOT NULL de sources.
-  const { error } = await client.from("gideon_messages").insert([
+  const rows = [
     { user_id: user.id, role: "user", content: question, sources: [] },
     { user_id: user.id, role: "assistant", content: answer, sources: sources || [] },
-  ]);
-  if (error) console.error("⚠️ Gideon history save error:", error.message);
+  ];
+  if (conversationId) rows.forEach((r) => { r.conversation_id = conversationId; });
+  const { error } = await client.from("gideon_messages").insert(rows);
+  if (error) {
+    console.error("⚠️ Gideon history save error:", error.message);
+    return;
+  }
+  if (conversationId) {
+    await client
+      .from("gideon_conversations")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", conversationId)
+      .eq("user_id", user.id);
+  }
 }
 
 /**
@@ -82,10 +165,13 @@ export async function countToday(user) {
   return count ?? 0;
 }
 
-/** Efface tout l'historique de l'utilisateur (bouton "Nouvelle conversation"). */
+/** Efface TOUT l'historique de l'utilisateur (toutes conversations). */
 export async function clearHistory(user) {
   const client = scopedClient(user?.token);
   if (!client) return;
+  const { error: convErr } = await client.from("gideon_conversations").delete().eq("user_id", user.id);
+  if (convErr) console.error("⚠️ Gideon history clear error:", convErr.message);
+  // Filet de sécurité pour d'éventuels messages orphelins (pré-migration)
   const { error } = await client.from("gideon_messages").delete().eq("user_id", user.id);
   if (error) console.error("⚠️ Gideon history clear error:", error.message);
 }

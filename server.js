@@ -13,7 +13,7 @@ import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
 import { queryGideon, queryGideonStream } from "./gideonEngine.js";
-import { fetchHistory, saveExchange, clearHistory, countToday } from "./gideonHistory.js";
+import { fetchHistory, saveExchange, clearHistory, countToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
 import { extractPdfText } from "./pdfText.js";
 import multer from "multer";
 
@@ -1578,7 +1578,7 @@ async function checkGideonQuota(user) {
 // Le plan/rôle viennent de req.user (JWT validé) — jamais du body : un free ne
 // peut pas se déclarer elite en forgeant la requête.
 app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
-  const { question, conversationHistory = [] } = req.body;
+  const { question, conversationHistory = [], conversationId = null } = req.body;
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
@@ -1599,9 +1599,12 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
     if (quota && !result.restricted) {
       result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
     }
-    // Persistance fire-and-forget : ne retarde jamais la réponse
+    // Persistance : garantit une conversation (créée au 1er message, titre =
+    // début de question) puis sauvegarde fire-and-forget
     if (!result.restricted && result.answer) {
-      saveExchange(req.user, question, result.answer, result.sources).catch(() => {});
+      const convId = await ensureConversation(req.user, conversationId, question).catch(() => null);
+      if (convId) result.conversationId = convId;
+      saveExchange(req.user, convId, question, result.answer, result.sources).catch(() => {});
     }
     res.json(result);
   } catch (err) {
@@ -1618,7 +1621,7 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
 //   event: done    → { answer, sources, tier, restricted, model } (état final)
 //   event: error   → { message }              (le front bascule sur /api/gideon)
 app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
-  const { question, conversationHistory = [] } = req.body;
+  const { question, conversationHistory = [], conversationId = null } = req.body;
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
@@ -1665,12 +1668,18 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
     if (quota && !result.restricted) {
       result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
     }
+
+    // Persistance : conversation garantie AVANT le done (le front a besoin de
+    // l'id pour rattacher la suite), sauvegarde fire-and-forget après
+    let convId = null;
+    if (!result.restricted && result.answer) {
+      convId = await ensureConversation(req.user, conversationId, question).catch(() => null);
+      if (convId) result.conversationId = convId;
+    }
     if (!closed) send("done", result);
 
-    // Persistance fire-and-forget (même si le client a fermé l'onglet :
-    // la réponse a été générée, on la garde dans l'historique)
     if (!result.restricted && result.answer) {
-      saveExchange(req.user, question, result.answer, result.sources).catch(() => {});
+      saveExchange(req.user, convId, question, result.answer, result.sources).catch(() => {});
     }
   } catch (err) {
     console.error("❌ Gideon stream error:", err.message);
@@ -1680,16 +1689,46 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
   }
 });
 
-// ─── GET /api/gideon/history — Historique de conversation de l'utilisateur ──
-// Renvoie aussi le quota du jour pour que le compteur s'affiche dès l'arrivée
-// sur le Coach (pas seulement après le premier message).
+// ─── GET /api/gideon/history — Messages d'une conversation ──────────────────
+// ?conversationId=... cible une conversation précise ; sans paramètre, la plus
+// récente. Renvoie aussi le quota du jour pour le compteur.
 app.get("/api/gideon/history", ...requireAnyUser, async (req, res) => {
   try {
-    const messages = await fetchHistory(req.user);
+    const { conversationId, messages } = await fetchHistory(req.user, req.query.conversationId || null);
     const { quota } = await checkGideonQuota(req.user);
-    res.json({ messages, quota });
+    res.json({ conversationId, messages, quota });
   } catch (err) {
     console.error("❌ Gideon history error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Conversations (panneau façon ChatGPT) ──────────────────────────────────
+app.get("/api/gideon/conversations", ...requireAnyUser, async (req, res) => {
+  try {
+    res.json({ conversations: await listConversations(req.user) });
+  } catch (err) {
+    console.error("❌ Gideon conversations error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/gideon/conversations", ...requireAnyUser, async (req, res) => {
+  try {
+    const conversation = await createConversation(req.user, req.body?.title || "Nouvelle conversation");
+    res.json({ conversation });
+  } catch (err) {
+    console.error("❌ Gideon conversation create error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/gideon/conversations/:id", ...requireAnyUser, async (req, res) => {
+  try {
+    await deleteConversation(req.user, req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("❌ Gideon conversation delete error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

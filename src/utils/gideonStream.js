@@ -6,11 +6,11 @@
 // bascule alors sur le endpoint non-streamé /api/gideon.
 import { apiFetch } from "./apiClient";
 
-export async function streamGideon({ API_URL, question, conversationHistory = [], onChunk }) {
+export async function streamGideon({ API_URL, question, conversationHistory = [], conversationId = null, onChunk }) {
   const res = await apiFetch(`${API_URL}/api/gideon/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, conversationHistory }),
+    body: JSON.stringify({ question, conversationHistory, conversationId }),
   });
   if (!res.ok || !res.body) throw new Error(`Gideon stream HTTP ${res.status}`);
 
