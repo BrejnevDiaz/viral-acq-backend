@@ -8,6 +8,32 @@
 // - Supabase absent ou migration non exécutée → log serveur, jamais d'erreur
 //   remontée au front
 import { createClient } from "@supabase/supabase-js";
+import { removeGideonAttachments, pathsFromMessageRows } from "./gideonUploads.js";
+
+/**
+ * Récupère les chemins des pièces jointes des messages ciblés puis les
+ * supprime du bucket. Appelé AVANT tout DELETE en base : sans ça, supprimer
+ * une conversation laisserait les fichiers stockés (facturés, et jamais
+ * effacés alors que l'utilisateur croit avoir supprimé ses données).
+ * Best-effort : un échec de purge ne doit pas empêcher la suppression en base.
+ */
+async function purgeAttachments(client, user, conversationId = null) {
+  try {
+    let q = client.from("gideon_messages").select("attachments").eq("user_id", user.id);
+    if (conversationId) q = q.eq("conversation_id", conversationId);
+    const { data, error } = await q;
+    if (error) {
+      // Colonne absente (migration gideon_uploads.sql non jouée) → rien à purger
+      if (!/attachments/i.test(error.message || "")) {
+        console.error("⚠️ Gideon attachments purge lookup error:", error.message);
+      }
+      return;
+    }
+    await removeGideonAttachments(pathsFromMessageRows(data));
+  } catch (err) {
+    console.error("⚠️ Gideon attachments purge error:", err.message);
+  }
+}
 
 const scopedClient = (token) => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -57,6 +83,7 @@ export async function createConversation(user, title = "Nouvelle conversation") 
 export async function deleteConversation(user, conversationId) {
   const client = scopedClient(user?.token);
   if (!client || !conversationId) return;
+  await purgeAttachments(client, user, conversationId); // fichiers avant lignes
   const { error } = await client
     .from("gideon_conversations")
     .delete()
@@ -94,9 +121,9 @@ export async function fetchHistory(user, conversationId = null, limit = 50) {
     if (!convId) return { conversationId: null, messages: [] };
   }
 
-  const { data, error } = await client
+  const fetchRows = (withAttachments) => client
     .from("gideon_messages")
-    .select("role, content, sources, created_at")
+    .select(withAttachments ? "role, content, sources, attachments, created_at" : "role, content, sources, created_at")
     .eq("user_id", user.id)
     .eq("conversation_id", convId)
     // Tri secondaire sur role : question + réponse partagent le même
@@ -105,6 +132,14 @@ export async function fetchHistory(user, conversationId = null, limit = 50) {
     .order("created_at", { ascending: false })
     .order("role", { ascending: true })
     .limit(limit);
+
+  let { data, error } = await fetchRows(true);
+  // Migration gideon_uploads.sql pas encore exécutée → colonne absente : on
+  // recharge sans elle pour ne pas casser l'historique existant.
+  if (error && /attachments/i.test(error.message || "")) {
+    console.warn("⚠️ Colonne gideon_messages.attachments absente — exécute supabase/gideon_uploads.sql");
+    ({ data, error } = await fetchRows(false));
+  }
   if (error) {
     console.error("⚠️ Gideon history fetch error:", error.message);
     return { conversationId: convId, messages: [] };
@@ -116,18 +151,27 @@ export async function fetchHistory(user, conversationId = null, limit = 50) {
  * Sauvegarde une paire question/réponse dans une conversation, puis remonte
  * la conversation en tête de liste (updated_at). Fire-and-forget côté route.
  */
-export async function saveExchange(user, conversationId, question, answer, sources = []) {
+export async function saveExchange(user, conversationId, question, answer, sources = [], attachments = []) {
   const client = scopedClient(user?.token);
   if (!client || !question || !answer) return;
   // IMPORTANT : les deux lignes doivent avoir les MÊMES colonnes — en insert
   // multiple, supabase-js envoie null pour toute clé manquante (au lieu de
   // laisser le DEFAULT s'appliquer), ce qui violerait le NOT NULL de sources.
+  // attachments : métadonnées [{path,name,mime,size}] sur la ligne "user"
+  // (chantier #16) — nécessite la migration supabase/gideon_uploads.sql.
   const rows = [
-    { user_id: user.id, role: "user", content: question, sources: [] },
-    { user_id: user.id, role: "assistant", content: answer, sources: sources || [] },
+    { user_id: user.id, role: "user", content: question, sources: [], attachments: attachments || [] },
+    { user_id: user.id, role: "assistant", content: answer, sources: sources || [], attachments: [] },
   ];
   if (conversationId) rows.forEach((r) => { r.conversation_id = conversationId; });
-  const { error } = await client.from("gideon_messages").insert(rows);
+  let { error } = await client.from("gideon_messages").insert(rows);
+  // Migration gideon_uploads.sql pas encore exécutée → on sauvegarde sans les
+  // métadonnées de pièces jointes plutôt que de perdre l'échange.
+  if (error && /attachments/i.test(error.message || "")) {
+    console.warn("⚠️ Colonne gideon_messages.attachments absente — exécute supabase/gideon_uploads.sql");
+    rows.forEach((r) => { delete r.attachments; });
+    ({ error } = await client.from("gideon_messages").insert(rows));
+  }
   if (error) {
     console.error("⚠️ Gideon history save error:", error.message);
     return;
@@ -169,6 +213,7 @@ export async function countToday(user) {
 export async function clearHistory(user) {
   const client = scopedClient(user?.token);
   if (!client) return;
+  await purgeAttachments(client, user); // toutes conversations confondues
   const { error: convErr } = await client.from("gideon_conversations").delete().eq("user_id", user.id);
   if (convErr) console.error("⚠️ Gideon history clear error:", convErr.message);
   // Filet de sécurité pour d'éventuels messages orphelins (pré-migration)

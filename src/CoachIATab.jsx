@@ -3,6 +3,8 @@ import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
 import { streamGideon } from "./utils/gideonStream";
+import { acceptAttr, discardAttachments, formatBytes, uploadAttachments, validateSelection } from "./utils/gideonAttachments";
+import { PendingAttachments, MessageAttachments } from "./GideonAttachments";
 import ReactMarkdown from "react-markdown";
 
 export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", API_URL, onUpgradeClick }) {
@@ -12,6 +14,18 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   const [quota, setQuota] = useState(null); // { used, limit, remaining } — null si illimité
   const [conversations, setConversations] = useState([]); // panneau latéral
   const [activeConvId, setActiveConvId] = useState(null);
+  // Pièces jointes (chantier #16) : fichiers sélectionnés en attente d'envoi,
+  // limites du plan (null = upload interdit → upsell), erreur visible.
+  const [pending, setPending] = useState([]);
+  const [uploadLimits, setUploadLimits] = useState(null);
+  // limitsKnown distingue "le serveur a répondu : pas d'upload pour ce plan"
+  // (→ upsell) de "on n'a pas encore pu savoir" (→ on laisse tenter, c'est le
+  // serveur qui tranche ; sinon un abonné payant verrait un faux upsell si
+  // /history a échoué au montage).
+  const [limitsKnown, setLimitsKnown] = useState(false);
+  const [attachError, setAttachError] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
 
   const isElite = getTierRank(userTier) >= TIER_RANK.elite;
@@ -27,6 +41,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     role: m.role === "user" ? "user" : "bot",
     text: m.content,
     sources: Array.isArray(m.sources) && m.sources.length > 0 ? m.sources : undefined,
+    attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
   }));
 
   const refreshConversations = async () => {
@@ -50,6 +65,8 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         const data = await res.json();
         if (cancelled) return;
         if (data.quota) setQuota(data.quota);
+        setUploadLimits(data.uploadLimits || null);
+        setLimitsKnown(true);
         if (data.conversationId) setActiveConvId(data.conversationId);
         if (Array.isArray(data.messages) && data.messages.length > 0) setMessages(mapRows(data.messages));
       } catch { /* backend hors-ligne — pas d'historique */ }
@@ -72,10 +89,59 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
 
   // Nouvelle conversation : vide localement — créée côté serveur au premier
   // message (titre auto = début de la question)
+  // Vide la sélection en attente en libérant les ObjectURL (aucun n'a encore
+  // été transmis à un message : ceux-là restent valides).
+  const clearPending = () => setPending(prev => {
+    prev.forEach(p => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+    return [];
+  });
+
   const handleNewConversation = () => {
     if (isTyping) return;
     setMessages([]);
     setActiveConvId(null);
+    clearPending();
+    setAttachError(null);
+  };
+
+  // ─── Pièces jointes (chantier #16) ────────────────────────────────────────
+  // Fallback permissif quand les limites ne sont pas connues (backend injoignable
+  // au montage) : le serveur reste la seule autorité, il refusera si besoin.
+  const effectiveLimits = uploadLimits || (limitsKnown ? null : { maxFiles: 5, maxTotalBytes: 12 * 1024 * 1024, kinds: ["image", "pdf"] });
+
+  const handlePickFiles = () => {
+    setAttachError(null);
+    if (!effectiveLimits) {
+      setAttachError(uiLang === "fr"
+        ? "📎 L'analyse de fichiers par Gideon est réservée aux abonnés — passe à un forfait supérieur pour lui montrer tes dashboards et créatives."
+        : uiLang === "it"
+        ? "📎 L'analisi dei file è riservata agli abbonati."
+        : "📎 File analysis with Gideon is for paid plans only.");
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleFilesSelected = (e) => {
+    const pendingBytes = pending.reduce((s, p) => s + (p.file?.size || 0), 0);
+    const check = validateSelection(e.target.files, effectiveLimits, pending.length, pendingBytes);
+    e.target.value = ""; // permet de re-sélectionner le même fichier après retrait
+    if (!check.ok) { setAttachError(check.error); return; }
+    setAttachError(null);
+    // ObjectURL créé ici (et révoqué au retrait / après envoi) : le faire dans
+    // un effet du composant d'affichage provoquerait un rendu en cascade.
+    setPending(prev => [...prev, ...check.files.map(file => ({
+      file,
+      previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+    }))]);
+  };
+
+  const removePending = (index) => {
+    setPending(prev => {
+      if (prev[index]?.previewUrl) URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+    setAttachError(null);
   };
 
   const handleDeleteConversation = async (id, e) => {
@@ -86,14 +152,59 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   };
 
   const handleSend = async () => {
-    const text = inputValue.trim();
-    if (!text || isTyping) return;
+    // Un message peut n'être QUE des pièces jointes : on fournit alors une
+    // consigne par défaut (le backend exige une question non vide).
+    const defaultPrompt = uiLang === "fr"
+      ? "Analyse ce que je te joins et donne-moi tes recommandations concrètes."
+      : uiLang === "it"
+      ? "Analizza i file allegati e dammi raccomandazioni concrete."
+      : "Analyse the attached files and give me concrete recommendations.";
+    const text = inputValue.trim() || (pending.length > 0 ? defaultPrompt : "");
+    if (!text || isTyping || uploading) return;
     const history = messages;
-    setMessages(prev => [...prev, { role: "user", text }]);
+
+    // 0. Téléversement des pièces jointes AVANT d'afficher le message : si
+    // l'upload échoue, rien n'est envoyé et l'erreur reste visible (pas
+    // d'erreur silencieuse).
+    let attachmentRefs = [];
+    if (pending.length > 0) {
+      setUploading(true);
+      try {
+        const up = await uploadAttachments(API_URL, pending.map(p => p.file));
+        attachmentRefs = up.attachments;
+        if (up.uploadLimits) { setUploadLimits(up.uploadLimits); setLimitsKnown(true); }
+      } catch (err) {
+        setAttachError(err.message || "Échec de l'envoi des fichiers.");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    // L'ObjectURL déjà créé à la sélection est transmis à la bulle (évite un
+    // aller-retour d'URL signée) — il reste valide jusqu'au rechargement.
+    const localPreviews = attachmentRefs.map((ref, i) => ({
+      ...ref,
+      localUrl: pending[i]?.previewUrl,
+    }));
+
+    setMessages(prev => [...prev, { role: "user", text, attachments: localPreviews.length ? localPreviews : undefined }]);
     setInputValue("");
+    // Pas de clearPending() ici : les ObjectURL viennent d'être transmis aux
+    // bulles du message, les révoquer casserait les vignettes affichées.
+    setPending([]);
+    setAttachError(null);
 
     setIsTyping(true);
-    const conversationHistory = history.map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+    // Les fichiers ne sont pas réencodés dans l'historique (coût en tokens) :
+    // on signale leur présence en texte pour que Gideon ne réponde pas comme
+    // si le tour précédent n'avait contenu aucune pièce jointe.
+    const conversationHistory = history.map(m => ({
+      role: m.role === "user" ? "user" : "assistant",
+      content: m.attachments?.length
+        ? `${m.text}\n[${m.attachments.length} fichier(s) joint(s) précédemment : ${m.attachments.map(a => a.name).join(", ")}]`
+        : m.text,
+    }));
 
     // Remplace le contenu du dernier message bot (celui en cours de stream)
     const updateLastBot = (patch) => setMessages(prev => {
@@ -110,6 +221,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         question: text,
         conversationHistory,
         conversationId: activeConvId,
+        attachments: attachmentRefs,
         onChunk: (fullText) => {
           if (!started) {
             started = true;
@@ -134,15 +246,28 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
       }
     } catch (streamErr) {
+      // Refus explicite du serveur (pièce jointe invalide, quota de fichiers…) :
+      // on affiche le message tel quel au lieu de replier sur /api/gideon, qui
+      // renverrait la même erreur.
+      if (streamErr?.userFacing) {
+        setAttachError(streamErr.message);
+        setMessages(prev => prev.slice(0, -1)); // retire le message optimiste
+        setPending(pending); // la sélection locale reste, l'utilisateur corrige
+        // Les fichiers déjà stockés seraient orphelins : on les supprime (un
+        // nouvel envoi les re-téléversera proprement).
+        discardAttachments(API_URL, attachmentRefs.map(a => a.path));
+        setIsTyping(false);
+        return;
+      }
       // 2. Repli : endpoint non-streamé classique
       console.warn("⚠️ Gideon stream indisponible, repli sur /api/gideon:", streamErr);
       try {
         const res = await apiFetch(`${API_URL}/api/gideon`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, conversationHistory, conversationId: activeConvId }),
+          body: JSON.stringify({ question: text, conversationHistory, conversationId: activeConvId, attachments: attachmentRefs }),
         });
-        if (!res.ok) throw new Error("Gideon API not ready yet");
+        if (!res.ok) throw new Error("Gideon API not ready yet", { cause: streamErr });
         const data = await res.json();
         if (data.quota) setQuota(data.quota);
         if (data.conversationId) {
@@ -155,9 +280,21 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           setMessages(prev => [...prev, { role: "bot", text: data.answer, sources: data.sources }]);
         }
       } catch (err) {
-        // 3. Dernier repli : simulation locale hors-ligne
         console.error("⚠️ Gideon API error:", err);
-        if (!isElite && isAdvancedEcomQuestion(text)) {
+        // 3. Dernier repli : simulation locale hors-ligne. INTERDIT dès qu'il y
+        // a des pièces jointes — la simulation ne les a jamais vues et laisser
+        // croire à une analyse serait une erreur silencieuse. On le dit et on
+        // supprime les fichiers devenus orphelins.
+        if (attachmentRefs.length > 0) {
+          setMessages(prev => prev.slice(0, -1));
+          setPending(pending);
+          setAttachError(uiLang === "fr"
+            ? "⚠️ Gideon est momentanément injoignable : tes fichiers n'ont pas été analysés. Réessaie dans quelques instants."
+            : uiLang === "it"
+            ? "⚠️ Gideon non è raggiungibile: i tuoi file non sono stati analizzati. Riprova."
+            : "⚠️ Gideon is unreachable — your files were not analysed. Please retry.");
+          discardAttachments(API_URL, attachmentRefs.map(a => a.path));
+        } else if (!isElite && isAdvancedEcomQuestion(text)) {
           setMessages(prev => [...prev, { role: "bot", text: UPSELL_MESSAGE[uiLang] || UPSELL_MESSAGE.fr, isUpsell: true }]);
         } else {
           const reply = getBotResponse(text, uiLang);
@@ -168,6 +305,8 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       setIsTyping(false);
     }
   };
+
+  const canSend = (!!inputValue.trim() || pending.length > 0) && !isTyping && !uploading;
 
   const headerGradient = isElite ? "linear-gradient(90deg, rgba(234,179,8,0.2), rgba(236,72,153,0.1))" : "linear-gradient(90deg, rgba(139,92,246,0.15), rgba(236,72,153,0.1))";
   const avatarGradient = isElite ? "linear-gradient(135deg, #EAB308, #EC4899)" : "linear-gradient(135deg, #8B5CF6, #EC4899)";
@@ -259,6 +398,9 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         {messages.map((m, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}>
             {m.role === "bot" && <div style={{ fontSize: 12, color: c.textDim, fontWeight: 600, marginLeft: 16 }}>{t.header}</div>}
+            {m.attachments && m.attachments.length > 0 && (
+              <MessageAttachments c={c} API_URL={API_URL} attachments={m.attachments} accent={avatarGradient} />
+            )}
             <div className={m.role === "bot" ? "markdown-body" : ""} style={{
               maxWidth: "75%", padding: "16px 20px", borderRadius: m.role === "user" ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
               background: m.role === "user" ? "linear-gradient(135deg, #8B5CF6, #7C3AED)" : c.surface,
@@ -308,7 +450,59 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
 
       {/* Input Area */}
       <div style={{ padding: "20px 32px", borderTop: `1px solid ${c.border}`, background: c.surface }}>
+        {/* Pièces jointes en attente (chantier #16) */}
+        <PendingAttachments c={c} items={pending} onRemove={removePending} uploading={uploading} accent={avatarGradient} />
+        {attachError && (
+          <div style={{
+            marginBottom: 10, padding: "10px 14px", borderRadius: 10, fontSize: 13, lineHeight: 1.5,
+            background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{attachError}</span>
+            <button onClick={() => setAttachError(null)} aria-label="Fermer" style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", flexShrink: 0, padding: 2 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            </button>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 12, background: c.bg, padding: 8, borderRadius: 16, border: `1px solid ${c.border}`, alignItems: "center" }}>
+          {/* Bouton d'attache premium */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={acceptAttr(effectiveLimits?.kinds || ["image"])}
+            onChange={handleFilesSelected}
+            style={{ display: "none" }}
+          />
+          <button
+            onClick={handlePickFiles}
+            disabled={isTyping || uploading}
+            className="gideon-attach"
+            title={effectiveLimits
+              ? `${effectiveLimits.maxFiles} fichier${effectiveLimits.maxFiles > 1 ? "s" : ""} max · ${formatBytes(effectiveLimits.maxTotalBytes)} · ${effectiveLimits.kinds.includes("pdf") ? "images et PDF" : "images"}`
+              : (uiLang === "fr" ? "Réservé aux forfaits payants" : "Paid plans only")}
+            aria-label="Joindre un fichier"
+            style={{
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              border: `1px solid ${isElite ? "rgba(234,179,8,0.35)" : "rgba(139,92,246,0.3)"}`,
+              background: effectiveLimits ? "transparent" : c.border,
+              color: effectiveLimits ? (isElite ? "#EAB308" : "#8B5CF6") : c.textMuted,
+              cursor: isTyping || uploading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.2s", position: "relative",
+            }}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+            {pending.length > 0 && (
+              <span style={{
+                position: "absolute", top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9,
+                background: bubbleGradient, color: isElite ? "#000" : "#fff",
+                fontSize: 10.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px",
+              }}>{pending.length}</span>
+            )}
+          </button>
           <input
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
@@ -316,15 +510,20 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             placeholder={t.placeholder}
             style={{ flex: 1, padding: "12px 16px", background: "transparent", border: "none", color: c.text, fontSize: 15, fontFamily: mono, outline: "none" }}
           />
-          <button onClick={handleSend} disabled={!inputValue.trim() || isTyping} style={{
+          {/* Envoyable avec du texte OU seulement des pièces jointes */}
+          <button onClick={handleSend} disabled={!canSend} style={{
             width: 48, height: 48, borderRadius: 12, border: "none", flexShrink: 0,
-            background: inputValue.trim() && !isTyping ? bubbleGradient : c.border,
-            color: inputValue.trim() && !isTyping ? (isElite ? "#000" : "#fff") : c.textMuted,
-            cursor: inputValue.trim() && !isTyping ? "pointer" : "not-allowed",
+            background: canSend ? bubbleGradient : c.border,
+            color: canSend ? (isElite ? "#000" : "#fff") : c.textMuted,
+            cursor: canSend ? "pointer" : "not-allowed",
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.2s"
           }} aria-label="Send message">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            {uploading ? (
+              <span className="gideon-spinner" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            )}
           </button>
         </div>
         {quota && quota.limit > 0 && (
@@ -357,10 +556,26 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           animation: streamBlink 0.9s steps(2, start) infinite;
         }
         @keyframes streamBlink { to { visibility: hidden; } }
+        .gideon-attach:not(:disabled):hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px ${isElite ? "rgba(234,179,8,0.25)" : "rgba(139,92,246,0.25)"};
+          background: ${isElite ? "rgba(234,179,8,0.10)" : "rgba(139,92,246,0.10)"} !important;
+        }
+        .gideon-spinner {
+          width: 18px; height: 18px; border-radius: 50%;
+          border: 2px solid rgba(255,255,255,0.35);
+          border-top-color: ${isElite ? "#000" : "#fff"};
+          animation: gideonSpin 0.7s linear infinite;
+        }
+        @keyframes gideonSpin { to { transform: rotate(360deg); } }
         .conv-delete { opacity: 0; transition: opacity 0.15s, color 0.15s; }
         .conv-item:hover .conv-delete { opacity: 1; }
         .conv-delete:hover { color: #EF4444 !important; }
-        @media (max-width: 900px) { .conv-sidebar { display: none; } }
+        /* !important obligatoire : le panneau porte un style inline
+           display:"flex", qui bat une règle CSS non marquée — sans ça la
+           sidebar de 250px reste affichée sur mobile et écrase la colonne de
+           chat (texte rendu une lettre par ligne). */
+        @media (max-width: 900px) { .conv-sidebar { display: none !important; } }
         .markdown-body {
           font-family: inherit;
         }

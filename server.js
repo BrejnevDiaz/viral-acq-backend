@@ -14,6 +14,7 @@ import chatbotRoutes from "./chatbotRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
 import { queryGideon, queryGideonStream } from "./gideonEngine.js";
 import { fetchHistory, saveExchange, clearHistory, countToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
+import { storeGideonAttachments, loadGideonAttachments, uploadLimitsFor, removeOwnedAttachments, sanitizeAttachmentRefs, GIDEON_UPLOAD_BUCKET } from "./gideonUploads.js";
 import { extractPdfText } from "./pdfText.js";
 import multer from "multer";
 
@@ -28,6 +29,15 @@ const upload = multer({
     if (file.mimetype === "application/pdf") cb(null, true);
     else cb(new Error("Seuls les fichiers PDF sont acceptés"));
   },
+});
+
+// Pièces jointes Gideon (chantier #16) : le parseur est construit AVEC les
+// limites du plan de l'appelant (connu après requireAnyUser) — multer refuse
+// alors le flux dès le dépassement au lieu de bufferiser 150 Mo en RAM avant
+// un 403. Le type réel est validé ensuite par magic bytes (gideonUploads.js).
+const gideonUploadFor = (limits) => multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: limits.maxTotalBytes, files: limits.maxFiles, fields: 0, parts: limits.maxFiles + 1 },
 });
 
 // ─── Load .env ───────────────────────────────────────────────────────────────
@@ -1574,11 +1584,62 @@ async function checkGideonQuota(user) {
   };
 }
 
+// ─── POST /api/gideon/upload — Pièces jointes du Coach (chantier #16) ────────
+// L'utilisateur téléverse ses fichiers AVANT d'envoyer le message ; la route
+// renvoie des références {path,name,mime,size} que le front joint ensuite au
+// message (/api/gideon ou /stream). Validation par magic bytes + limites par
+// plan dans gideonUploads.js ; stockage bucket privé "gideon-uploads".
+app.post("/api/gideon/upload", ...requireAnyUser, (req, res) => {
+  // Plan refusé (free) → on coupe AVANT de lire le moindre octet du body.
+  const limits = uploadLimitsFor(req.user?.plan, req.user?.role);
+  if (!limits) {
+    return res.status(403).json({
+      code: "attachment",
+      error: "📎 L'analyse de fichiers par Gideon est réservée aux abonnés. Passe à un forfait payant pour lui montrer tes dashboards et tes créatives !",
+    });
+  }
+
+  gideonUploadFor(limits).array("files", limits.maxFiles)(req, res, async (multerErr) => {
+    if (multerErr) {
+      const mb = Math.round(limits.maxTotalBytes / 1024 / 1024);
+      const msg = multerErr.code === "LIMIT_FILE_SIZE"
+        ? `Fichier trop lourd (max ${mb} Mo avec ton forfait).`
+        : multerErr.code === "LIMIT_FILE_COUNT" || multerErr.code === "LIMIT_PART_COUNT"
+        ? `Maximum ${limits.maxFiles} fichier${limits.maxFiles > 1 ? "s" : ""} par message avec ton forfait.`
+        : multerErr.message || "Upload invalide";
+      return res.status(400).json({ error: msg, code: "attachment" });
+    }
+    try {
+      const result = await storeGideonAttachments(req.user, req.files);
+      if (result.error) return res.status(result.status || 400).json({ error: result.error, code: "attachment" });
+      res.json({ attachments: result.attachments, uploadLimits: limits });
+    } catch (err) {
+      console.error("❌ Gideon upload error:", err.message);
+      res.status(500).json({ error: "Échec de l'upload. Réessaie dans quelques instants.", code: "attachment" });
+    }
+  });
+});
+
+// ─── DELETE /api/gideon/upload — nettoyage des fichiers abandonnés ───────────
+// Appelé par le front quand un envoi échoue ou qu'une sélection est annulée :
+// sans ça, chaque échec laisserait des orphelins facturés dans le bucket.
+app.delete("/api/gideon/upload", ...requireAnyUser, async (req, res) => {
+  try {
+    const removed = await removeOwnedAttachments(req.user, req.body?.paths || []);
+    res.json({ ok: true, removed });
+  } catch (err) {
+    console.error("❌ Gideon upload cleanup error:", err.message);
+    res.status(500).json({ error: "Nettoyage impossible" });
+  }
+});
+
 // ─── POST /api/gideon — Chat with Gideon AI Coach ────────────────────────────
 // Le plan/rôle viennent de req.user (JWT validé) — jamais du body : un free ne
 // peut pas se déclarer elite en forgeant la requête.
 app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
   const { question, conversationHistory = [], conversationId = null } = req.body;
+  // `?? []` et non un défaut de déstructuration : celui-ci ne couvre pas null.
+  const attachmentRefs = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
@@ -1587,7 +1648,7 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
   try {
     const userPlan = req.user?.plan || "free";
     const userRole = req.user?.role || "user";
-    console.log(`🤖 Gideon [${userRole}/${userPlan}]: "${question.slice(0, 80)}..."`);
+    console.log(`🤖 Gideon [${userRole}/${userPlan}]: "${question.slice(0, 80)}..." (${attachmentRefs.length} PJ)`);
 
     // Quota journalier
     const { quota, exceeded } = await checkGideonQuota(req.user);
@@ -1595,7 +1656,11 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
       return res.json({ answer: GIDEON_QUOTA_MESSAGE, sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
     }
 
-    const result = await queryGideon({ question, userPlan, userRole, conversationHistory });
+    // Pièces jointes : chargement + contrôle d'appartenance (chantier #16)
+    const loaded = await loadGideonAttachments(req.user, attachmentRefs);
+    if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment" });
+
+    const result = await queryGideon({ question, userPlan, userRole, conversationHistory, attachments: loaded.attachments });
     if (quota && !result.restricted) {
       result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
     }
@@ -1604,7 +1669,7 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
     if (!result.restricted && result.answer) {
       const convId = await ensureConversation(req.user, conversationId, question).catch(() => null);
       if (convId) result.conversationId = convId;
-      saveExchange(req.user, convId, question, result.answer, result.sources).catch(() => {});
+      saveExchange(req.user, convId, question, result.answer, result.sources, sanitizeAttachmentRefs(attachmentRefs, loaded.attachments)).catch(() => {});
     }
     res.json(result);
   } catch (err) {
@@ -1622,10 +1687,16 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
 //   event: error   → { message }              (le front bascule sur /api/gideon)
 app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
   const { question, conversationHistory = [], conversationId = null } = req.body;
+  const attachmentRefs = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
   }
+
+  // Pièces jointes chargées AVANT les headers SSE : une erreur ici doit sortir
+  // en HTTP 4xx classique (le front affiche le message), pas en event SSE.
+  const loaded = await loadGideonAttachments(req.user, attachmentRefs);
+  if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment" });
 
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -1647,7 +1718,7 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
   try {
     const userPlan = req.user?.plan || "free";
     const userRole = req.user?.role || "user";
-    console.log(`🤖 Gideon stream [${userRole}/${userPlan}]: "${question.slice(0, 80)}..."`);
+    console.log(`🤖 Gideon stream [${userRole}/${userPlan}]: "${question.slice(0, 80)}..." (${attachmentRefs.length} PJ)`);
 
     // Quota journalier — envoyé en event done (les headers SSE sont déjà partis)
     const { quota, exceeded } = await checkGideonQuota(req.user);
@@ -1661,6 +1732,7 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
       userPlan,
       userRole,
       conversationHistory,
+      attachments: loaded.attachments,
       onSources: (sources, tier) => { if (!closed) send("sources", { sources, tier }); },
       onChunk: (text) => { if (!closed) send("chunk", { text }); },
     });
@@ -1679,7 +1751,7 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
     if (!closed) send("done", result);
 
     if (!result.restricted && result.answer) {
-      saveExchange(req.user, convId, question, result.answer, result.sources).catch(() => {});
+      saveExchange(req.user, convId, question, result.answer, result.sources, sanitizeAttachmentRefs(attachmentRefs, loaded.attachments)).catch(() => {});
     }
   } catch (err) {
     console.error("❌ Gideon stream error:", err.message);
@@ -1696,10 +1768,34 @@ app.get("/api/gideon/history", ...requireAnyUser, async (req, res) => {
   try {
     const { conversationId, messages } = await fetchHistory(req.user, req.query.conversationId || null);
     const { quota } = await checkGideonQuota(req.user);
-    res.json({ conversationId, messages, quota });
+    // uploadLimits : le front s'en sert pour afficher/verrouiller le bouton
+    // trombone (null = upload interdit avec ce forfait → upsell).
+    res.json({ conversationId, messages, quota, uploadLimits: uploadLimitsFor(req.user?.plan, req.user?.role) });
   } catch (err) {
     console.error("❌ Gideon history error:", err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── GET /api/gideon/attachment — URL signée d'aperçu (chantier #16) ────────
+// Le bucket est privé : pour réafficher une vignette d'un message rechargé, le
+// front demande une URL signée courte. Le chemin doit appartenir à l'appelant.
+app.get("/api/gideon/attachment", ...requireAnyUser, async (req, res) => {
+  const path = String(req.query.path || "");
+  if (!path.startsWith(`${req.user.id}/`) || path.includes("..")) {
+    return res.status(403).json({ error: "Accès refusé à cette pièce jointe" });
+  }
+  try {
+    const { data, error } = await supabase.storage
+      .from(GIDEON_UPLOAD_BUCKET)
+      .createSignedUrl(path, 3600); // 1 h — une conversation reste ouverte longtemps
+    if (error || !data?.signedUrl) {
+      return res.status(404).json({ error: "Pièce jointe introuvable" });
+    }
+    res.json({ url: data.signedUrl });
+  } catch (err) {
+    console.error("❌ Gideon attachment url error:", err.message);
+    res.status(500).json({ error: "Impossible de générer l'aperçu" });
   }
 });
 
@@ -1813,3 +1909,4 @@ app.listen(PORT, () => {
   console.log(`   Gmail SMTP  : ${gmail     ? "✅ Envoi email actif" : "⚠️  Configure GMAIL_APP_PASSWORD dans .env"}`);
   console.log(`   OpenAI/RAG  : ${openai    ? "✅ Gideon Coach IA actif" : "⚠️  Ajoute OPENAI_API_KEY pour Gideon"}`);
 });
+// (fin du fichier)

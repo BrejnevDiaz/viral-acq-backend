@@ -88,9 +88,10 @@ Réponds toujours en français sauf si l'utilisateur écrit dans une autre langu
  * @param {string} params.userPlan - The user's subscription plan (profiles.plan)
  * @param {string} params.userRole - The user's role (user|creator|admin)
  * @param {Object[]} params.conversationHistory - Previous messages [{role, content}]
+ * @param {Object[]} [params.attachments] - Pièces jointes [{mime, kind, name, data}] (chantier #16)
  * @returns {Object} { answer, sources, tier }
  */
-export async function queryGideon({ question, userPlan = "free", userRole = "user", conversationHistory = [] }) {
+export async function queryGideon({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [] }) {
   const prep = await prepareGideon({ question, userPlan, userRole });
   if (prep.early) return prep.early;
 
@@ -99,6 +100,7 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
       system: prep.system,
       history: conversationHistory,
       question,
+      attachments,
     });
     return { answer, sources: prep.sources, tier: prep.tier, restricted: false, model };
   } catch (err) {
@@ -130,7 +132,7 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
  * @param {(sources: Object[], tier: string) => void} [params.onSources]
  * @returns {Object} { answer, sources, tier, restricted, model }
  */
-export async function queryGideonStream({ question, userPlan = "free", userRole = "user", conversationHistory = [], onChunk, onSources }) {
+export async function queryGideonStream({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [], onChunk, onSources }) {
   const prep = await prepareGideon({ question, userPlan, userRole });
   if (prep.early) return prep.early; // restricted / clé manquante → réponse directe, pas de stream
 
@@ -140,6 +142,7 @@ export async function queryGideonStream({ question, userPlan = "free", userRole 
     system: prep.system,
     history: conversationHistory,
     question,
+    attachments,
     onChunk,
   });
   return { answer, sources: prep.sources, tier: prep.tier, restricted: false, model };

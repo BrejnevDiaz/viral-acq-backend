@@ -6,12 +6,26 @@
 // bascule alors sur le endpoint non-streamé /api/gideon.
 import { apiFetch } from "./apiClient";
 
-export async function streamGideon({ API_URL, question, conversationHistory = [], conversationId = null, onChunk }) {
+export async function streamGideon({ API_URL, question, conversationHistory = [], conversationId = null, attachments = [], onChunk }) {
   const res = await apiFetch(`${API_URL}/api/gideon/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, conversationHistory, conversationId }),
+    body: JSON.stringify({ question, conversationHistory, conversationId, attachments }),
   });
+  // Refus explicite lié aux pièces jointes (type refusé, quota de fichiers,
+  // fichier expiré) : le serveur marque `code: "attachment"`. Ce message doit
+  // remonter tel quel, sans repli sur /api/gideon qui renverrait la même
+  // erreur. On se limite à ce code : un 401 (token expiré) doit continuer à
+  // suivre le chemin de repli normal, sans faire disparaître le message tapé.
+  if (res.status >= 400 && res.status < 500) {
+    let body = null;
+    try { body = await res.json(); } catch { /* corps non JSON */ }
+    if (body?.code === "attachment" && body?.error) {
+      const err = new Error(body.error);
+      err.userFacing = true;
+      throw err;
+    }
+  }
   if (!res.ok || !res.body) throw new Error(`Gideon stream HTTP ${res.status}`);
 
   const reader = res.body.getReader();

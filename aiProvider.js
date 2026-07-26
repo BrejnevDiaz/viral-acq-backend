@@ -87,21 +87,60 @@ export async function embedTexts(texts, { taskType = "RETRIEVAL_DOCUMENT" } = {}
 }
 
 // ─── Helpers génération ──────────────────────────────────────────────────────
-const geminiContents = (history, question) => [
+// attachments : [{ mime, kind: "image"|"pdf", name, data (base64) }] — joints
+// UNIQUEMENT au message courant (l'historique reste textuel : re-payer
+// l'encodage des fichiers à chaque tour ferait exploser les tokens).
+// Support par moteur : Gemini images+PDF natif ; Claude images+PDF (blocs
+// image/document) ; OpenAI gpt-4o-mini images seulement → les PDF y sont
+// remplacés par une note textuelle pour que l'utilisateur comprenne.
+const geminiContents = (history, question, attachments = []) => [
   ...history.slice(-10).map((m) => ({
     role: m.role === "user" ? "user" : "model",
     parts: [{ text: m.content }],
   })),
-  { role: "user", parts: [{ text: question }] },
+  {
+    role: "user",
+    parts: [
+      ...attachments.map((a) => ({ inlineData: { mimeType: a.mime, data: a.data } })),
+      { text: question },
+    ],
+  },
 ];
 
-const openaiMessages = (system, history, question) => [
-  { role: "system", content: system },
-  ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
-  { role: "user", content: question },
-];
+const openaiMessages = (system, history, question, attachments = []) => {
+  const images = attachments.filter((a) => a.kind === "image");
+  const pdfs = attachments.filter((a) => a.kind === "pdf");
+  const questionText = pdfs.length
+    ? `${question}\n\n[Note : ${pdfs.length} PDF joint(s) (${pdfs.map((p) => p.name).join(", ")}) — non lisibles par le moteur de secours actuellement utilisé. Précise-le à l'utilisateur si sa question porte dessus.]`
+    : question;
+  return [
+    { role: "system", content: system },
+    ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
+    {
+      role: "user",
+      content: images.length
+        ? [
+            { type: "text", text: questionText },
+            ...images.map((a) => ({ type: "image_url", image_url: { url: `data:${a.mime};base64,${a.data}` } })),
+          ]
+        : questionText,
+    },
+  ];
+};
 
-async function geminiGenerate({ system, history, question, tries = 4 }) {
+const anthropicUserContent = (question, attachments = []) => {
+  if (!attachments.length) return question;
+  return [
+    ...attachments.map((a) =>
+      a.kind === "pdf"
+        ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.data } }
+        : { type: "image", source: { type: "base64", media_type: a.mime, data: a.data } }
+    ),
+    { type: "text", text: question },
+  ];
+};
+
+async function geminiGenerate({ system, history, question, attachments = [], tries = 4 }) {
   const key = process.env.GEMINI_API_KEY;
   const data = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:generateContent?key=${key}`,
@@ -110,7 +149,7 @@ async function geminiGenerate({ system, history, question, tries = 4 }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: geminiContents(history, question),
+        contents: geminiContents(history, question, attachments),
         generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
       }),
     },
@@ -120,13 +159,13 @@ async function geminiGenerate({ system, history, question, tries = 4 }) {
   return { answer, model: GEMINI_CHAT_MODEL };
 }
 
-async function openaiGenerate({ system, history, question }) {
+async function openaiGenerate({ system, history, question, attachments = [] }) {
   const data = await fetchWithRetry("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
-      messages: openaiMessages(system, history, question),
+      messages: openaiMessages(system, history, question, attachments),
       max_tokens: 2048,
       temperature: 0.7,
     }),
@@ -140,23 +179,23 @@ const anthropicHeaders = () => ({
   "anthropic-version": "2023-06-01",
 });
 
-const anthropicBody = (system, history, question, stream = false) => JSON.stringify({
+const anthropicBody = (system, history, question, stream = false, attachments = []) => JSON.stringify({
   model: ANTHROPIC_CHAT_MODEL,
   max_tokens: 2048,
   temperature: 0.7,
   system,
   messages: [
     ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
-    { role: "user", content: question },
+    { role: "user", content: anthropicUserContent(question, attachments) },
   ],
   ...(stream ? { stream: true } : {}),
 });
 
-async function anthropicGenerate({ system, history, question }) {
+async function anthropicGenerate({ system, history, question, attachments = [] }) {
   const data = await fetchWithRetry("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: anthropicHeaders(),
-    body: anthropicBody(system, history, question),
+    body: anthropicBody(system, history, question, false, attachments),
   }, 1);
   const answer = (data.content || []).map((b) => b.text || "").join("");
   return { answer, model: ANTHROPIC_CHAT_MODEL };
@@ -168,9 +207,10 @@ async function anthropicGenerate({ system, history, question }) {
  * @param {string} params.system - System prompt (+ contexte RAG)
  * @param {Object[]} params.history - [{role:"user"|"assistant", content}]
  * @param {string} params.question - Question courante
+ * @param {Object[]} [params.attachments] - Pièces jointes [{mime, kind, name, data}]
  * @returns {Promise<{ answer: string, model: string }>}
  */
-export async function generateAnswer({ system, history = [], question }) {
+export async function generateAnswer({ system, history = [], question, attachments = [] }) {
   const provider = activeProvider();
   if (!provider) throw new Error("Aucune clé IA : ajoute GEMINI_API_KEY ou OPENAI_API_KEY dans .env");
 
@@ -178,9 +218,9 @@ export async function generateAnswer({ system, history = [], question }) {
   // S'il y a au moins un secours, pas de retries lents (20-60s) sur Gemini :
   // on bascule immédiatement au premier échec.
   const chain = [];
-  if (provider === "gemini") chain.push(["gemini", (hasBackup) => geminiGenerate({ system, history, question, tries: hasBackup ? 1 : 4 })]);
-  if (process.env.OPENAI_API_KEY) chain.push(["openai", () => openaiGenerate({ system, history, question })]);
-  if (process.env.ANTHROPIC_API_KEY) chain.push(["claude", () => anthropicGenerate({ system, history, question })]);
+  if (provider === "gemini") chain.push(["gemini", (hasBackup) => geminiGenerate({ system, history, question, attachments, tries: hasBackup ? 1 : 4 })]);
+  if (process.env.OPENAI_API_KEY) chain.push(["openai", () => openaiGenerate({ system, history, question, attachments })]);
+  if (process.env.ANTHROPIC_API_KEY) chain.push(["claude", () => anthropicGenerate({ system, history, question, attachments })]);
 
   let lastErr;
   for (let i = 0; i < chain.length; i++) {
@@ -232,13 +272,13 @@ async function readSseStream(res, provider, onChunk) {
   return { answer: full, model };
 }
 
-async function openaiStream({ system, history, question, onChunk }) {
+async function openaiStream({ system, history, question, attachments = [], onChunk }) {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: OPENAI_CHAT_MODEL,
-      messages: openaiMessages(system, history, question),
+      messages: openaiMessages(system, history, question, attachments),
       max_tokens: 2048,
       temperature: 0.7,
       stream: true,
@@ -251,11 +291,11 @@ async function openaiStream({ system, history, question, onChunk }) {
   return readSseStream(res, "openai", onChunk);
 }
 
-async function anthropicStream({ system, history, question, onChunk }) {
+async function anthropicStream({ system, history, question, attachments = [], onChunk }) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: anthropicHeaders(),
-    body: anthropicBody(system, history, question, true),
+    body: anthropicBody(system, history, question, true, attachments),
   });
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
@@ -264,7 +304,7 @@ async function anthropicStream({ system, history, question, onChunk }) {
   return readSseStream(res, "claude", onChunk);
 }
 
-async function geminiStream({ system, history, question, onChunk }) {
+async function geminiStream({ system, history, question, attachments = [], onChunk }) {
   const key = process.env.GEMINI_API_KEY;
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:streamGenerateContent?alt=sse&key=${key}`,
@@ -273,7 +313,7 @@ async function geminiStream({ system, history, question, onChunk }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: geminiContents(history, question),
+        contents: geminiContents(history, question, attachments),
         generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
       }),
     }
@@ -298,9 +338,10 @@ async function geminiStream({ system, history, question, onChunk }) {
  * @param {Object[]} params.history
  * @param {string} params.question
  * @param {(text: string) => void} params.onChunk
+ * @param {Object[]} [params.attachments] - Pièces jointes [{mime, kind, name, data}]
  * @returns {Promise<{ answer: string, model: string }>}
  */
-export async function generateAnswerStream({ system, history = [], question, onChunk }) {
+export async function generateAnswerStream({ system, history = [], question, attachments = [], onChunk }) {
   const provider = activeProvider();
   if (!provider) throw new Error("Aucune clé IA : ajoute GEMINI_API_KEY ou OPENAI_API_KEY dans .env");
 
@@ -316,7 +357,7 @@ export async function generateAnswerStream({ system, history = [], question, onC
   for (let i = 0; i < chain.length; i++) {
     const [name, fn] = chain[i];
     try {
-      return await fn({ system, history, question, onChunk: guardedChunk });
+      return await fn({ system, history, question, attachments, onChunk: guardedChunk });
     } catch (err) {
       lastErr = err;
       if (emitted) throw err; // du texte est déjà parti vers le client
