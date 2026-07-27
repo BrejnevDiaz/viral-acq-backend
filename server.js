@@ -236,7 +236,13 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
   }
 
   const cleanQuery = query.trim() || (niche === "all" ? "beauty skincare" : niche);
-  const cacheKey   = `adspy:${platform}:${niche}:${cleanQuery}`;
+  // ⚠️ VERSION DE LA CLÉ DE CACHE — à incrémenter à CHAQUE changement du
+  // format ou de la provenance des créatifs. Sans elle, une correction
+  // déployée reste invisible jusqu'à 6 h (durée du cache) : c'est exactement
+  // ce qui s'est passé avec le correctif des vignettes du 27/07, où l'ancienne
+  // réponse mise en cache continuait d'être servie.
+  const ADSPY_CACHE_VERSION = "v2";
+  const cacheKey   = `adspy:${ADSPY_CACHE_VERSION}:${platform}:${niche}:${cleanQuery}`;
 
   const cached = await getCached(cacheKey);
   if (cached) {
@@ -298,6 +304,10 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
       const igThumbs = await Promise.all(
         igItems.map(({ item }) => fetchInstagramThumbnail(item.url))
       );
+      // Diagnostic explicite : sans ce log, impossible de distinguer « Instagram
+      // bloque nos requêtes » de « le code déployé n'est pas le bon ».
+      const igReal = igThumbs.filter(Boolean).length;
+      console.log(`🖼️  [AdSpy] Instagram : ${igReal}/${igItems.length} miniatures réelles${igReal === 0 && igItems.length ? " — repli par rotation (Instagram bloque ou ne sert pas l'image)" : ""}`);
       igItems.forEach(({ item, scMatch }, i) => {
         const userMatch = item.url.match(/instagram\.com\/([^/?#]+)\//);
         const embedUrl = `https://www.instagram.com/p/${scMatch[1]}/embed`;
@@ -374,6 +384,12 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
         }
       } catch (err) { console.warn("⚠️  [AdSpy] Apify Meta Ads:", err.message); }
     }
+
+    // Trace de contrôle : combien de vignettes DISTINCTES part-on servir ?
+    // Si ce nombre vaut 1 alors qu'il y a plusieurs créatifs, le repli n'a pas
+    // joué son rôle — c'est le symptôme signalé le 27/07.
+    const distinctThumbs = new Set(raw.map((r) => r.thumbnail)).size;
+    console.log(`🖼️  [AdSpy] ${raw.length} créatifs, ${distinctThumbs} vignette(s) distincte(s)`);
 
     // ── Formatage final (métriques benchmarkées, non aléatoires) ─────────
     const creatives = raw.slice(0, 12).map((item, idx) => {

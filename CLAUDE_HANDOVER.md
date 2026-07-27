@@ -177,6 +177,9 @@ Symptôme : tous les créatifs affichaient la MÊME image. Cause : seules TikTok
   - ⚠️ Non validé en conditions réelles : Instagram peut bloquer selon l'IP de sortie. Si les vignettes restent génériques après déploiement, vérifier les logs Railway ; l'alternative propre est l'oEmbed officiel Facebook (nécessite un App token).
 - `fallbackThumb(niche, index)` : le repli pioche dans un jeu de 4 images par niche, **par rotation d'index** et non par hash de l'URL — les URL d'une même recherche ne diffèrent que par un shortcode, et même un bon hash (testé : FNV-1a) produisait des doublons visibles côte à côte. Vérifié par test.
 - `AdSpyTab.jsx` : `onError` sur la vignette (les CDN Instagram/TikTok expirent ou refusent le hotlink → carte noire vide auparavant) + `loading="lazy"`.
+- ⚠️⚠️ **PIÈGE MAJEUR — le cache masque les correctifs** : la route AdSpy met ses résultats en cache 6 h dans `api_cache` (Supabase). Après le premier déploiement du correctif, les vignettes étaient TOUJOURS identiques : le cache servait la réponse enregistrée avant le déploiement, mon code n'était jamais exécuté. **`ADSPY_CACHE_VERSION` a été introduite dans la clé de cache — l'incrémenter à chaque changement de format ou de provenance des créatifs**, sinon un correctif reste invisible jusqu'à 6 h et on croit à tort qu'il ne fonctionne pas.
+  - Purge manuelle si besoin : `DELETE FROM api_cache WHERE cache_key LIKE 'adspy:%';`
+  - Les deux autres caches n'ont pas encore de version : `pf:` (Product Finder, 24 h) et `shop:` (Shop Analyzer, 12 h). Même piège à prévoir.
 - ℹ️ Sans rapport : les 404 `cdn.pixabay.com/*.mp4` et `/demo-video.mp4` de la console viennent de `LandingFeatures.jsx`, `LandingHero.jsx` et `VideoMarketplaceTab.jsx` (vidéos de démo dont les URL ne répondent plus). À remplacer avant commercialisation.
 
 ### ⏳ Reste à faire
