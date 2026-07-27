@@ -300,7 +300,7 @@ export default function MatchmakingTab({ c, mono, API_URL, uiLang }) {
       const endDate = new Date(today);
       endDate.setMonth(endDate.getMonth() + 3);
       const contractText = `CONTRAT DE PRESTATION DE SERVICES ET CESSION DE DROITS D'AUTEUR (UGC)
-Réf: C-${match.id.substring(0, 8).toUpperCase()}
+Réf: C-${String(match.id || "").substring(0, 8).toUpperCase()}
 
 ENTRE LES SOUSSIGNÉS :
 

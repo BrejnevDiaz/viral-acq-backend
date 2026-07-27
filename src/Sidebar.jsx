@@ -35,14 +35,18 @@ export default function Sidebar({
       <button key={tab.id} onClick={() => selectTab(tab.id)} title={locked ? lockedLabel : (isCollapsed ? tab.label[uiLang] : undefined)} style={{
         display: "flex", alignItems: "center", gap: isCollapsed ? 0 : 12,
         justifyContent: isCollapsed ? "center" : "flex-start",
-        padding: isCollapsed ? "12px 0" : (sub ? "10px 14px" : "12px 16px"), borderRadius: 10, border: "none",
+        padding: isCollapsed ? "12px 0" : (sub ? "9px 14px" : "10px 16px"), borderRadius: 10, border: "none",
         background: active ? `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)` : "transparent",
         borderLeft: (!sub && !isCollapsed) ? `3px solid ${active ? c.accent : "transparent"}` : undefined,
         color: active ? c.text : (locked ? c.textDim : c.textMuted), fontSize: sub ? 13 : 13.5, fontWeight: 700, fontFamily: mono, cursor: "pointer",
         textAlign: "left", transition: "all 0.2s", opacity: locked ? 0.6 : 1, width: "100%"
       }}>
         <tab.Icon color={active ? c.accent : c.textDim} />
-        {!isCollapsed && <span style={{ flex: 1 }}>{tab.label[uiLang]}</span>}
+        {/* nowrap + ellipsis : en italien/anglais certains libellés ("Generatore
+            Contratti") passaient sur deux lignes, la liste dépassait la hauteur
+            de l'écran et les premières entrées sortaient du champ de vision —
+            l'utilisateur les croyait disparues. */}
+        {!isCollapsed && <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tab.label[uiLang]}</span>}
         {!isCollapsed && locked && <span style={{ fontSize: 12 }}>🔒</span>}
       </button>
     );
@@ -86,7 +90,10 @@ export default function Sidebar({
       )}
 
       {/* Sidebar Nav Links */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
+      {/* sidebar-nav-scroll : barre de défilement fine mais VISIBLE (voir
+          index.css). Sans indice de défilement, une liste plus haute que
+          l'écran donne l'impression que des entrées ont été supprimées. */}
+      <div className="sidebar-nav-scroll" style={{ display: "flex", flexDirection: "column", gap: 6, flexGrow: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
         {isCollapsed ? (
           <>
             {/* Plié : tous les onglets à plat, icônes seules */}

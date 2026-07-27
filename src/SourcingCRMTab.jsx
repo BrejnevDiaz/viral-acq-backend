@@ -586,7 +586,7 @@ export default function SourcingCRMTab({
                       </Badge>
                       <Badge color={c.textMuted} bg={`rgba(128,128,128,0.08)`}>{brand.platform}</Badge>
                       <Badge color={brand.emailLang === "it" ? "#34d399" : c.emailBlue} bg={brand.emailLang === "it" ? c.successSoft : c.emailBlueSoft}>
-                        {emailLangFlag(brand.emailLang)} {brand.emailLang.toUpperCase()}
+                        {emailLangFlag(brand.emailLang)} {(brand.emailLang || "—").toUpperCase()}
                       </Badge>
                       {brand.sourcedAt && (
                         <Badge color={c.accent2} bg={c.accent2Soft}>

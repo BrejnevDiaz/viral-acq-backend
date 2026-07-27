@@ -200,3 +200,24 @@ h1, h2, h3, h4, h5, h6, .outfit {
 /* Default state for mobile-only classes on desktop */
 .show-mobile-flex { display: none; }
 .mobile-menu-btn { display: none; }
+
+/* ─── Navigation latérale défilante ────────────────────────────────────────
+   La liste d'onglets peut dépasser la hauteur de l'écran (écran court, ou
+   libellés plus longs en italien / anglais). Sans barre de défilement
+   visible, les entrées du haut semblent avoir été supprimées du menu —
+   confusion constatée en production le 27/07/2026. On force donc un
+   indicateur discret mais permanent, et un dégradé de bord qui signale
+   qu'il reste du contenu. */
+.sidebar-nav-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.sidebar-nav-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-nav-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* Ombres de défilement : n'apparaissent que si le contenu déborde réellement. */
+.sidebar-nav-scroll {
+  background:
+    linear-gradient(var(--sidebar-bg, transparent) 30%, rgba(0,0,0,0)) top / 100% 24px no-repeat,
+    linear-gradient(rgba(0,0,0,0), var(--sidebar-bg, transparent) 70%) bottom / 100% 24px no-repeat,
+    radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.10), rgba(0,0,0,0)) top / 100% 10px no-repeat,
+    radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.10), rgba(0,0,0,0)) bottom / 100% 10px no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}

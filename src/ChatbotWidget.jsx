@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_MESSAGE, buildChatRequestPayload } from "./chatbotKnowledge";
+import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_MESSAGE } from "./chatbotKnowledge";
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
 import { streamGideon } from "./utils/gideonStream";
@@ -86,6 +86,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         question: text,
         conversationHistory,
         conversationId: convId,
+        uiLang,
         onChunk: (fullText) => {
           if (!started) {
             started = true;
@@ -111,9 +112,9 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
         const res = await apiFetch(`${API_URL}/api/gideon`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, conversationHistory, conversationId: convId }),
+          body: JSON.stringify({ question: text, conversationHistory, conversationId: convId, uiLang }),
         });
-        if (!res.ok) throw new Error("Gideon API not ready yet");
+        if (!res.ok) throw new Error("Gideon API not ready yet", { cause: streamErr });
         const data = await res.json();
         if (data.conversationId && !convId) setConvId(data.conversationId);
         if (data.restricted || data.quotaExceeded) {

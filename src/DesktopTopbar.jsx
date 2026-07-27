@@ -12,6 +12,13 @@ const PAGE_TITLES = {
   brandportal:       { fr: "PORTAIL MARQUES & COLLABORATIONS",   en: "BRAND & COLLABORATION PORTAL", it: "PORTALE BRAND & COLLABORAZIONI" },
   contractgenerator: { fr: "GÉNÉRATEUR CONTRATS IA",             en: "AI CONTRACT GENERATOR",        it: "GENERATORE CONTRATTI IA" },
   videomarketplace:  { fr: "MARKETPLACE VIDÉO",                  en: "VIDEO MARKETPLACE",            it: "MARKETPLACE VIDEO" },
+  // ⚠️ Toute entrée de TABS (tabsConfig.jsx) absente de cette table hérite du
+  // titre `default` — c'est ainsi que le Coach IA affichait "CATALOGUE
+  // MATCHMAKING". Ajouter ici tout nouvel onglet.
+  creatorscore:      { fr: "CREATOR SCORE",                      en: "CREATOR SCORE",                it: "CREATOR SCORE" },
+  matchmaking:       { fr: "CATALOGUE MATCHMAKING",              en: "MATCHMAKING CATALOGUE",        it: "CATALOGO MATCHMAKING" },
+  knowledge:         { fr: "CONNAISSANCES IA",                   en: "AI KNOWLEDGE",                 it: "CONOSCENZE IA" },
+  coach:             { fr: "COACH IA ELITE",                     en: "ELITE AI COACH",               it: "COACH IA ELITE" },
   default:           { fr: "CATALOGUE MATCHMAKING",              en: "MATCHMAKING CATALOGUE",        it: "CATALOGO MATCHMAKING" },
 };
 

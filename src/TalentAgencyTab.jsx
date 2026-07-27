@@ -309,7 +309,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   const handlePostGig = (e) => {
     e.preventDefault();
     if (!newGig.brand || !newGig.title) return;
-    const cleanDomain = newGig.brand.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
+    const cleanDomain = String(newGig.brand || "").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
     const item = {
       id: `gig_user_${Date.now()}`,
       brand: newGig.brand,
@@ -337,8 +337,8 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       .then(data => {
         if (data.success) {
           showToast(uiLang === "fr"
-            ? `✉️ Offre publiée ! Notifications envoyées à ${matchingTalents.length} créateurs ${newGig.niche.toUpperCase()}.`
-            : `✉️ Gig published! ${matchingTalents.length} ${newGig.niche.toUpperCase()} creators notified.`);
+            ? `✉️ Offre publiée ! Notifications envoyées à ${matchingTalents.length} créateurs ${String(newGig.niche || "").toUpperCase()}.`
+            : `✉️ Gig published! ${matchingTalents.length} ${String(newGig.niche || "").toUpperCase()} creators notified.`);
         }
       })
       .catch(err => console.error("Erreur envoi notification email:", err));
@@ -1258,7 +1258,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                 }}>
                   <div style={{ textAlign: "center", borderBottom: "2px solid #e5e7eb", paddingBottom: 16, marginBottom: 24 }}>
                     <h2 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 8px 0", letterSpacing: 1, textTransform: "uppercase" }}>UGC & Influencer Marketing Agreement</h2>
-                    <p style={{ fontSize: 13, color: "#6b7280", margin: 0, fontFamily: "sans-serif" }}>Ref: {contract.id.toUpperCase()}</p>
+                    <p style={{ fontSize: 13, color: "#6b7280", margin: 0, fontFamily: "sans-serif" }}>Ref: {String(contract.id || "").toUpperCase()}</p>
                   </div>
                   
                   <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>

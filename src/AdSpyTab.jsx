@@ -501,8 +501,11 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
                     {ad.niche}
                   </span>
                   <span style={{ background: "rgba(255,255,255,0.9)", color: "#18181B", fontSize: 9.5, fontWeight: 800, padding: "3px 8px", borderRadius: 20, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
-                    <img src={`https://cdn.simpleicons.org/${ad.platform}/18181B`} width={9} height={9} alt="" />
-                    {ad.platform.toUpperCase()}
+                    {/* Données d'API externe : un créatif sans `platform` faisait
+                        planter tout le rendu (page blanche). Jamais d'accès
+                        direct à une propriété de donnée distante. */}
+                    <img src={`https://cdn.simpleicons.org/${ad.platform || "meta"}/18181B`} width={9} height={9} alt="" />
+                    {(ad.platform || "—").toUpperCase()}
                   </span>
                 </div>
 
@@ -660,7 +663,7 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
                   {/* Real Brand Logo */}
                   <div style={{ width: 40, height: 40, borderRadius: 8, border: `1.5px solid ${c.border}`, background: `linear-gradient(135deg, ${c.accent}12, ${c.accent2}12)`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
                     <img 
-                      src={`https://logo.clearbit.com/${activeVideo.brand.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com"}`} 
+                      src={`https://logo.clearbit.com/${String(activeVideo.brand || "").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com"}`} 
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeVideo.brand)}&background=8B5CF6&color=fff&size=100&rounded=false`;
@@ -676,8 +679,8 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                     <span style={{ background: c.accentSoft, color: c.accent, fontSize: 9.5, fontWeight: 700, padding: "3px 6px", borderRadius: 5, textTransform: "uppercase" }}>{activeVideo.niche}</span>
                     <span style={{ background: "#000", color: "#fff", fontSize: 9.5, fontWeight: 700, padding: "3px 6px", borderRadius: 5, display: "flex", alignItems: "center", gap: 3 }}>
-                      <img src={`https://cdn.simpleicons.org/${activeVideo.platform}/ffffff`} width={9} height={9} alt="" />
-                      {activeVideo.platform.toUpperCase()}
+                      <img src={`https://cdn.simpleicons.org/${activeVideo.platform || "meta"}/ffffff`} width={9} height={9} alt="" />
+                      {(activeVideo.platform || "—").toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -796,9 +799,9 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
                           const shopData = {
                             id: `shop_redirect_${activeVideo.brand}`,
                             name: activeVideo.brand,
-                            domain: activeVideo.brand.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
+                            domain: String(activeVideo.brand || "").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
                             logo: activeVideo.thumbnail,
-                            url: "https://" + activeVideo.brand.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
+                            url: "https://" + String(activeVideo.brand || "").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com",
                             monthlyTraffic: 72000,
                             monthlyRevenue: 36000,
                             dailyGrowth: "+$1.2k/Day",

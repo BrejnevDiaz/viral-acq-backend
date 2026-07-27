@@ -747,7 +747,7 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
                 />
                 <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.7)", color: "#fff", fontSize: 9.5, fontWeight: 700, padding: "3px 7px", borderRadius: 6, backdropFilter: "blur(4px)", display: "flex", alignItems: "center", gap: 4 }}>
                   <img src={getSourceIcon(p.source)} width={10} height={10} alt="" />
-                  {getSourceLabel(p.source).toUpperCase()}
+                  {(getSourceLabel(p.source) || "—").toUpperCase()}
                 </div>
               </div>
 
@@ -800,7 +800,7 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
                       platform: getSourceLabel(p.source),
                       platformId: "web",
                       niche: p.niche,
-                      region: p.countries[0].toLowerCase(),
+                      region: String(p.countries?.[0] || "").toLowerCase(),
                       contact: maskEmail(p.contact),
                       instagram: null,
                       socials: {},
@@ -942,7 +942,7 @@ export default function ProductFinderTab({ c, mono, API_URL, onImportLead, uiLan
                         platform: getSourceLabel(activeProduct.source),
                         platformId: "web",
                         niche: activeProduct.niche,
-                        region: activeProduct.countries[0].toLowerCase(),
+                        region: String(activeProduct.countries?.[0] || "").toLowerCase(),
                         contact: activeProduct.contact,
                         instagram: null,
                         socials: {},

@@ -153,7 +153,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
   const filteredVideos = VIDEOS.filter(video => {
     const matchesNiche = activeNiche === "all" || video.niche === activeNiche;
     const q = searchQuery.trim().toLowerCase();
-    const matchesQuery = !q || [video.username, video.product, video.niche].some(field => field.toLowerCase().includes(q));
+    const matchesQuery = !q || [video.username, video.product, video.niche].some(field => String(field || "").toLowerCase().includes(q));
     return matchesNiche && matchesQuery;
   });
 

@@ -134,6 +134,43 @@ Gideon analyse désormais les fichiers joints aux messages (screenshot de dashbo
 - À traiter avant commercialisation : restreindre `app.use(cors())` (server.js:58) au domaine de prod — l'API est ouverte à toutes origines. Risque limité (auth par header Bearer, qu'un site tiers ne possède pas) mais pas propre.
 - Amélioration suggérée non faite : faire échouer explicitement le build/démarrage en production si `VITE_API_URL` est absent, au lieu du repli silencieux sur localhost.
 
+### 9. Session du 27/07 — Chantier #17 : analyse VIDÉO dans le Coach
+Gideon décortique désormais les créatives vidéo (hook, rythme, montage), en plus des images et PDF.
+
+**Périmètre** : vidéo réservée au plan **Elite**, **90 s max**, **une seule par message**, `media_resolution: LOW`. Les images/PDF > 12 Mo passent aussi par la Files API (plafond inline levé).
+
+- **`geminiFiles.js` (nouveau)** : upload resumable vers la Files API + polling de l'état `ACTIVE` (une vidéo est transcodée avant d'être exploitable) + `deleteGeminiFile`. Rappels : 2 Go/fichier, **20 Go par PROJET partagés entre tous les utilisateurs**, suppression auto après 48 h. Les fichiers sont supprimés après chaque requête (`releaseGeminiFiles`) — sans ça le quota projet se remplirait et casserait la vidéo pour tout le monde.
+- **Coût, le vrai sujet** : Gemini tokenise ~300 tokens/seconde de vidéo, ~100/s en `MEDIA_RESOLUTION_LOW`. 90 s ≈ 9 000 tokens.
+  - ⚠️ **Le poids ne borne PAS le coût** : 60 Mo de H.264 bien compressé, c'est 30 minutes de vidéo. Seule la **durée** le borne. D'où `readIsoBmffDuration()` dans `gideonUploads.js` : lecture de la boîte `mvhd` du conteneur (pas un décodage — ffprobe n'existe pas sur l'image Railway). Testé sur de vrais fichiers : MP4 12 s et 200 s lus exactement, MOV reconnu, fichiers tronqués → `null` → refus.
+  - Conséquence assumée : **WebM et AVI sont refusés** (durée non lisible par ce parseur). Seuls MP4/MOV/3GP passent, côté front comme côté serveur comme dans le bucket.
+  - ⚠️ `mediaResolution` n'existe pas sur tous les modèles Gemini : un 400 « Unknown name » déclenche **un réessai sans ce réglage** (`aiProvider.js`). Sans ce repli, toute requête vidéo basculerait sur OpenAI/Claude, qui répondraient poliment qu'ils ne savent pas lire une vidéo.
+- **Garde-fou financier** : `GIDEON_DAILY_VIDEO_LIMIT = 15` vidéos/jour/compte, **admins inclus** (le compte qui teste le plus consomme le plus). Indispensable car Elite est *illimité en messages* : le surcoût de quota classique (`GIDEON_VIDEO_QUOTA_COST = 3`) n'y mordrait pas.
+  - **FAIL CLOSED** : si le comptage est impossible (migration absente, Supabase KO), la vidéo est **refusée** avec log d'erreur, pas autorisée sans limite. Seule exception : le bypass local sans token.
+  - ⚠️ Le quota s'appuie sur le `kind` **sniffé par magic bytes**, jamais sur celui du body : déclarer `kind:"image"` sur un .mp4 contournait tout le garde-fou (trouvé en revue).
+- **`loadGideonAttachments` restructuré** en deux temps — `inspectGideonAttachments` (download + magic bytes + dédoublonnage des chemins + durée) puis upload Gemini. Permet d'évaluer le quota sur des types vérifiés **avant** d'envoyer le moindre octet à Google.
+- **Ordre des contrôles inversé** dans les deux routes : quota AVANT chargement des pièces jointes. Sinon un message refusé pour quota laissait derrière lui des fichiers téléversés que rien ne référence, donc jamais purgés.
+- **Pas de repli sur `/api/gideon` quand une vidéo est jointe** (`CoachIATab.jsx`) : rejouer la requête re-téléverserait et refacturerait la vidéo entière pour un seul message. Message d'échec explicite + sélection conservée.
+- **Réponse vide = erreur** (`aiProvider.js`) : un `finishReason` SAFETY ou une coupure silencieuse renvoyait une bulle vide, et pour une vidéo, une facturation sans décompte. Désormais `throw` → chaîne de secours.
+- **Garde-fou mémoire** : contrôle du `Content-Length` avant multer — celui-ci plafonne chaque fichier, pas le total, donc 10 × 60 Mo = 600 Mo bufferisés en RAM (OOM sur Railway 512 Mo).
+- Front : durée lue par le navigateur avant upload (confort ; le serveur reste l'autorité), vignette avec première frame + badge de durée + repli carte-icône si le codec n'est pas décodable (cas du .mov sur Chrome), indicateur « analyse image par image » pendant le traitement, compteur de vidéos restantes affiché à partir de 5.
+- ObjectURL des messages jetés désormais révoqués (`releaseMessagePreviews`) : anecdotique pour des images, jusqu'à 60 Mo pièce avec des vidéos.
+- Vérifié : `node --check` sur tous les modules, eslint propre, bundle esbuild OK, parseur de durée testé sur fichiers ffmpeg réels, revue adversariale (sous-agent) — 4 bloquants et 7 importants corrigés.
+
+**⏳ À faire avant de tester le #17**
+1. **Rejouer `supabase/gideon_uploads.sql`** : le bucket doit accepter les mimes vidéo et passer à 60 Mo. Le script est idempotent (`ON CONFLICT DO UPDATE`).
+2. `npm run build` local, puis push par Gemini (Vercel + Railway).
+3. Tester avec un vrai MP4 < 90 s, puis vérifier qu'un MP4 de 3 min est refusé avec un message clair.
+
+### 10. Session du 27/07 — Trois bugs de production corrigés (hors chantiers)
+- **PAGE BLANCHE — cause trouvée** : `Uncaught TypeError: Cannot read properties of undefined (reading 'toUpperCase')` dans un `Array.map`. Origine : `ad.platform.toUpperCase()` (`AdSpyTab.jsx`) sur des données venant d'API externes (Apify/RapidAPI) — un seul créatif sans champ `platform` faisait tomber TOUTE l'application. Tous les accès de ce type ont été blindés (`AdSpyTab`, `ProductFinderTab`, `ShopAnalyzerTab`, `TalentAgencyTab`, `VideoMarketplaceTab`, `SourcingCRMTab`, `MatchmakingTab`).
+  - ⚠️ **Règle à tenir** : ne jamais appeler `.toUpperCase()` / `.toLowerCase()` / `[0]` directement sur un champ issu d'une réponse d'API. Toujours `String(x || "")` ou `?.`. Un `grep` de contrôle est décrit ci-dessous.
+  - **`src/ErrorBoundary.jsx` (nouveau)**, monté dans `main.jsx` AUTOUR des providers : un crash affiche désormais un écran de secours (bouton recharger + trace repliable) au lieu d'une page vide. Filet de sécurité, pas un substitut aux corrections.
+  - Commande de contrôle avant chaque release :
+    `grep -rn "\.\(toUpperCase\|toLowerCase\)()" src/*.jsx | grep -vE "String\(|\|\| \"|charAt|\?\?"`
+- **TITRES DE PAGE** : `PAGE_TITLES` (`DesktopTopbar.jsx`) ne contenait pas `coach`, `creatorscore`, `knowledge` ni `matchmaking` → ces onglets héritaient de `default` = « CATALOGUE MATCHMAKING » (affiché sur le Coach IA). Toute entrée ajoutée à `TABS` doit désormais l'être aussi ici.
+- **MENU « AMPUTÉ »** : aucune entrée n'était supprimée — la liste **défilait**. Trois causes cumulées : libellés sur deux lignes en italien/anglais, aucune barre de défilement visible, espacement vertical généreux. Corrigé par `nowrap` + ellipsis sur les libellés, classe `.sidebar-nav-scroll` (barre fine permanente + ombres de défilement, `index.css`) et padding réduit.
+- **LANGUE MÉLANGÉE DU COACH** : la consigne « réponds en français sauf si l'utilisateur écrit dans une autre langue » produisait des réponses hybrides (« Come posso aiutarti a scaler ta marque »). Remplacée par un marqueur `{{LANGUE}}` dans les system prompts, substitué par une règle stricte selon `uiLang` (`LANGUAGE_RULES` dans `gideonEngine.js`). `uiLang` est désormais transmis par le front (`CoachIATab`, `ChatbotWidget`, `gideonStream`) et validé en liste blanche côté serveur. Les messages système (quota, accès refusé, panne, quota vidéo) sont traduits via `pick(uiLang, {...})`.
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).
