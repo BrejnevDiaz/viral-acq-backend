@@ -1,6 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import DirectMessagePanel from "./DirectMessagePanel";
 import { supabase } from "./supabaseClient";
+import {
+  fetchFavorites, toggleFavorite, fetchCart, toggleCart, submitOrder, fetchThreads,
+  isDemoVideo, parsePrice, formatPrice,
+} from "./utils/marketplaceCommerce";
 
 // ─── Demo UGC videos shown alongside real creator uploads so the marketplace
 // never looks empty before creators start publishing (see "sellvideos" tab
@@ -25,6 +29,13 @@ const T = {
     publishVideoBtn: "Publier la vidéo", publishingVideo: "Publication en cours...",
     myVideosTitle: "Mes vidéos publiées", noVideosYet: "Vous n'avez encore publié aucune vidéo.",
     videoPublishedToast: "Vidéo publiée avec succès sur le Marketplace !", deleteVideoBtn: "Retirer",
+    favorites: "Favoris", cart: "Panier", cartEmpty: "Votre panier est vide.",
+    addedToCart: "Ajouté au panier ✓", removedFromCart: "Retiré du panier",
+    orderBtn: "Envoyer la commande", ordering: "Envoi en cours...",
+    orderSent: "Commande envoyée au créateur ✓", total: "Total",
+    demoAction: "Vidéo d'exemple — aucun créateur réel derrière. Action indisponible.",
+    demoBadge: "Exemple",
+    inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer",
   },
   en: {
     title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.",
@@ -35,6 +46,13 @@ const T = {
     publishVideoBtn: "Publish video", publishingVideo: "Publishing...",
     myVideosTitle: "My published videos", noVideosYet: "You haven't published any video yet.",
     videoPublishedToast: "Video successfully published to the Marketplace!", deleteVideoBtn: "Remove",
+    favorites: "Favourites", cart: "Cart", cartEmpty: "Your cart is empty.",
+    addedToCart: "Added to cart ✓", removedFromCart: "Removed from cart",
+    orderBtn: "Send order", ordering: "Sending...",
+    orderSent: "Order sent to the creator ✓", total: "Total",
+    demoAction: "Sample video — no real creator behind it. Action unavailable.",
+    demoBadge: "Sample",
+    inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry",
   },
   it: {
     title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.",
@@ -45,10 +63,17 @@ const T = {
     publishVideoBtn: "Pubblica il video", publishingVideo: "Pubblicazione in corso...",
     myVideosTitle: "I miei video pubblicati", noVideosYet: "Non hai ancora pubblicato nessun video.",
     videoPublishedToast: "Video pubblicato con successo sul Marketplace!", deleteVideoBtn: "Rimuovi",
+    favorites: "Preferiti", cart: "Carrello", cartEmpty: "Il tuo carrello è vuoto.",
+    addedToCart: "Aggiunto al carrello ✓", removedFromCart: "Rimosso dal carrello",
+    orderBtn: "Invia l'ordine", ordering: "Invio in corso...",
+    orderSent: "Ordine inviato al creator ✓", total: "Totale",
+    demoAction: "Video di esempio — nessun creator reale dietro. Azione non disponibile.",
+    demoBadge: "Esempio",
+    inboxTab: "Messaggi 💬", inboxEmpty: "Nessuna conversazione per ora.", inboxLoading: "Caricamento...", inboxRetry: "Riprova",
   },
 };
 
-export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
+export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }) {
   const [toast, setToast] = useState(null);
   const [dmVideo, setDmVideo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +86,17 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
   const [videoFile, setVideoFile] = useState(null);
   const [isPublishingVideo, setIsPublishingVideo] = useState(false);
   const [sellToast, setSellToast] = useState(null);
+  // Commerce (chantier #18) : favoris et panier persistés par utilisateur.
+  const [favorites, setFavorites] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [ordering, setOrdering] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  // Boîte de réception : sans elle, un créateur recevait l'email « Répondre
+  // dans Acquisition Pro » sans aucun écran pour le faire.
+  const [threads, setThreads] = useState([]);
+  const [threadsLoading, setThreadsLoading] = useState(false);
+  const [threadsError, setThreadsError] = useState(null);
   const t = T[uiLang] || T.fr;
 
   const showSellToast = (message, type = "success") => {
@@ -94,7 +130,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
-        if (error || !data) return;
+        // Sans ce log, un marketplace vide pouvait aussi bien signifier
+        // « aucune vidéo publiée » qu'une erreur de lecture Supabase.
+        if (error) { console.error("❌ Marketplace : chargement des vidéos:", error.message); return; }
+        if (!data) return;
         setRealVideos(data.map(v => ({
           id: v.id,
           username: v.username,
@@ -143,7 +182,14 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
 
   const handleDeleteVideo = async (video) => {
     if (!supabase) return;
-    await supabase.from("marketplace_videos").delete().eq("id", video.id);
+    const { error } = await supabase.from("marketplace_videos").delete().eq("id", video.id);
+    // Une suppression refusée par la RLS renvoyait un succès apparent : la
+    // vidéo disparaissait de l'écran puis revenait au rechargement.
+    if (error) {
+      console.error("❌ Suppression vidéo:", error.message);
+      showSellToast("Cette vidéo n'a pas pu être retirée.", "error");
+      return;
+    }
     setMyVideos(prev => prev.filter(v => v.id !== video.id));
     fetchRealVideos();
   };
@@ -154,7 +200,8 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
     const matchesNiche = activeNiche === "all" || video.niche === activeNiche;
     const q = searchQuery.trim().toLowerCase();
     const matchesQuery = !q || [video.username, video.product, video.niche].some(field => String(field || "").toLowerCase().includes(q));
-    return matchesNiche && matchesQuery;
+    const matchesFavorite = !showFavoritesOnly || favorites.includes(video.id);
+    return matchesNiche && matchesQuery && matchesFavorite;
   });
 
   // Only the slide actually in view should decode/play — with autoPlay on every
@@ -181,9 +228,84 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
     return () => observer.disconnect();
   }, [filteredVideos]);
 
+  // ─── Favoris / panier (chantier #18) ──────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    fetchFavorites(userId).then(setFavorites);
+    fetchCart(userId).then(setCart);
+  }, [userId]);
+
+  const notify = useCallback((message, type = "success") => {
+    setSellToast({ message, type });
+    setTimeout(() => setSellToast(null), 3500);
+  }, []);
+
+  const loadThreads = useCallback(async () => {
+    setThreadsLoading(true);
+    setThreadsError(null);
+    try {
+      setThreads(await fetchThreads(API_URL));
+    } catch (err) {
+      setThreadsError(String(err.message || err));
+    } finally {
+      setThreadsLoading(false);
+    }
+  }, [API_URL]);
+
+  useEffect(() => { if (viewMode === "inbox") loadThreads(); }, [viewMode, loadThreads]);
+
+  const handleToggleFavorite = async (video) => {
+    if (isDemoVideo(video)) return notify(t.demoAction, "error");
+    const active = favorites.includes(video.id);
+    // Mise à jour optimiste : le cœur réagit au clic, on corrige si l'écriture échoue.
+    setFavorites((prev) => (active ? prev.filter((id) => id !== video.id) : [...prev, video.id]));
+    const r = await toggleFavorite(userId, video.id, active);
+    if (!r.ok) {
+      setFavorites((prev) => (active ? [...prev, video.id] : prev.filter((id) => id !== video.id)));
+      notify(r.error, "error");
+    }
+  };
+
+  const handleToggleCart = async (video) => {
+    if (isDemoVideo(video)) return notify(t.demoAction, "error");
+    const inCart = cart.includes(video.id);
+    setCart((prev) => (inCart ? prev.filter((id) => id !== video.id) : [...prev, video.id]));
+    const r = await toggleCart(userId, video.id, inCart);
+    if (!r.ok) {
+      setCart((prev) => (inCart ? [...prev, video.id] : prev.filter((id) => id !== video.id)));
+      notify(r.error, "error");
+      return;
+    }
+    notify(inCart ? t.removedFromCart : t.addedToCart);
+  };
+
+  const cartVideos = [...realVideos, ...DEMO_VIDEOS].filter((v) => cart.includes(v.id));
+  const cartTotal = cartVideos.reduce((s, v) => s + parsePrice(v.price), 0);
+
+  const handleSubmitOrder = async () => {
+    if (cartVideos.length === 0) return;
+    setOrdering(true);
+    const r = await submitOrder(API_URL, cartVideos.map((v) => v.id));
+    setOrdering(false);
+    if (!r.ok) return notify(r.error, "error");
+    // On ne retire que ce que le serveur a réellement commandé : une vidéo
+    // devenue indisponible reste au panier, avec un message qui l'explique.
+    const ordered = r.orderedIds || cartVideos.map((v) => v.id);
+    setCart((prev) => prev.filter((id) => !ordered.includes(id)));
+    setCartOpen(false);
+    notify(r.message || t.orderSent);
+  };
+
   const handleBuy = (video) => {
-    setToast(video.id);
-    setTimeout(() => setToast(null), 2500);
+    // "Acheter" = ajouter au panier puis l'ouvrir : un achat UGC se négocie
+    // avec le créateur, il n'y a pas de paiement immédiat.
+    if (isDemoVideo(video)) {
+      setToast(video.id);
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+    if (!cart.includes(video.id)) handleToggleCart(video);
+    setCartOpen(true);
   };
 
   return (
@@ -198,9 +320,48 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
         <p className="video-feed-subtitle" style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>{t.subtitle}</p>
       </div>
 
+      {/* Accès favoris + panier (chantier #18) — visibles seulement en mode
+          navigation, un créateur qui vend n'a rien à y faire. */}
+      {viewMode === "browse" && (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 14 }}>
+          <button
+            onClick={() => setShowFavoritesOnly(v => !v)}
+            className="hover-lift"
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: 30, cursor: "pointer",
+              border: `1.5px solid ${showFavoritesOnly ? "transparent" : c.border}`,
+              background: showFavoritesOnly ? "linear-gradient(135deg, #EC4899, #8B5CF6)" : "transparent",
+              color: showFavoritesOnly ? "#fff" : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, transition: "all 0.2s",
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill={showFavoritesOnly ? "#fff" : "none"} stroke="currentColor" strokeWidth="2"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
+            {t.favorites}{favorites.length > 0 ? ` (${favorites.length})` : ""}
+          </button>
+
+          <button
+            onClick={() => setCartOpen(true)}
+            className="hover-lift"
+            style={{
+              position: "relative", display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: 30,
+              border: "none", background: "linear-gradient(135deg, #10B981, #059669)", color: "#fff",
+              fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(16,185,129,0.35)",
+            }}
+          >
+            🛒 {t.cart}
+            {cart.length > 0 && (
+              <span style={{
+                minWidth: 20, height: 20, borderRadius: 10, background: "#fff", color: "#059669",
+                fontSize: 11, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px",
+              }}>{cart.length}</span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Browse / Sell toggle — creators sell where they (and brands) already browse */}
       <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-        {["browse", "sell"].map(mode => (
+        {["browse", "sell", "inbox"].map(mode => (
           <button
             key={mode}
             onClick={() => setViewMode(mode)}
@@ -210,12 +371,61 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
               color: viewMode === mode ? "#fff" : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s"
             }}
           >
-            {mode === "browse" ? t.browseTab : t.sellTab}
+            {mode === "browse" ? t.browseTab : mode === "sell" ? t.sellTab : t.inboxTab}
           </button>
         ))}
       </div>
 
-      {viewMode === "sell" ? (
+      {viewMode === "inbox" ? (
+        /* Boîte de réception commune aux deux rôles : la marque y retrouve ses
+           échanges, le créateur y répond aux marques qui l'ont contacté. */
+        <div style={{ maxWidth: 640, margin: "0 auto", animation: "fadeIn 0.3s" }}>
+          {threadsLoading && (
+            <p style={{ textAlign: "center", color: c.textMuted, fontSize: 14 }}>{t.inboxLoading}</p>
+          )}
+          {threadsError && (
+            <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444", fontSize: 13.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{threadsError}</span>
+              <button onClick={loadThreads} style={{ border: "none", background: "transparent", color: "inherit", fontWeight: 700, cursor: "pointer", textDecoration: "underline", flexShrink: 0 }}>{t.inboxRetry}</button>
+            </div>
+          )}
+          {!threadsLoading && !threadsError && threads.length === 0 && (
+            <p style={{ textAlign: "center", color: c.textMuted, fontSize: 14, marginTop: 40 }}>{t.inboxEmpty}</p>
+          )}
+          {threads.map((th) => {
+            const v = th.marketplace_videos || {};
+            return (
+              <button
+                key={th.id}
+                onClick={() => setDmVideo({
+                  id: th.video_id,
+                  username: v.username || "créateur",
+                  product: v.product || "—",
+                  price: v.price != null ? `${Number(v.price).toFixed(2)} €` : "—",
+                  src: v.video_url,
+                })}
+                className="hover-lift"
+                style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 14, textAlign: "left",
+                  padding: 14, marginBottom: 10, borderRadius: 14, cursor: "pointer",
+                  background: c.card, border: `1px solid ${c.border}`, transition: "all 0.2s",
+                }}
+              >
+                <div style={{ width: 46, height: 46, borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg, #8B5CF6, #EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800 }}>
+                  {(v.username || "?").slice(0, 2).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: c.text }}>@{v.username || "créateur"}</div>
+                  <div style={{ fontSize: 12.5, color: c.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.product || "—"}</div>
+                </div>
+                <div style={{ fontSize: 11.5, color: c.textDim, flexShrink: 0 }}>
+                  {th.last_message_at ? new Date(th.last_message_at).toLocaleDateString(uiLang === "fr" ? "fr-FR" : uiLang === "it" ? "it-IT" : "en-US", { day: "numeric", month: "short" }) : ""}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : viewMode === "sell" ? (
         <div style={{ maxWidth: 640, margin: "0 auto", animation: "fadeIn 0.3s" }}>
           <div style={{ background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 20, padding: 26, marginBottom: 24, position: "relative" }}>
             {sellToast && (
@@ -398,16 +608,38 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
                   @{video.username}
                   <span style={{ fontSize: 10, background: "rgba(139,92,246,0.4)", padding: "2px 8px", borderRadius: 10, fontWeight: 700, textTransform: "uppercase" }}>{video.niche}</span>
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>{video.product}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>
+                  {video.product}
+                  {/* Dire explicitement qu'une vidéo est un exemple : sans ça,
+                      l'utilisateur ne comprend pas pourquoi l'action échoue. */}
+                  {isDemoVideo(video) && (
+                    <span style={{ marginLeft: 8, padding: "2px 7px", borderRadius: 20, background: "rgba(255,255,255,0.22)", fontSize: 10, fontWeight: 800, letterSpacing: 0.4 }}>
+                      {t.demoBadge}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: "#10B981", fontFamily: mono }}>{video.price}</div>
               </div>
 
               {/* Right-side action rail (TikTok-style) */}
               <div style={{ position: "absolute", bottom: 24, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+                {/* Cœur = favori réel de la marque (persisté), plus un simple
+                    compteur décoratif. */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
-                  <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
-                  </div>
+                  <button
+                    onClick={() => handleToggleFavorite(video)}
+                    className="hover-lift"
+                    aria-pressed={favorites.includes(video.id)}
+                    title={t.favorites}
+                    style={{
+                      width: 42, height: 42, borderRadius: "50%", border: "none", cursor: "pointer",
+                      background: favorites.includes(video.id) ? "linear-gradient(135deg, #EC4899, #8B5CF6)" : "rgba(255,255,255,0.15)",
+                      backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s", opacity: isDemoVideo(video) ? 0.55 : 1,
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={favorites.includes(video.id) ? "#fff" : "none"} stroke="#fff" strokeWidth="2"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
+                  </button>
                   <span style={{ fontSize: 11, fontWeight: 700 }}>{video.likes}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
@@ -425,13 +657,18 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
                   </button>
                   <span style={{ fontSize: 11, fontWeight: 700 }}>{t.dm}</span>
                 </div>
+                {/* Panier : coche verte quand la vidéo y est déjà. */}
                 <button onClick={() => handleBuy(video)} className="hover-lift" style={{
                   width: 52, height: 52, borderRadius: "50%", border: "none",
-                  background: "linear-gradient(135deg, #10B981, #059669)", color: "#fff", cursor: "pointer",
+                  background: cart.includes(video.id)
+                    ? "linear-gradient(135deg, #059669, #047857)"
+                    : "linear-gradient(135deg, #10B981, #059669)",
+                  color: "#fff", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 8px 20px rgba(16,185,129,0.5)", fontSize: 22
-                }} title={t.buy}>
-                  🛒
+                  boxShadow: "0 8px 20px rgba(16,185,129,0.5)", fontSize: 22,
+                  opacity: isDemoVideo(video) ? 0.55 : 1,
+                }} title={cart.includes(video.id) ? t.cart : t.buy}>
+                  {cart.includes(video.id) ? "✓" : "🛒"}
                 </button>
               </div>
 
@@ -447,9 +684,89 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId }) {
       </>
       )}
 
-      {dmVideo && <DirectMessagePanel video={dmVideo} uiLang={uiLang} onClose={() => setDmVideo(null)} />}
+      {/* ─── Tiroir panier (chantier #18) ────────────────────────────────── */}
+      {cartOpen && (
+        <div
+          onClick={() => setCartOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)", display: "flex", justifyContent: "flex-end" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(420px, 100%)", height: "100%", background: c.card, borderLeft: `1px solid ${c.border}`,
+              display: "flex", flexDirection: "column", animation: "slideInRight 0.25s ease-out",
+            }}
+          >
+            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 className="outfit" style={{ margin: 0, fontSize: 19, fontWeight: 800, color: c.text }}>🛒 {t.cart}</h3>
+              <button onClick={() => setCartOpen(false)} aria-label="Fermer" style={{ border: "none", background: "transparent", color: c.textMuted, cursor: "pointer", padding: 4 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
+              {cartVideos.length === 0 ? (
+                <p style={{ color: c.textMuted, fontSize: 14, textAlign: "center", marginTop: 40 }}>{t.cartEmpty}</p>
+              ) : cartVideos.map((v) => (
+                <div key={v.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: 12, borderRadius: 12, border: `1px solid ${c.border}`, marginBottom: 10, background: c.surface }}>
+                  <video src={v.src} muted preload="metadata" style={{ width: 54, height: 72, objectFit: "cover", borderRadius: 8, background: "#000", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: c.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.product}</div>
+                    <div style={{ fontSize: 12, color: c.textMuted }}>@{v.username}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#10B981", fontFamily: mono }}>{v.price}</div>
+                  </div>
+                  <button onClick={() => handleToggleCart(v)} aria-label="Retirer du panier" style={{ border: "none", background: "transparent", color: c.textMuted, cursor: "pointer", padding: 6, flexShrink: 0 }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {cartVideos.length > 0 && (
+              <div style={{ padding: 20, borderTop: `1px solid ${c.border}`, background: c.surface }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, fontSize: 15 }}>
+                  <span style={{ color: c.textMuted, fontWeight: 600 }}>{t.total}</span>
+                  <span style={{ color: c.text, fontWeight: 900, fontFamily: mono }}>{formatPrice(cartTotal)}</span>
+                </div>
+                <button
+                  onClick={handleSubmitOrder}
+                  disabled={ordering}
+                  className="hover-lift"
+                  style={{
+                    width: "100%", padding: "14px 0", borderRadius: 12, border: "none",
+                    background: ordering ? c.border : "linear-gradient(90deg, #8B5CF6, #EC4899)",
+                    color: "#fff", fontSize: 14.5, fontWeight: 800, cursor: ordering ? "not-allowed" : "pointer",
+                    boxShadow: ordering ? "none" : "0 8px 20px rgba(139,92,246,0.35)",
+                  }}
+                >
+                  {ordering ? t.ordering : t.orderBtn}
+                </button>
+                {/* Le paiement n'existe pas encore : on le dit clairement plutôt
+                    que de laisser croire à une transaction. */}
+                <p style={{ fontSize: 11.5, color: c.textDim, textAlign: "center", margin: "10px 0 0", lineHeight: 1.5 }}>
+                  {uiLang === "it" ? "Il creator riceve la tua richiesta e conferma la disponibilità. Il pagamento si concorda tra voi."
+                    : uiLang === "en" ? "The creator receives your request and confirms availability. Payment is agreed between you."
+                    : "Le créateur reçoit ta demande et confirme sa disponibilité. Le règlement se convient entre vous."}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {dmVideo && (
+        <DirectMessagePanel
+          video={dmVideo}
+          uiLang={uiLang}
+          API_URL={API_URL}
+          userId={userId}
+          isDemo={isDemoVideo(dmVideo)}
+          onClose={() => setDmVideo(null)}
+        />
+      )}
 
       <style>{`
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .video-feed-scroll::-webkit-scrollbar { display: none; }
         .video-feed-scroll { scrollbar-width: none; }
 

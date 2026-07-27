@@ -11,6 +11,7 @@ import { supabase } from "./supabaseClient.js";
 import { requireBrand, requireAnyUser, requireAuth, requireRole } from "./authMiddleware.js";
 import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
+import registerMarketplaceRoutes from "./marketplaceRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
 import { queryGideon, queryGideonStream, pick } from "./gideonEngine.js";
 import { fetchHistory, saveExchange, clearHistory, countToday, countVideosToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
@@ -59,6 +60,9 @@ app.use(cors()); // Autorise toutes les origines
 app.use(express.json({ limit: "2mb" }));
 app.use("/api/catalogue", catalogueRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+// Marketplace Vidéo : messagerie marque ↔ créateur et commandes (chantier #18).
+// Les favoris et le panier passent en direct par Supabase depuis le front.
+registerMarketplaceRoutes(app, requireAnyUser);
 
 // ─── Platform → site domain ───────────────────────────────────────────────────
 const siteMap = {

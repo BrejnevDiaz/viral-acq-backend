@@ -182,6 +182,34 @@ Symptôme : tous les créatifs affichaient la MÊME image. Cause : seules TikTok
   - Les deux autres caches n'ont pas encore de version : `pf:` (Product Finder, 24 h) et `shop:` (Shop Analyzer, 12 h). Même piège à prévoir.
 - ℹ️ Sans rapport : les 404 `cdn.pixabay.com/*.mp4` et `/demo-video.mp4` de la console viennent de `LandingFeatures.jsx`, `LandingHero.jsx` et `VideoMarketplaceTab.jsx` (vidéos de démo dont les URL ne répondent plus). À remplacer avant commercialisation.
 
+### 12. Session du 27/07 — Chantier #18 : commerce du Marketplace Vidéo
+Une marque peut mettre des vidéos en favori, les ajouter à un panier, envoyer une commande, et échanger de vrais messages avec le créateur (qui est notifié par email). La messagerie était jusqu'ici **entièrement factice** : les messages vivaient en mémoire et un 👍 automatique arrivait après 1,2 s.
+
+- **`supabase/marketplace_commerce.sql` (nouveau, ⏳ À EXÉCUTER)** : `marketplace_favorites`, `marketplace_cart`, `marketplace_threads`, `marketplace_messages`, `marketplace_orders`.
+- **`marketplaceRoutes.js` (nouveau)** : messagerie et commandes, monté dans server.js via `registerMarketplaceRoutes(app, requireAnyUser)`.
+- **`src/utils/marketplaceCommerce.js` (nouveau)** + `VideoMarketplaceTab.jsx` (cœur favori, badge panier, tiroir de commande, onglet Messages) + `DirectMessagePanel.jsx` (fil réel).
+
+**⚠️⚠️ LE POINT LE PLUS IMPORTANT DE CE CHANTIER — modèle d'écriture**
+La clé anon Supabase est **publique** (elle est dans le bundle front) : tout utilisateur connecté peut appeler l'API REST directement. Une règle métier écrite seulement dans `server.js` n'est donc **pas** une protection. La première version de ce chantier laissait les tables ouvertes en écriture ; une revue adversariale a montré qu'on pouvait alors, en une requête `curl` :
+- commander une vidéo à 500 € en inscrivant `total: 0.01` ;
+- s'auto-accepter une commande, ou en réécrire `items`/`creator_id` après coup ;
+- **réécrire le `brand_id` d'un fil et donner à un tiers l'accès à tout l'historique de la conversation** ;
+- forger un fil désignant un créateur arbitraire et déclencher un email signé du domaine de la plateforme (usurpation + spam).
+
+Le modèle retenu, à **conserver** :
+- **favoris / panier** → écriture directe autorisée (`FOR ALL USING(auth.uid() = user_id) WITH CHECK(...)`). Aucune règle métier, « la ligne m'appartient » suffit et s'exprime en RLS.
+- **fils / messages / commandes** → **aucune policy INSERT ni UPDATE**. La RLS bloque toute écriture venue du front. Seul `marketplaceRoutes.js` écrit, avec la **clé service**, et vérifie l'appartenance **explicitement** à chaque fois (la clé service ignore la RLS : rien n'est implicite).
+- Les **lectures** restent scopées au JWT : la RLS filtre, aucun risque de fuite par oubli.
+- ⚠️ Piège Postgres : `FOR UPDATE USING (...)` **sans `WITH CHECK`** réutilise le `USING` comme `WITH CHECK` — la ligne peut donc être modifiée librement tant qu'elle reste « à soi ». C'est ce qui rendait la réécriture du `brand_id` possible.
+
+Autres corrections issues de la revue : transitions de statut énumérées explicitement (`completed` n'est atteignable que depuis `accepted`) ; HTML des emails échappé (un nom de produit pouvait injecter un lien de phishing) ; **l'email de l'expéditeur n'est plus divulgué** au destinataire (l'expéditeur est désigné par son rôle) ; cooldown de notification séparé par destinataire (`last_notified_at` / `last_notified_brand_at`) sans quoi une réponse dans l'heure ne prévenait jamais l'autre partie ; panier vidé uniquement des vidéos réellement commandées ; ids non-UUID écartés avant Postgres.
+
+**Onglet « Messages »** ajouté dans le Marketplace : sans lui, le créateur recevait un email « Répondre dans Acquisition Pro » sans aucun écran pour le faire — la messagerie était à sens unique.
+
+**Vidéos de démonstration** : `isDemoVideo()` (id non-UUID) désactive message et commande avec la mention « Exemple », ces vidéos n'ayant aucun créateur inscrit derrière.
+
+**⏳ Reste sur ce chantier** : pas de paiement (choix assumé — la commande est une demande, le règlement se convient entre les parties) ; pas d'idempotence serveur sur un double envoi de commande ; `read_at` des messages jamais renseigné (pas d'accusé de lecture).
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).

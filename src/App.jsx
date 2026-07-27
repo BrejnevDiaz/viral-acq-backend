@@ -438,7 +438,7 @@ export default function ProspectionAgent() {
         ) : currentTab === "account" ? (
           <AccountSettings c={c} mono={mono} uiLang={uiLang} userId={userId} userEmail={userEmail} userTier={userTier} setShowUpgradeModal={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez à un Forfait Supérieur" : "💎 Upgrade Your Plan", reason: "" })} />
         ) : currentTab === "videomarketplace" ? (
-          <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} userId={userId} />
+          <VideoMarketplaceTab c={c} mono={mono} uiLang={uiLang} userId={userId} API_URL={API_URL} />
         ) : currentTab === "coach" ? (
           <CoachIATab c={c} mono={mono} uiLang={uiLang} userTier={userTier} API_URL={API_URL} onUpgradeClick={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez au VIP Elite" : "💎 Upgrade to VIP Elite", reason: "" })} />
         ) : (

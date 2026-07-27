@@ -1,0 +1,158 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- MARKETPLACE VIDÉO — Favoris, panier, messagerie et commandes (Chantier #18)
+-- ═══════════════════════════════════════════════════════════════════════════
+-- À exécuter dans le SQL Editor de Supabase. Idempotent.
+--
+-- Contexte : `marketplace_videos` (vidéos publiées par les créateurs) existe
+-- déjà. Ce script ajoute la couche commerciale : une marque peut mettre une
+-- vidéo en favori, la placer au panier, envoyer une commande, et discuter avec
+-- le créateur.
+--
+-- ⚠️ SÉCURITÉ — MODÈLE D'ÉCRITURE, à comprendre avant toute modification.
+-- La clé anon Supabase est publique (elle est dans le bundle front) : tout
+-- utilisateur connecté peut appeler l'API REST directement. Une règle métier
+-- écrite uniquement dans server.js n'est donc PAS une protection, juste une
+-- convention que le client peut ignorer.
+-- D'où deux régimes distincts :
+--
+--   • favoris / panier  → écriture directe autorisée. Aucune règle métier :
+--     « la ligne m'appartient » suffit, et `auth.uid() = user_id` l'exprime
+--     parfaitement en RLS.
+--
+--   • fils, messages, commandes → écriture INTERDITE au client. Aucune policy
+--     INSERT ni UPDATE n'existe pour eux : la RLS bloque donc tout écrit venu
+--     du front, y compris forgé. Seul le backend écrit, avec la clé service,
+--     après avoir vérifié les invariants (prix relus en base, créateur déduit
+--     de la vidéo, transitions de statut autorisées).
+--     Les policies SELECT restent nécessaires pour que le front puisse lire.
+--
+-- Ne JAMAIS ajouter de policy INSERT/UPDATE sur ces trois tables sans rendre
+-- les invariants exprimables en SQL : sinon un client pourrait se commander une
+-- vidéo à 0,01 €, s'attribuer la commande d'un autre, ou se greffer sur un fil
+-- existant pour en lire tout l'historique.
+
+-- ─── 1. Favoris ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS marketplace_favorites (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  video_id   uuid NOT NULL REFERENCES marketplace_videos(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, video_id)
+);
+
+ALTER TABLE marketplace_favorites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "mp_fav_all_own" ON marketplace_favorites;
+CREATE POLICY "mp_fav_all_own" ON marketplace_favorites
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- ─── 2. Panier ───────────────────────────────────────────────────────────────
+-- Une ligne par vidéo : un contenu UGC est une pièce unique, pas de quantité.
+CREATE TABLE IF NOT EXISTS marketplace_cart (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  video_id   uuid NOT NULL REFERENCES marketplace_videos(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, video_id)
+);
+
+ALTER TABLE marketplace_cart ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "mp_cart_all_own" ON marketplace_cart;
+CREATE POLICY "mp_cart_all_own" ON marketplace_cart
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- ─── 3. Fils de discussion marque ↔ créateur ────────────────────────────────
+-- Un fil par couple (marque, vidéo) : les échanges portent toujours sur un
+-- contenu précis, ce qui évite les conversations fourre-tout.
+CREATE TABLE IF NOT EXISTS marketplace_threads (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  video_id        uuid NOT NULL REFERENCES marketplace_videos(id) ON DELETE CASCADE,
+  brand_id        uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  creator_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  last_message_at timestamptz NOT NULL DEFAULT now(),
+  -- Dernière notification email envoyée à CHAQUE partie : sert à ne pas
+  -- spammer si dix messages partent d'affilée. Deux colonnes distinctes, sinon
+  -- la réponse du créateur dans l'heure empêcherait la marque d'être prévenue.
+  last_notified_at       timestamptz, -- vers le créateur
+  last_notified_brand_at timestamptz, -- vers la marque
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (video_id, brand_id)
+);
+
+CREATE INDEX IF NOT EXISTS mp_threads_brand_idx   ON marketplace_threads (brand_id, last_message_at DESC);
+CREATE INDEX IF NOT EXISTS mp_threads_creator_idx ON marketplace_threads (creator_id, last_message_at DESC);
+
+ALTER TABLE marketplace_threads ENABLE ROW LEVEL SECURITY;
+
+-- LECTURE SEULE pour le client : seules les deux parties voient le fil.
+DROP POLICY IF EXISTS "mp_threads_select_party" ON marketplace_threads;
+CREATE POLICY "mp_threads_select_party" ON marketplace_threads
+  FOR SELECT USING (auth.uid() = brand_id OR auth.uid() = creator_id);
+
+-- Écriture réservée au backend (clé service). Les anciennes policies sont
+-- supprimées explicitement : avec un simple USING sans WITH CHECK, un créateur
+-- pouvait réécrire le brand_id d'un fil et donner à un tiers l'accès à tout
+-- l'historique de la conversation.
+DROP POLICY IF EXISTS "mp_threads_insert_brand" ON marketplace_threads;
+DROP POLICY IF EXISTS "mp_threads_update_party" ON marketplace_threads;
+
+-- ─── 4. Messages ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS marketplace_messages (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id  uuid NOT NULL REFERENCES marketplace_threads(id) ON DELETE CASCADE,
+  sender_id  uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  body       text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 4000),
+  read_at    timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS mp_messages_thread_idx ON marketplace_messages (thread_id, created_at);
+
+ALTER TABLE marketplace_messages ENABLE ROW LEVEL SECURITY;
+
+-- Lecture réservée aux deux parties du fil.
+DROP POLICY IF EXISTS "mp_messages_select_party" ON marketplace_messages;
+CREATE POLICY "mp_messages_select_party" ON marketplace_messages
+  FOR SELECT USING (EXISTS (
+    SELECT 1 FROM marketplace_threads t
+    WHERE t.id = thread_id AND (auth.uid() = t.brand_id OR auth.uid() = t.creator_id)
+  ));
+
+-- Écriture réservée au backend : c'est lui qui vérifie l'appartenance au fil et
+-- déclenche la notification. Un INSERT direct permettrait d'écrire sans que le
+-- destinataire soit prévenu, et de contourner les limites de longueur.
+DROP POLICY IF EXISTS "mp_messages_insert_party" ON marketplace_messages;
+
+-- ─── 5. Commandes ────────────────────────────────────────────────────────────
+-- Pas de paiement à ce stade : la commande est une demande ferme adressée au
+-- créateur, qui l'accepte ou la refuse. Le règlement se convient entre les
+-- parties (voir CLAUDE_HANDOVER.md — une caisse Stripe reste à faire).
+CREATE TABLE IF NOT EXISTS marketplace_orders (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id   uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  creator_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  thread_id  uuid REFERENCES marketplace_threads(id) ON DELETE SET NULL,
+  -- Copie figée des lignes au moment de la commande : si le créateur change
+  -- son prix ou retire la vidéo, la commande garde ses conditions d'origine.
+  items      jsonb NOT NULL DEFAULT '[]'::jsonb,
+  total      numeric(10,2) NOT NULL DEFAULT 0,
+  status     text NOT NULL DEFAULT 'pending'
+             CHECK (status IN ('pending', 'accepted', 'declined', 'cancelled', 'completed')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS mp_orders_brand_idx   ON marketplace_orders (brand_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS mp_orders_creator_idx ON marketplace_orders (creator_id, created_at DESC);
+
+ALTER TABLE marketplace_orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "mp_orders_select_party" ON marketplace_orders;
+CREATE POLICY "mp_orders_select_party" ON marketplace_orders
+  FOR SELECT USING (auth.uid() = brand_id OR auth.uid() = creator_id);
+
+-- Écriture réservée au backend. Sans cette restriction, `total`, `items` et
+-- `creator_id` étaient entièrement pilotés par le client : une marque pouvait
+-- commander une vidéo à 500 € en inscrivant 0,01 €, ou s'auto-accepter une
+-- commande. Le recalcul serveur ne protège que ceux qui passent par lui.
+DROP POLICY IF EXISTS "mp_orders_insert_brand" ON marketplace_orders;
+DROP POLICY IF EXISTS "mp_orders_update_party" ON marketplace_orders;
