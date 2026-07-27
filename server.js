@@ -160,6 +160,72 @@ app.post("/api/google-search", ...requireBrand, async (req, res) => {
 // Sources : Tavily découvre les URLs → oEmbed enrichit (thumbnail réel, titre réel)
 // → Apify facebook-ads-library-scraper en fallback si peu de résultats.
 // Cache Supabase 6 heures.
+// ─── Vignettes des créatifs ──────────────────────────────────────────────────
+// Objectif : la vignette doit être l'image RÉELLE du créatif qu'on va lire.
+// - TikTok  : oEmbed public → vraie miniature (déjà en place).
+// - Meta    : Apify renvoie l'image d'origine de la publicité.
+// - Instagram : pas d'oEmbed sans App token Facebook. On lit donc la page
+//   /embed/ du post (publique, sans connexion) et on y extrait l'URL d'image.
+// - Google Ads Transparency : aucune image exposée, repli inévitable.
+//
+// REPLI : auparavant une SEULE image Unsplash par niche était utilisée, donc
+// tous les créatifs d'une même recherche affichaient exactement la même
+// vignette. Le repli pioche désormais dans un jeu d'images, indexé par un hash
+// de l'URL du créatif : stable d'un rendu à l'autre, mais distinct d'un
+// créatif à l'autre.
+const NICHE_THUMBS = {
+  beauty:  ["photo-1596462502278-27bfdc403348", "photo-1522335789203-aabd1fc54bc9", "photo-1571781926291-c477ebfd024b", "photo-1487412947147-5cebf100ffc2"],
+  food:    ["photo-1536256263959-770b48d82b0a", "photo-1498837167922-ddd27525d352", "photo-1467003909585-2f8a72700288", "photo-1504674900247-0877df9cc836"],
+  fitness: ["photo-1517838277536-f5f99be501cd", "photo-1571019613454-1cb2f99b2d8b", "photo-1534438327276-14e5300c3a48", "photo-1518611012118-696072aa579a"],
+  tech:    ["photo-1498049794561-7780e7231661", "photo-1526738549149-8e07eca6c147", "photo-1517336714731-489689fd1ca8", "photo-1531297484001-80022131f5a1"],
+  home:    ["photo-1586023492125-27b2c045efd7", "photo-1493809842364-78817add7ffb", "photo-1555041469-a586c61ea9bc", "photo-1484101403633-562f891dc89a"],
+};
+
+// Rotation par INDEX plutôt que par hash de l'URL : les URL d'une même
+// recherche se ressemblent trop (elles ne diffèrent que par un shortcode), et
+// même un bon hash produisait des doublons visibles côte à côte. L'index
+// garantit des vignettes différentes sur les premières cartes — celles que
+// l'utilisateur voit — et reste stable puisque l'ordre des résultats l'est
+// (cache de 6 h).
+const fallbackThumb = (niche, index = 0) => {
+  const pool = NICHE_THUMBS[niche] || NICHE_THUMBS.beauty;
+  return `https://images.unsplash.com/${pool[Math.abs(index) % pool.length]}?w=400&q=80`;
+};
+
+/**
+ * Miniature réelle d'un post Instagram, lue depuis sa page /embed/ (publique).
+ * Retourne null si Instagram ne la sert pas — l'appelant utilise alors le repli.
+ * Volontairement tolérant : jamais d'exception propagée, timeout court, car
+ * cette recherche ne doit pas ralentir ni faire échouer toute la requête.
+ */
+async function fetchInstagramThumbnail(postUrl) {
+  try {
+    const res = await fetch(`${postUrl.replace(/\/+$/, "")}/embed/captioned/`, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AcquisitionPro/1.0)" },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // Instagram expose l'image sous plusieurs formes selon les versions du
+    // rendu : on tente les trois connues, de la plus fiable à la plus fragile.
+    const patterns = [
+      /"display_url":"([^"]+)"/,
+      /<meta property="og:image" content="([^"]+)"/,
+      /class="EmbeddedMediaImage"[^>]+src="([^"]+)"/,
+    ];
+    for (const re of patterns) {
+      const m = html.match(re);
+      if (m?.[1]) {
+        const url = m[1].replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+        if (url.startsWith("http")) return url;
+      }
+    }
+    return null;
+  } catch {
+    return null; // réseau, timeout, blocage — le repli prend la main
+  }
+}
+
 app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
   const { query = "", niche = "all", platform = "all", skipPaidFallback = false } = req.body;
   const tavilyKey  = process.env.TAVILY_API_KEY;
@@ -191,12 +257,13 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
         body: JSON.stringify({ query: q, max_results: 8, search_depth: "basic" }),
       });
       const data = await r.json();
+      let tkIndex = 0;
       for (const item of data.results || []) {
         const idMatch   = item.url.match(/video\/(\d+)/);
         const userMatch = item.url.match(/@([^/?#]+)/);
         if (!idMatch) continue;
         const embedUrl = `https://www.tiktok.com/embed/v2/${idMatch[1]}`;
-        let thumbnail  = `https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&q=80`;
+        let thumbnail  = fallbackThumb(niche === "all" ? "beauty" : niche, tkIndex++);
         let title      = item.title?.replace(/TikTok\s*by\s*/gi, "").replace(/\|.*/g, "").trim() || cleanQuery;
         try {
           const oe = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(item.url)}`, {
@@ -222,19 +289,25 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
         body: JSON.stringify({ query: q, max_results: 6, search_depth: "basic" }),
       });
       const data = await r.json();
-      const nicheThumb = { beauty: "photo-1596462502278-27bfdc403348", food: "photo-1536256263959-770b48d82b0a", fitness: "photo-1517838277536-f5f99be501cd" };
       const thumbKey = niche === "all" ? "beauty" : niche;
-      for (const item of data.results || []) {
-        const scMatch   = item.url.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+      // Les posts sont enrichis en PARALLÈLE : en série, 6 posts × 4 s de
+      // timeout auraient pu ajouter 24 s à la requête.
+      const igItems = (data.results || [])
+        .map((item) => ({ item, scMatch: item.url.match(/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/) }))
+        .filter(({ scMatch }) => scMatch);
+      const igThumbs = await Promise.all(
+        igItems.map(({ item }) => fetchInstagramThumbnail(item.url))
+      );
+      igItems.forEach(({ item, scMatch }, i) => {
         const userMatch = item.url.match(/instagram\.com\/([^/?#]+)\//);
-        if (!scMatch) continue;
         const embedUrl = `https://www.instagram.com/p/${scMatch[1]}/embed`;
         const creator  = userMatch && !["p","reel","tv"].includes(userMatch[1]) ? `@${userMatch[1]}` : "@creator";
         const title    = item.title?.replace(/on Instagram:.*/i, "").replace(/\|.*/g, "").trim() || cleanQuery;
         raw.push({ url: item.url, platform: "instagram", creator, embedUrl,
-          thumbnail: `https://images.unsplash.com/${nicheThumb[thumbKey] || "photo-1611162617474-5b21e879e113"}?w=400&q=80`,
+          // Vraie miniature du post si Instagram la sert, sinon repli varié.
+          thumbnail: igThumbs[i] || fallbackThumb(thumbKey, i),
           title, niche: niche === "all" ? "beauty" : niche });
-      }
+      });
     }
 
     // ── Google : Tavily → Google Ads Transparency Center (pas d'oEmbed,
@@ -252,8 +325,8 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
         body: JSON.stringify({ query: q, max_results: 6, search_depth: "advanced" }),
       });
       const data = await r.json();
-      const nicheThumb = { beauty: "photo-1522335789203-aabd1fc54bc9", food: "photo-1506126613408-eca07ce68773", fitness: "photo-1517838277536-f5f99be501cd" };
       const thumbKey = niche === "all" ? "beauty" : niche;
+      let gIndex = 0;
       for (const item of data.results || []) {
         const advMatch = item.url.match(/advertiser\/(AR[A-Za-z0-9]+)/);
         if (!advMatch) continue;
@@ -262,7 +335,8 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
         // page heading "Ad Details - Google Ads Transparency Center".
         const advertiser = item.content?.split(/[.\n]/)[0]?.trim() || cleanQuery;
         raw.push({ url: item.url, platform: "google", creator: `@${advertiser.toLowerCase().replace(/[^a-z0-9]+/g, "")}`, embedUrl: null,
-          thumbnail: `https://images.unsplash.com/${nicheThumb[thumbKey] || "photo-1611162617474-5b21e879e113"}?w=400&q=80`,
+          // Le Centre de transparence Google n'expose aucune image exploitable.
+          thumbnail: fallbackThumb(thumbKey, gIndex++),
           title: advertiser.slice(0, 110), niche: niche === "all" ? "beauty" : niche });
       }
     }
@@ -291,7 +365,7 @@ app.post("/api/adspy/search", ...requireBrand, async (req, res) => {
             platform: "facebook",
             creator:  `@${(ad.page_name || "brand").toLowerCase().replace(/\s+/g, "")}`,
             embedUrl: null,
-            thumbnail: imageUrl || `https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80`,
+            thumbnail: imageUrl || fallbackThumb(niche === "all" ? "beauty" : niche, raw.length),
             title:    (body || ad.ad_creative_link_titles?.[0] || cleanQuery).slice(0, 120),
             niche:    niche === "all" ? "beauty" : niche,
             daysActive,

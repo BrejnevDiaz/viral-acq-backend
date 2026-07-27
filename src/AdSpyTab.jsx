@@ -484,9 +484,18 @@ export default function AdSpyTab({ c, mono, API_URL, onImportLead, uiLang, setCu
 
               {/* Visual Thumbnail / Video Wrapper */}
               <div style={{ height: 240, position: "relative", cursor: "pointer", background: "#000" }} onClick={() => setActiveVideo(ad)}>
+                {/* Les miniatures Instagram/TikTok sont servies par leurs CDN
+                    et expirent ou refusent parfois le hotlink : sans onError,
+                    la carte affichait un rectangle noir vide. */}
                 <img
                   src={ad.thumbnail}
                   alt="Ad cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    if (e.currentTarget.dataset.fallbackDone) return;
+                    e.currentTarget.dataset.fallbackDone = "1";
+                    e.currentTarget.src = "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&q=80";
+                  }}
                   style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85, transition: "transform 0.3s" }}
                 />
 

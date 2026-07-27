@@ -171,6 +171,14 @@ Gideon décortique désormais les créatives vidéo (hook, rythme, montage), en 
 - **MENU « AMPUTÉ »** : aucune entrée n'était supprimée — la liste **défilait**. Trois causes cumulées : libellés sur deux lignes en italien/anglais, aucune barre de défilement visible, espacement vertical généreux. Corrigé par `nowrap` + ellipsis sur les libellés, classe `.sidebar-nav-scroll` (barre fine permanente + ombres de défilement, `index.css`) et padding réduit.
 - **LANGUE MÉLANGÉE DU COACH** : la consigne « réponds en français sauf si l'utilisateur écrit dans une autre langue » produisait des réponses hybrides (« Come posso aiutarti a scaler ta marque »). Remplacée par un marqueur `{{LANGUE}}` dans les system prompts, substitué par une règle stricte selon `uiLang` (`LANGUAGE_RULES` dans `gideonEngine.js`). `uiLang` est désormais transmis par le front (`CoachIATab`, `ChatbotWidget`, `gideonStream`) et validé en liste blanche côté serveur. Les messages système (quota, accès refusé, panne, quota vidéo) sont traduits via `pick(uiLang, {...})`.
 
+### 11. Session du 27/07 — Vignettes AdSpy (toutes identiques)
+Symptôme : tous les créatifs affichaient la MÊME image. Cause : seules TikTok (oEmbed) et Meta/Apify fournissaient une vraie miniature ; **Instagram et Google utilisaient une unique image Unsplash par niche**, donc identique pour tous les résultats d'une même recherche.
+- `fetchInstagramThumbnail()` (server.js) : lit la page `/embed/captioned/` du post (publique, sans App token Facebook) et en extrait l'image via trois motifs connus (`display_url`, `og:image`, `EmbeddedMediaImage`). Timeout 4 s, jamais bloquant, appels **parallélisés** (`Promise.all`) — en série, 6 posts auraient pu ajouter 24 s à la requête.
+  - ⚠️ Non validé en conditions réelles : Instagram peut bloquer selon l'IP de sortie. Si les vignettes restent génériques après déploiement, vérifier les logs Railway ; l'alternative propre est l'oEmbed officiel Facebook (nécessite un App token).
+- `fallbackThumb(niche, index)` : le repli pioche dans un jeu de 4 images par niche, **par rotation d'index** et non par hash de l'URL — les URL d'une même recherche ne diffèrent que par un shortcode, et même un bon hash (testé : FNV-1a) produisait des doublons visibles côte à côte. Vérifié par test.
+- `AdSpyTab.jsx` : `onError` sur la vignette (les CDN Instagram/TikTok expirent ou refusent le hotlink → carte noire vide auparavant) + `loading="lazy"`.
+- ℹ️ Sans rapport : les 404 `cdn.pixabay.com/*.mp4` et `/demo-video.mp4` de la console viennent de `LandingFeatures.jsx`, `LandingHero.jsx` et `VideoMarketplaceTab.jsx` (vidéos de démo dont les URL ne répondent plus). À remplacer avant commercialisation.
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).
