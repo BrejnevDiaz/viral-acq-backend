@@ -210,6 +210,22 @@ Autres corrections issues de la revue : transitions de statut énumérées expli
 
 **⏳ Reste sur ce chantier** : pas de paiement (choix assumé — la commande est une demande, le règlement se convient entre les parties) ; pas d'idempotence serveur sur un double envoi de commande ; `read_at` des messages jamais renseigné (pas d'accusé de lecture).
 
+### 13. Session du 27/07 — Stratégie application mobile (décision) + bandeau PWA
+Question posée : transformer le SaaS en app téléchargeable (PWA / Capacitor / Tauri).
+
+**Décision : PWA maintenant, Capacitor reporté, Tauri abandonné.**
+- **PWA** — `src/InstallAppBanner.jsx` (nouveau), monté dans `App.jsx`. Coût nul, aucune commission de store. ⚠️ Piège : `beforeinstallprompt` **n'existe pas sur Safari iOS** — un bandeau qui n'écouterait que cet événement ne s'afficherait jamais sur iPhone, précisément la cible des créateurs UGC. D'où le second chemin, avec instructions manuelles « Partager → Sur l'écran d'accueil ». Un refus met le bandeau en sommeil 21 jours (`va_install_dismissed_until`).
+- **Tauri : abandonné.** Une agence sur Mac ouvre un navigateur ; le gain se limite à un raccourci dans le dock, contre une cible de build à signer et notarier. La PWA installable sur desktop couvre déjà ce besoin.
+- **Capacitor : bon choix technique, mais prématuré.** À rouvrir quand ~30 créateurs publieront chaque semaine ET se plaindront de l'upload navigateur. Aujourd'hui le Marketplace n'a aucun créateur inscrit, la moitié des onglets sont sous « Bientôt disponible », et packager figerait la capacité à corriger en quinze minutes — celle qui a sauvé la journée du 27/07 sur la page blanche.
+
+**Trois obstacles à traiter AVANT tout packaging Capacitor** (à ne pas découvrir en cours de route) :
+1. **OAuth Google cassé** : `AuthContext.jsx` utilise `redirectTo: window.location.origin` ; sous Capacitor l'origine devient `capacitor://localhost`. Il faut le flux PKCE + deep links + schéma d'URL déclaré côté Supabase, iOS et Android.
+2. **`VITE_API_URL` est inliné au build** : l'URL Railway serait figée dans le binaire installé. Un changement d'hébergeur imposerait une republication et une revue Apple, en laissant les utilisateurs installés cassés. À rendre configurable à distance avant de packager.
+3. **Uploads vidéo** : limite actuelle 50 Mo, upload direct navigateur → Storage. Une vidéo d'iPhone fait 150 à 400 Mo. Il faudra compression client + upload reprenable.
+
+**⚠️ Point commercial à trancher avant développement — commission Apple.**
+L'achat de vidéos UGC entre marque et créateur est un service entre tiers : exempté d'achat intégré (comme Uber). Mais **l'abonnement SaaS à 49/99 € est du numérique consommé dans l'app** : Apple exigera l'IAP et sa commission. Parade classique (Netflix, Spotify) : l'app mobile ne vend rien, l'abonnement se souscrit sur le web. Conséquence directe : **pas de bouton « Améliorer » dans l'app iOS**, alors que tout l'entonnoir actuel est construit autour. À décider avant de coder, pas après un rejet de revue.
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).

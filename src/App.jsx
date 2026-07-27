@@ -12,6 +12,7 @@ import ContractGeneratorTab from "./ContractGeneratorTab";
 import ResourcesTab from "./ResourcesTab";
 import AccountSettings from "./AccountSettings";
 import VideoMarketplaceTab from "./VideoMarketplaceTab";
+import InstallAppBanner from "./InstallAppBanner";
 import CreatorScoreTab from "./CreatorScoreTab";
 import KnowledgeAdminTab from "./KnowledgeAdminTab";
 import PaywallModal from "./PaywallModal";
@@ -381,6 +382,9 @@ export default function ProspectionAgent() {
 
   return (
     <>
+      {/* Incitation à installer la PWA : proposée aux utilisateurs connectés,
+          là où l'usage quotidien justifie une icône sur l'écran d'accueil. */}
+      <InstallAppBanner uiLang={uiLang} />
       <DashboardLayout
         c={c} mono={mono} currentTab={currentTab} handleTabChange={handleTabChange}
         researchMenuOpen={researchMenuOpen} setResearchMenuOpen={setResearchMenuOpen}
