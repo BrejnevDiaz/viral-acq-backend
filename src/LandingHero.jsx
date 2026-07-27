@@ -74,7 +74,7 @@ export default function LandingHero({ uiLang, setAuthMode, setShowLoginModal, se
               </div>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', background: '#000' }}>
                 <video
-                  src="/demo-video.mp4"
+                  src="https://media.w3.org/2010/05/sintel/trailer.mp4"
                   autoPlay muted loop playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />

@@ -7,12 +7,12 @@ import { supabase } from "./supabaseClient";
 // in TalentAgencyTab.jsx for the real publish flow, backed by the
 // "marketplace_videos" Supabase table + "marketplace-videos" storage bucket).
 const DEMO_VIDEOS = [
-  { id: "v1", username: "diariatou_sow", niche: "Beauté", src: "https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4", product: "Sérum Éclat Vitamine C", price: "34,90 €", likes: "12.4k", comments: "284" },
-  { id: "v2", username: "skincare_goddess", niche: "Beauté", src: "https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4", product: "Crème Nuit Anti-Âge", price: "42,00 €", likes: "8.9k", comments: "156" },
-  { id: "v3", username: "fashion_nova", niche: "Mode", src: "https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4", product: "Sac Cabas Cuir Végan", price: "59,90 €", likes: "21.1k", comments: "412" },
-  { id: "v4", username: "fitfluencer.co", niche: "Fitness", src: "https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4", product: "Résistance Bands Pro Set", price: "24,90 €", likes: "6.2k", comments: "98" },
-  { id: "v5", username: "lena.situations", niche: "Lifestyle", src: "https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4", product: "Bougie Parfumée Signature", price: "18,50 €", likes: "34.7k", comments: "521" },
-  { id: "v6", username: "marie.lopez", niche: "Beauté", src: "https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4", product: "Palette Yeux 12 Teintes", price: "29,90 €", likes: "15.8k", comments: "203" },
+  { id: "v1", username: "diariatou_sow", niche: "Beauté", src: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4", product: "Sérum Éclat Vitamine C", price: "34,90 €", likes: "12.4k", comments: "284" },
+  { id: "v2", username: "skincare_goddess", niche: "Beauté", src: "https://www.w3schools.com/html/mov_bbb.mp4", product: "Crème Nuit Anti-Âge", price: "42,00 €", likes: "8.9k", comments: "156" },
+  { id: "v3", username: "fashion_nova", niche: "Mode", src: "https://media.w3.org/2010/05/sintel/trailer.mp4", product: "Sac Cabas Cuir Végan", price: "59,90 €", likes: "21.1k", comments: "412" },
+  { id: "v4", username: "fitfluencer.co", niche: "Fitness", src: "https://media.w3.org/2010/05/bunny/trailer.mp4", product: "Résistance Bands Pro Set", price: "24,90 €", likes: "6.2k", comments: "98" },
+  { id: "v5", username: "lena.situations", niche: "Lifestyle", src: "https://media.w3.org/2010/05/video/movie_300.mp4", product: "Bougie Parfumée Signature", price: "18,50 €", likes: "34.7k", comments: "521" },
+  { id: "v6", username: "marie.lopez", niche: "Beauté", src: "https://www.w3schools.com/html/movie.mp4", product: "Palette Yeux 12 Teintes", price: "29,90 €", likes: "15.8k", comments: "203" },
 ];
 
 const T = {

@@ -67,7 +67,7 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
                         {/* Influencer 1 */}
                         <div style={{ background: '#000', borderRadius: 16, position: 'relative', overflow: 'hidden', border: '1px solid rgba(139,92,246,0.3)' }}>
                             <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}>
-                                <source src="https://cdn.pixabay.com/video/2021/08/13/84903-588147171_large.mp4" type="video/mp4" />
+                                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
                             </video>
                             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, background: 'linear-gradient(0deg, rgba(0,0,0,0.9), transparent)' }}>
                                 <div style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>@skincare_goddess</div>
@@ -143,7 +143,7 @@ export default function LandingFeatures({ openAuthWithIntent, uiLang }) {
                        </div>
                        <div style={{ flex: 1, position: 'relative' }}>
                            <video autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }}>
-                               <source src="https://cdn.pixabay.com/video/2023/10/22/185966-876722008_tiny.mp4" type="video/mp4" />
+                               <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
                            </video>
                        </div>
                        <div style={{ padding: 12, background: 'rgba(255,255,255,0.02)' }}>
