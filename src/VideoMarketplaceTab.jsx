@@ -3,6 +3,7 @@ import DirectMessagePanel from "./DirectMessagePanel";
 import { supabase } from "./supabaseClient";
 import {
   fetchFavorites, toggleFavorite, fetchCart, toggleCart, submitOrder, fetchThreads,
+  fetchLikes, toggleLike, formatCount,
   isDemoVideo, parsePrice, formatPrice,
 } from "./utils/marketplaceCommerce";
 
@@ -35,7 +36,7 @@ const T = {
     orderSent: "Commande envoyée au créateur ✓", total: "Total",
     demoAction: "Vidéo d'exemple — aucun créateur réel derrière. Action indisponible.",
     demoBadge: "Exemple",
-    inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer",
+    inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer", like: "J'aime",
   },
   en: {
     title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.",
@@ -52,7 +53,7 @@ const T = {
     orderSent: "Order sent to the creator ✓", total: "Total",
     demoAction: "Sample video — no real creator behind it. Action unavailable.",
     demoBadge: "Sample",
-    inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry",
+    inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry", like: "Like",
   },
   it: {
     title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.",
@@ -69,7 +70,7 @@ const T = {
     orderSent: "Ordine inviato al creator ✓", total: "Totale",
     demoAction: "Video di esempio — nessun creator reale dietro. Azione non disponibile.",
     demoBadge: "Esempio",
-    inboxTab: "Messaggi 💬", inboxEmpty: "Nessuna conversazione per ora.", inboxLoading: "Caricamento...", inboxRetry: "Riprova",
+    inboxTab: "Messaggi 💬", inboxEmpty: "Nessuna conversazione per ora.", inboxLoading: "Caricamento...", inboxRetry: "Riprova", like: "Mi piace",
   },
 };
 
@@ -88,6 +89,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   const [sellToast, setSellToast] = useState(null);
   // Commerce (chantier #18) : favoris et panier persistés par utilisateur.
   const [favorites, setFavorites] = useState([]);
+  // Likes : geste public distinct du favori. `likeCounts` garde le compteur
+  // affiché à jour sans recharger tout le feed après un clic.
+  const [likes, setLikes] = useState([]);
+  const [likeCounts, setLikeCounts] = useState({});
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [ordering, setOrdering] = useState(false);
@@ -141,9 +146,11 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           src: v.video_url,
           product: v.product,
           price: `${Number(v.price).toFixed(2)} €`,
-          likes: "—",
+          likes: v.likes_count ?? 0,
           comments: "—",
         })));
+        // Compteurs de likes servis par la colonne dénormalisée (trigger SQL).
+        setLikeCounts(Object.fromEntries(data.map(v => [v.id, v.likes_count ?? 0])));
       });
   };
 
@@ -233,6 +240,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
     if (!userId) return;
     fetchFavorites(userId).then(setFavorites);
     fetchCart(userId).then(setCart);
+    fetchLikes(userId).then(setLikes);
   }, [userId]);
 
   const notify = useCallback((message, type = "success") => {
@@ -253,6 +261,22 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   }, [API_URL]);
 
   useEffect(() => { if (viewMode === "inbox") loadThreads(); }, [viewMode, loadThreads]);
+
+  const handleToggleLike = async (video) => {
+    if (isDemoVideo(video)) return notify(t.demoAction, "error");
+    const active = likes.includes(video.id);
+    const base = likeCounts[video.id] ?? Number(video.likes) ?? 0;
+    // Mise à jour optimiste du bouton ET du compteur : le like doit répondre
+    // instantanément, comme sur TikTok.
+    setLikes((prev) => (active ? prev.filter((id) => id !== video.id) : [...prev, video.id]));
+    setLikeCounts((prev) => ({ ...prev, [video.id]: Math.max(0, base + (active ? -1 : 1)) }));
+    const r = await toggleLike(userId, video.id, active);
+    if (!r.ok) {
+      setLikes((prev) => (active ? [...prev, video.id] : prev.filter((id) => id !== video.id)));
+      setLikeCounts((prev) => ({ ...prev, [video.id]: base }));
+      notify(r.error, "error");
+    }
+  };
 
   const handleToggleFavorite = async (video) => {
     if (isDemoVideo(video)) return notify(t.demoAction, "error");
@@ -375,6 +399,21 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           </button>
         ))}
       </div>
+
+      {/* Toast global : il n'était rendu que dans l'onglet « Vendre », si bien
+          qu'en navigation un clic refusé (vidéo d'exemple, erreur réseau) ne
+          produisait AUCUN retour visible. */}
+      {sellToast && viewMode !== "sell" && (
+        <div style={{
+          position: "fixed", top: 22, left: "50%", transform: "translateX(-50%)", zIndex: 4000,
+          background: sellToast.type === "error" ? "#EF4444" : "#10B981", color: "#fff",
+          padding: "11px 20px", borderRadius: 30, fontSize: 13.5, fontWeight: 700,
+          maxWidth: "min(90vw, 460px)", textAlign: "center", lineHeight: 1.45,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.25)", animation: "fadeIn 0.2s ease-out",
+        }}>
+          {sellToast.message}
+        </div>
+      )}
 
       {viewMode === "inbox" ? (
         /* Boîte de réception commune aux deux rôles : la marque y retrouve ses
@@ -623,8 +662,30 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
 
               {/* Right-side action rail (TikTok-style) */}
               <div style={{ position: "absolute", bottom: 24, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
-                {/* Cœur = favori réel de la marque (persisté), plus un simple
-                    compteur décoratif. */}
+                {/* LIKE — geste public, avec compteur visible de tous. */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
+                  <button
+                    onClick={() => handleToggleLike(video)}
+                    className="hover-lift"
+                    aria-pressed={likes.includes(video.id)}
+                    title={t.like}
+                    style={{
+                      width: 42, height: 42, borderRadius: "50%", border: "none", cursor: "pointer",
+                      background: likes.includes(video.id) ? "linear-gradient(135deg, #EF4444, #EC4899)" : "rgba(255,255,255,0.15)",
+                      backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s", opacity: isDemoVideo(video) ? 0.55 : 1,
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill={likes.includes(video.id) ? "#fff" : "none"} stroke="#fff" strokeWidth="2"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
+                  </button>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>
+                    {/* Les vidéos d'exemple gardent leur compteur d'illustration. */}
+                    {isDemoVideo(video) ? video.likes : formatCount(likeCounts[video.id] ?? video.likes ?? 0)}
+                  </span>
+                </div>
+
+                {/* FAVORI — marque-page privé, sans compteur : c'est ce qui le
+                    distingue du like, exactement comme sur TikTok. */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
                   <button
                     onClick={() => handleToggleFavorite(video)}
@@ -633,14 +694,14 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                     title={t.favorites}
                     style={{
                       width: 42, height: 42, borderRadius: "50%", border: "none", cursor: "pointer",
-                      background: favorites.includes(video.id) ? "linear-gradient(135deg, #EC4899, #8B5CF6)" : "rgba(255,255,255,0.15)",
+                      background: favorites.includes(video.id) ? "linear-gradient(135deg, #F59E0B, #EAB308)" : "rgba(255,255,255,0.15)",
                       backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center",
                       transition: "all 0.2s", opacity: isDemoVideo(video) ? 0.55 : 1,
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill={favorites.includes(video.id) ? "#fff" : "none"} stroke="#fff" strokeWidth="2"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill={favorites.includes(video.id) ? "#fff" : "none"} stroke="#fff" strokeWidth="2" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                   </button>
-                  <span style={{ fontSize: 11, fontWeight: 700 }}>{video.likes}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>{t.favorites}</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
                   <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>

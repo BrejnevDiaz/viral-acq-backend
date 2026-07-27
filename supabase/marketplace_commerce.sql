@@ -45,6 +45,53 @@ DROP POLICY IF EXISTS "mp_fav_all_own" ON marketplace_favorites;
 CREATE POLICY "mp_fav_all_own" ON marketplace_favorites
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+-- ─── 1 bis. Likes ────────────────────────────────────────────────────────────
+-- Le « like » et le « favori » sont deux gestes DIFFÉRENTS, comme sur TikTok :
+--   • like   → signal public d'appréciation, avec un compteur visible de tous ;
+--   • favori → marque-page privé, pour retrouver une vidéo plus tard.
+-- Les mélanger revenait à afficher un compteur public sur une action privée.
+CREATE TABLE IF NOT EXISTS marketplace_likes (
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  video_id   uuid NOT NULL REFERENCES marketplace_videos(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, video_id)
+);
+
+ALTER TABLE marketplace_likes ENABLE ROW LEVEL SECURITY;
+
+-- Chacun gère ses propres likes…
+DROP POLICY IF EXISTS "mp_likes_write_own" ON marketplace_likes;
+CREATE POLICY "mp_likes_write_own" ON marketplace_likes
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- …mais tout le monde peut les LIRE : sans cela, le compteur affiché serait
+-- toujours celui de l'utilisateur courant (0 ou 1) au lieu du total réel.
+DROP POLICY IF EXISTS "mp_likes_read_all" ON marketplace_likes;
+CREATE POLICY "mp_likes_read_all" ON marketplace_likes
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Compteur dénormalisé sur la vidéo : compter les lignes à chaque affichage du
+-- feed coûterait une requête d'agrégation par vidéo. Le trigger le maintient.
+ALTER TABLE marketplace_videos
+  ADD COLUMN IF NOT EXISTS likes_count integer NOT NULL DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION mp_sync_likes_count() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE marketplace_videos SET likes_count = likes_count + 1 WHERE id = NEW.video_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    -- GREATEST protège d'un compteur négatif si une ligne est supprimée deux fois.
+    UPDATE marketplace_videos SET likes_count = GREATEST(0, likes_count - 1) WHERE id = OLD.video_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS mp_likes_count_trigger ON marketplace_likes;
+CREATE TRIGGER mp_likes_count_trigger
+  AFTER INSERT OR DELETE ON marketplace_likes
+  FOR EACH ROW EXECUTE FUNCTION mp_sync_likes_count();
+
 -- ─── 2. Panier ───────────────────────────────────────────────────────────────
 -- Une ligne par vidéo : un contenu UGC est une pièce unique, pas de quantité.
 CREATE TABLE IF NOT EXISTS marketplace_cart (
