@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import DirectMessagePanel from "./DirectMessagePanel";
+import CommentsPanel from "./CommentsPanel";
 import { supabase } from "./supabaseClient";
 import {
   fetchFavorites, toggleFavorite, fetchCart, toggleCart, submitOrder, fetchThreads,
@@ -36,7 +37,7 @@ const T = {
     orderSent: "Commande envoyée au créateur ✓", total: "Total",
     demoAction: "Vidéo d'exemple — aucun créateur réel derrière. Action indisponible.",
     demoBadge: "Exemple",
-    inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer", like: "J'aime",
+    inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer", like: "J'aime", comments: "Commentaires",
   },
   en: {
     title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.",
@@ -53,7 +54,7 @@ const T = {
     orderSent: "Order sent to the creator ✓", total: "Total",
     demoAction: "Sample video — no real creator behind it. Action unavailable.",
     demoBadge: "Sample",
-    inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry", like: "Like",
+    inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry", like: "Like", comments: "Comments",
   },
   it: {
     title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.",
@@ -70,7 +71,7 @@ const T = {
     orderSent: "Ordine inviato al creator ✓", total: "Totale",
     demoAction: "Video di esempio — nessun creator reale dietro. Azione non disponibile.",
     demoBadge: "Esempio",
-    inboxTab: "Messaggi 💬", inboxEmpty: "Nessuna conversazione per ora.", inboxLoading: "Caricamento...", inboxRetry: "Riprova", like: "Mi piace",
+    inboxTab: "Messaggi 💬", inboxEmpty: "Nessuna conversazione per ora.", inboxLoading: "Caricamento...", inboxRetry: "Riprova", like: "Mi piace", comments: "Commenti",
   },
 };
 
@@ -93,6 +94,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   // affiché à jour sans recharger tout le feed après un clic.
   const [likes, setLikes] = useState([]);
   const [likeCounts, setLikeCounts] = useState({});
+  // Commentaires : le compteur sous l'icône bulle était décoratif et le clic
+  // ne faisait rien.
+  const [commentsVideo, setCommentsVideo] = useState(null);
+  const [commentCounts, setCommentCounts] = useState({});
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [ordering, setOrdering] = useState(false);
@@ -147,10 +152,12 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           product: v.product,
           price: `${Number(v.price).toFixed(2)} €`,
           likes: v.likes_count ?? 0,
-          comments: "—",
+          comments: v.comments_count ?? 0,
+          ownerId: v.user_id, // sert à la modération des commentaires
         })));
-        // Compteurs de likes servis par la colonne dénormalisée (trigger SQL).
+        // Compteurs servis par les colonnes dénormalisées (triggers SQL).
         setLikeCounts(Object.fromEntries(data.map(v => [v.id, v.likes_count ?? 0])));
+        setCommentCounts(Object.fromEntries(data.map(v => [v.id, v.comments_count ?? 0])));
       });
   };
 
@@ -703,11 +710,25 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                   </button>
                   <span style={{ fontSize: 11, fontWeight: 700 }}>{t.favorites}</span>
                 </div>
+                {/* COMMENTAIRES — ouvre le vrai fil (le compteur était
+                    auparavant décoratif et le clic sans effet). */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
-                  <div style={{ width: 42, height: 42, borderRadius: "50%", background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700 }}>{video.comments}</span>
+                  <button
+                    onClick={() => (isDemoVideo(video) ? notify(t.demoAction, "error") : setCommentsVideo(video))}
+                    className="hover-lift"
+                    title={t.comments}
+                    style={{
+                      width: 42, height: 42, borderRadius: "50%", border: "none", cursor: "pointer",
+                      background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.2s", opacity: isDemoVideo(video) ? 0.55 : 1, color: "#fff",
+                    }}
+                  >
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  </button>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>
+                    {isDemoVideo(video) ? video.comments : formatCount(commentCounts[video.id] ?? video.comments ?? 0)}
+                  </span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
                   <button onClick={() => setDmVideo(video)} className="hover-lift" style={{
@@ -813,6 +834,21 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             )}
           </div>
         </div>
+      )}
+
+      {commentsVideo && (
+        <CommentsPanel
+          video={commentsVideo}
+          uiLang={uiLang}
+          API_URL={API_URL}
+          userId={userId}
+          isDemo={isDemoVideo(commentsVideo)}
+          onCountChange={(delta) => setCommentCounts((prev) => ({
+            ...prev,
+            [commentsVideo.id]: Math.max(0, (prev[commentsVideo.id] ?? 0) + delta),
+          }))}
+          onClose={() => setCommentsVideo(null)}
+        />
       )}
 
       {dmVideo && (

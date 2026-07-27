@@ -316,6 +316,45 @@ export default function registerMarketplaceRoutes(app, requireAnyUser) {
     }
   });
 
+  // ─── POST /api/marketplace/comments — commenter une vidéo ────────────────
+  // Passe par le serveur pour une seule raison, mais décisive : `author_label`
+  // est calculé à partir du JWT. En écriture directe, chacun pourrait se donner
+  // le libellé d'un autre et usurper son identité dans le fil public.
+  app.post("/api/marketplace/comments", ...requireAnyUser, async (req, res) => {
+    const { videoId, body } = req.body || {};
+    const text = String(body || "").trim();
+    if (!text) return res.status(400).json({ error: "Commentaire vide." });
+    if (text.length > 1000) return res.status(400).json({ error: "Commentaire trop long (1000 caractères maximum)." });
+
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(String(videoId))) {
+      return res.status(400).json({ error: "Cette vidéo n'accepte pas les commentaires." });
+    }
+
+    const db = writeClient();
+    if (!db) return res.status(503).json({ error: "Commentaires indisponibles (configuration serveur)." });
+
+    try {
+      const { data: video } = await db.from("marketplace_videos")
+        .select("id").eq("id", videoId).eq("status", "active").maybeSingle();
+      if (!video) return res.status(404).json({ error: "Cette vidéo n'existe plus." });
+
+      // Libellé public dérivé de l'email, JAMAIS l'email lui-même : le fil est
+      // visible de tous les membres.
+      const label = String(req.user.email || "membre").split("@")[0].slice(0, 24) || "membre";
+
+      const { data: comment, error } = await db.from("marketplace_comments")
+        .insert({ video_id: videoId, user_id: req.user.id, author_label: label, body: text })
+        .select("id, user_id, author_label, body, created_at").single();
+      if (error) throw error;
+
+      res.json({ comment });
+    } catch (err) {
+      console.error("❌ [Marketplace] commentaire:", err.message);
+      res.status(500).json({ error: "Votre commentaire n'a pas pu être publié. Réessayez." });
+    }
+  });
+
   // ─── PATCH /api/marketplace/orders/:id — accepter / refuser / annuler ─────
   app.patch("/api/marketplace/orders/:id", ...requireAnyUser, async (req, res) => {
     const status = String(req.body?.status || "");

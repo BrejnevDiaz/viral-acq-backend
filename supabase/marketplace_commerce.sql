@@ -92,6 +92,66 @@ CREATE TRIGGER mp_likes_count_trigger
   AFTER INSERT OR DELETE ON marketplace_likes
   FOR EACH ROW EXECUTE FUNCTION mp_sync_likes_count();
 
+-- ─── 1 ter. Commentaires ─────────────────────────────────────────────────────
+-- Fil public sous chaque vidéo, comme sur TikTok.
+-- ⚠️ `author_label` est DÉNORMALISÉ à l'écriture (calculé côté serveur à partir
+-- de l'email, partie avant @). Sans lui, afficher l'auteur imposerait de lire
+-- `profiles`, dont la policy `users_read_own` interdit — à raison — de voir le
+-- profil d'autrui. Ouvrir cette table exposerait l'email de tous les
+-- commentateurs ; on stocke donc un libellé public, jamais l'adresse.
+CREATE TABLE IF NOT EXISTS marketplace_comments (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  video_id     uuid NOT NULL REFERENCES marketplace_videos(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  author_label text NOT NULL DEFAULT 'membre',
+  body         text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 1000),
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS mp_comments_video_idx ON marketplace_comments (video_id, created_at DESC);
+
+ALTER TABLE marketplace_comments ENABLE ROW LEVEL SECURITY;
+
+-- Lecture publique (entre membres connectés) : c'est le principe d'un fil de
+-- commentaires.
+DROP POLICY IF EXISTS "mp_comments_read_all" ON marketplace_comments;
+CREATE POLICY "mp_comments_read_all" ON marketplace_comments
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Écriture réservée au backend : c'est lui qui calcule `author_label` depuis le
+-- JWT. En écriture directe, n'importe qui pourrait se donner le libellé d'un
+-- autre et usurper son identité dans le fil.
+DROP POLICY IF EXISTS "mp_comments_insert_own" ON marketplace_comments;
+
+-- Suppression : son propre commentaire, ou n'importe lequel sur SA vidéo
+-- (modération légitime du créateur sur son contenu).
+DROP POLICY IF EXISTS "mp_comments_delete_own_or_owner" ON marketplace_comments;
+CREATE POLICY "mp_comments_delete_own_or_owner" ON marketplace_comments
+  FOR DELETE USING (
+    auth.uid() = user_id
+    OR EXISTS (SELECT 1 FROM marketplace_videos v WHERE v.id = video_id AND v.user_id = auth.uid())
+  );
+
+-- Compteur dénormalisé, même principe que les likes.
+ALTER TABLE marketplace_videos
+  ADD COLUMN IF NOT EXISTS comments_count integer NOT NULL DEFAULT 0;
+
+CREATE OR REPLACE FUNCTION mp_sync_comments_count() RETURNS trigger AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE marketplace_videos SET comments_count = comments_count + 1 WHERE id = NEW.video_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE marketplace_videos SET comments_count = GREATEST(0, comments_count - 1) WHERE id = OLD.video_id;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS mp_comments_count_trigger ON marketplace_comments;
+CREATE TRIGGER mp_comments_count_trigger
+  AFTER INSERT OR DELETE ON marketplace_comments
+  FOR EACH ROW EXECUTE FUNCTION mp_sync_comments_count();
+
 -- ─── 2. Panier ───────────────────────────────────────────────────────────────
 -- Une ligne par vidéo : un contenu UGC est une pièce unique, pas de quantité.
 CREATE TABLE IF NOT EXISTS marketplace_cart (

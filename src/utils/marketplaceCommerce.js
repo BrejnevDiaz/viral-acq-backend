@@ -60,6 +60,44 @@ export const formatCount = (n = 0) => {
   return String(v);
 };
 
+// ─── Commentaires ────────────────────────────────────────────────────────────
+// Lecture directe (fil public entre membres) ; écriture par le serveur, qui
+// seul peut établir un libellé d'auteur fiable à partir du JWT.
+
+export async function fetchComments(videoId) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("marketplace_comments")
+    .select("id, user_id, author_label, body, created_at")
+    .eq("video_id", videoId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error("Impossible de charger les commentaires.");
+  return data || [];
+}
+
+export async function postComment(API_URL, videoId, body) {
+  const res = await apiFetch(`${API_URL}/api/marketplace/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ videoId, body }),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error || "Votre commentaire n'a pas pu être publié.");
+  return data.comment;
+}
+
+/** Suppression : son propre commentaire, ou tout commentaire sur sa vidéo. */
+export async function deleteComment(commentId) {
+  if (!supabase) return { ok: false, error: "Suppression indisponible." };
+  const { error } = await supabase.from("marketplace_comments").delete().eq("id", commentId);
+  if (error) {
+    console.error("❌ Suppression commentaire:", error.message);
+    return { ok: false, error: "Ce commentaire n'a pas pu être supprimé." };
+  }
+  return { ok: true };
+}
+
 // ─── Favoris ─────────────────────────────────────────────────────────────────
 // Geste PRIVÉ : un marque-page pour retrouver une vidéo, sans compteur public.
 
