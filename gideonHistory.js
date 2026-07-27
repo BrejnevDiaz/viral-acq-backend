@@ -209,6 +209,35 @@ export async function countToday(user) {
   return count ?? 0;
 }
 
+/**
+ * Nombre de VIDÉOS analysées aujourd'hui (chantier #17). Garde-fou financier
+ * distinct du quota de messages : les plans Elite sont illimités en messages,
+ * donc rien ne bornerait le coût des vidéos (~100 tokens par seconde) sans ce
+ * comptage. Retourne null si impossible (bypass local, migration absente).
+ */
+export async function countVideosToday(user) {
+  const client = scopedClient(user?.token);
+  if (!client) return null;
+  const startOfDay = new Date();
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const { data, error } = await client
+    .from("gideon_messages")
+    .select("attachments")
+    .eq("user_id", user.id)
+    .eq("role", "user")
+    .gte("created_at", startOfDay.toISOString());
+  if (error) {
+    // Colonne absente (migration non jouée) → pas de comptage possible
+    if (!/attachments/i.test(error.message || "")) {
+      console.error("⚠️ Gideon video quota count error:", error.message);
+    }
+    return null;
+  }
+  return (data || []).filter((row) =>
+    Array.isArray(row.attachments) && row.attachments.some((a) => a?.kind === "video")
+  ).length;
+}
+
 /** Efface TOUT l'historique de l'utilisateur (toutes conversations). */
 export async function clearHistory(user) {
   const client = scopedClient(user?.token);

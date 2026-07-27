@@ -6,11 +6,13 @@
 // bascule alors sur le endpoint non-streamé /api/gideon.
 import { apiFetch } from "./apiClient";
 
-export async function streamGideon({ API_URL, question, conversationHistory = [], conversationId = null, attachments = [], onChunk }) {
+export async function streamGideon({ API_URL, question, conversationHistory = [], conversationId = null, attachments = [], uiLang = "fr", onChunk }) {
   const res = await apiFetch(`${API_URL}/api/gideon/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, conversationHistory, conversationId, attachments }),
+    // uiLang : le modèle doit répondre dans la langue de l'interface, pas dans
+    // celle qu'il devine du message (source des réponses hybrides).
+    body: JSON.stringify({ question, conversationHistory, conversationId, attachments, uiLang }),
   });
   // Refus explicite lié aux pièces jointes (type refusé, quota de fichiers,
   // fichier expiré) : le serveur marque `code: "attachment"`. Ce message doit

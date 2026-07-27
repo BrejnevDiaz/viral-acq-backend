@@ -3,7 +3,7 @@ import { UI_TEXT, ELITE_UI_TEXT, getBotResponse, isAdvancedEcomQuestion, UPSELL_
 import { getTierRank, TIER_RANK } from "./tierConfig";
 import { apiFetch } from "./utils/apiClient";
 import { streamGideon } from "./utils/gideonStream";
-import { acceptAttr, discardAttachments, formatBytes, uploadAttachments, validateSelection } from "./utils/gideonAttachments";
+import { acceptAttr, discardAttachments, formatBytes, formatDuration, kindOfMime, readVideoDuration, uploadAttachments, validateSelection, VIDEO_MAX_SECONDS } from "./utils/gideonAttachments";
 import { PendingAttachments, MessageAttachments } from "./GideonAttachments";
 import ReactMarkdown from "react-markdown";
 
@@ -25,6 +25,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   const [limitsKnown, setLimitsKnown] = useState(false);
   const [attachError, setAttachError] = useState(null);
   const [uploading, setUploading] = useState(false);
+  // Vidéo (chantier #17) : quota journalier dédié + étape d'attente pendant
+  // que Gemini transcode le média (plusieurs secondes avant la réponse).
+  const [videoQuota, setVideoQuota] = useState(null);
+  const [analyzingVideo, setAnalyzingVideo] = useState(false);
   const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -65,6 +69,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         const data = await res.json();
         if (cancelled) return;
         if (data.quota) setQuota(data.quota);
+        if (data.videoQuota) setVideoQuota(data.videoQuota);
         setUploadLimits(data.uploadLimits || null);
         setLimitsKnown(true);
         if (data.conversationId) setActiveConvId(data.conversationId);
@@ -82,7 +87,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       if (!res.ok) return;
       const data = await res.json();
       setActiveConvId(id);
-      setMessages(Array.isArray(data.messages) ? mapRows(data.messages) : []);
+      setMessages(prev => { releaseMessagePreviews(prev); return Array.isArray(data.messages) ? mapRows(data.messages) : []; });
       if (data.quota) setQuota(data.quota);
     } catch { /* no-op */ }
   };
@@ -96,9 +101,15 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     return [];
   });
 
+  // Libère les aperçus des messages qu'on s'apprête à jeter. Sans ça, chaque
+  // changement de conversation abandonnait des blobs en mémoire — anecdotique
+  // pour des images, jusqu'à 60 Mo pièce depuis l'arrivée des vidéos.
+  const releaseMessagePreviews = (list) =>
+    list.forEach(m => m.attachments?.forEach(a => a.localUrl && URL.revokeObjectURL(a.localUrl)));
+
   const handleNewConversation = () => {
     if (isTyping) return;
-    setMessages([]);
+    setMessages(prev => { releaseMessagePreviews(prev); return []; });
     setActiveConvId(null);
     clearPending();
     setAttachError(null);
@@ -122,18 +133,36 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     fileInputRef.current?.click();
   };
 
-  const handleFilesSelected = (e) => {
+  const handleFilesSelected = async (e) => {
     const pendingBytes = pending.reduce((s, p) => s + (p.file?.size || 0), 0);
-    const check = validateSelection(e.target.files, effectiveLimits, pending.length, pendingBytes);
+    const pendingHasVideo = pending.some(p => kindOfMime(p.file?.type) === "video");
+    const check = validateSelection(e.target.files, effectiveLimits, pending.length, pendingBytes, pendingHasVideo);
     e.target.value = ""; // permet de re-sélectionner le même fichier après retrait
     if (!check.ok) { setAttachError(check.error); return; }
     setAttachError(null);
+
     // ObjectURL créé ici (et révoqué au retrait / après envoi) : le faire dans
     // un effet du composant d'affichage provoquerait un rendu en cascade.
-    setPending(prev => [...prev, ...check.files.map(file => ({
+    const items = check.files.map(file => ({
       file,
-      previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
-    }))]);
+      previewUrl: /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : undefined,
+    }));
+
+    // Durée lue par le navigateur : évite d'envoyer 60 Mo pour rien. Contrôle
+    // de confort uniquement — le serveur, lui, borne la TAILLE (il ne peut pas
+    // mesurer une durée sans ffprobe).
+    for (const item of items) {
+      if (kindOfMime(item.file.type) !== "video") continue;
+      const duration = await readVideoDuration(item.file);
+      if (duration && duration > VIDEO_MAX_SECONDS) {
+        items.forEach(i => i.previewUrl && URL.revokeObjectURL(i.previewUrl));
+        setAttachError(`"${item.file.name}" dure ${formatDuration(duration)} — maximum ${VIDEO_MAX_SECONDS} secondes. Découpe la séquence qui t'intéresse, Gideon l'analysera image par image.`);
+        return;
+      }
+      item.duration = duration || undefined;
+    }
+
+    setPending(prev => [...prev, ...items]);
   };
 
   const removePending = (index) => {
@@ -196,6 +225,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
     setAttachError(null);
 
     setIsTyping(true);
+    // Une vidéo passe par la Files API Gemini (upload + transcodage) : plusieurs
+    // secondes avant le premier fragment. On le dit, sinon l'attente ressemble
+    // à un plantage.
+    if (localPreviews.some(a => a.kind === "video")) setAnalyzingVideo(true);
     // Les fichiers ne sont pas réencodés dans l'historique (coût en tokens) :
     // on signale leur présence en texte pour que Gideon ne réponde pas comme
     // si le tour précédent n'avait contenu aucune pièce jointe.
@@ -222,6 +255,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         conversationHistory,
         conversationId: activeConvId,
         attachments: attachmentRefs,
+        uiLang,
         onChunk: (fullText) => {
           if (!started) {
             started = true;
@@ -234,6 +268,8 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       });
       // État final : texte complet + sources + upsell éventuel + quota
       if (data.quota) setQuota(data.quota);
+      if (data.videoQuota) setVideoQuota(data.videoQuota);
+      setAnalyzingVideo(false);
       if (data.conversationId) {
         if (!activeConvId) setActiveConvId(data.conversationId);
         refreshConversations(); // le titre / l'ordre du panneau ont pu changer
@@ -259,17 +295,35 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
         setIsTyping(false);
         return;
       }
+      // Vidéo : PAS de repli automatique. Rejouer la requête re-téléverserait
+      // la vidéo chez Gemini et la refacturerait entièrement pour un seul
+      // message. On affiche l'échec et on laisse l'utilisateur décider.
+      if (attachmentRefs.some(a => a.kind === "video")) {
+        console.warn("⚠️ Gideon stream KO avec vidéo — pas de repli (coût):", streamErr);
+        setMessages(prev => prev.slice(0, -1));
+        setPending(pending);
+        setAttachError(uiLang === "fr"
+          ? "⚠️ L'analyse de ta vidéo a échoué en cours de route. Ta vidéo est toujours sélectionnée : renvoie-la quand tu veux."
+          : uiLang === "it"
+          ? "⚠️ L'analisi del video non è riuscita. Il video è ancora selezionato, riprova quando vuoi."
+          : "⚠️ Video analysis failed midway. Your video is still attached — send it again when ready.");
+        discardAttachments(API_URL, attachmentRefs.map(a => a.path));
+        setIsTyping(false);
+        setAnalyzingVideo(false);
+        return;
+      }
       // 2. Repli : endpoint non-streamé classique
       console.warn("⚠️ Gideon stream indisponible, repli sur /api/gideon:", streamErr);
       try {
         const res = await apiFetch(`${API_URL}/api/gideon`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: text, conversationHistory, conversationId: activeConvId, attachments: attachmentRefs }),
+          body: JSON.stringify({ question: text, conversationHistory, conversationId: activeConvId, attachments: attachmentRefs, uiLang }),
         });
         if (!res.ok) throw new Error("Gideon API not ready yet", { cause: streamErr });
         const data = await res.json();
         if (data.quota) setQuota(data.quota);
+        if (data.videoQuota) setVideoQuota(data.videoQuota);
         if (data.conversationId) {
           if (!activeConvId) setActiveConvId(data.conversationId);
           refreshConversations();
@@ -303,6 +357,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       }
     } finally {
       setIsTyping(false);
+      setAnalyzingVideo(false);
     }
   };
 
@@ -435,14 +490,21 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
           </div>
         ))}
 
-        {/* Typing Indicator */}
+        {/* Typing Indicator — mention explicite pendant le traitement vidéo */}
         {isTyping && (
           <div style={{ display: "flex", justifyContent: "flex-start", gap: 6, flexDirection: "column" }}>
             <div style={{ fontSize: 12, color: c.textDim, fontWeight: 600, marginLeft: 16 }}>{t.header}</div>
-            <div style={{ padding: "18px 20px", borderRadius: "20px 20px 20px 4px", background: c.surface, border: `1px solid ${c.border}`, display: "flex", gap: 6 }}>
+            <div style={{ padding: "18px 20px", borderRadius: "20px 20px 20px 4px", background: c.surface, border: `1px solid ${c.border}`, display: "flex", gap: 10, alignItems: "center" }}>
               <span className="chat-typing-dot" style={{ animationDelay: "0s" }} />
               <span className="chat-typing-dot" style={{ animationDelay: "0.15s" }} />
               <span className="chat-typing-dot" style={{ animationDelay: "0.3s" }} />
+              {analyzingVideo && (
+                <span style={{ fontSize: 13, color: c.textMuted, fontWeight: 600 }}>
+                  {uiLang === "fr" ? "🎬 Analyse de ta vidéo image par image…"
+                    : uiLang === "it" ? "🎬 Analisi del video fotogramma per fotogramma…"
+                    : "🎬 Analysing your video frame by frame…"}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -479,7 +541,10 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             disabled={isTyping || uploading}
             className="gideon-attach"
             title={effectiveLimits
-              ? `${effectiveLimits.maxFiles} fichier${effectiveLimits.maxFiles > 1 ? "s" : ""} max · ${formatBytes(effectiveLimits.maxTotalBytes)} · ${effectiveLimits.kinds.includes("pdf") ? "images et PDF" : "images"}`
+              ? `${effectiveLimits.maxFiles} fichier${effectiveLimits.maxFiles > 1 ? "s" : ""} max · ${formatBytes(effectiveLimits.maxTotalBytes)} · ${
+                  effectiveLimits.kinds.includes("video") ? `images, PDF et vidéos (${VIDEO_MAX_SECONDS}s max)`
+                  : effectiveLimits.kinds.includes("pdf") ? "images et PDF"
+                  : "images"}`
               : (uiLang === "fr" ? "Réservé aux forfaits payants" : "Paid plans only")}
             aria-label="Joindre un fichier"
             style={{
@@ -526,13 +591,28 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
             )}
           </button>
         </div>
-        {quota && quota.limit > 0 && (
-          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, textAlign: "right", color: quota.remaining <= 5 ? "#F59E0B" : c.textMuted, transition: "color 0.3s" }}>
-            {uiLang === "fr"
-              ? `${quota.remaining} message${quota.remaining > 1 ? "s" : ""} restant${quota.remaining > 1 ? "s" : ""} aujourd'hui`
-              : uiLang === "it"
-              ? `${quota.remaining} messaggi rimanenti oggi`
-              : `${quota.remaining} messages left today`}
+        {(quota?.limit > 0 || videoQuota) && (
+          <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, textAlign: "right", display: "flex", gap: 14, justifyContent: "flex-end", flexWrap: "wrap" }}>
+            {quota?.limit > 0 && (
+              <span style={{ color: quota.remaining <= 5 ? "#F59E0B" : c.textMuted, transition: "color 0.3s" }}>
+                {uiLang === "fr"
+                  ? `${quota.remaining} message${quota.remaining > 1 ? "s" : ""} restant${quota.remaining > 1 ? "s" : ""} aujourd'hui`
+                  : uiLang === "it"
+                  ? `${quota.remaining} messaggi rimanenti oggi`
+                  : `${quota.remaining} messages left today`}
+              </span>
+            )}
+            {/* Compteur vidéo : affiché seulement quand il devient pertinent,
+                pour ne pas encombrer l'interface d'un Elite qui n'en fait pas. */}
+            {videoQuota && videoQuota.remaining <= 5 && (
+              <span style={{ color: videoQuota.remaining <= 2 ? "#F59E0B" : c.textMuted }}>
+                {uiLang === "fr"
+                  ? `🎬 ${videoQuota.remaining} vidéo${videoQuota.remaining > 1 ? "s" : ""} restante${videoQuota.remaining > 1 ? "s" : ""}`
+                  : uiLang === "it"
+                  ? `🎬 ${videoQuota.remaining} video rimanenti`
+                  : `🎬 ${videoQuota.remaining} video${videoQuota.remaining > 1 ? "s" : ""} left`}
+              </span>
+            )}
           </div>
         )}
       </div>

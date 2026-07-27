@@ -87,12 +87,20 @@ export async function embedTexts(texts, { taskType = "RETRIEVAL_DOCUMENT" } = {}
 }
 
 // ─── Helpers génération ──────────────────────────────────────────────────────
-// attachments : [{ mime, kind: "image"|"pdf", name, data (base64) }] — joints
-// UNIQUEMENT au message courant (l'historique reste textuel : re-payer
-// l'encodage des fichiers à chaque tour ferait exploser les tokens).
-// Support par moteur : Gemini images+PDF natif ; Claude images+PDF (blocs
-// image/document) ; OpenAI gpt-4o-mini images seulement → les PDF y sont
-// remplacés par une note textuelle pour que l'utilisateur comprenne.
+// attachments : [{ mime, kind: "image"|"pdf"|"video", name, data (base64) }]
+// ou [{ …, uri }] pour les médias passés par la Files API (vidéos et fichiers
+// > 12 Mo — voir geminiFiles.js). Joints UNIQUEMENT au message courant :
+// l'historique reste textuel, re-payer l'encodage à chaque tour ferait
+// exploser les tokens.
+// Support par moteur : Gemini images+PDF+VIDÉO natif ; Claude images+PDF ;
+// OpenAI gpt-4o-mini images seulement. Sur les moteurs de secours, tout média
+// non lisible est remplacé par une note textuelle explicite — jamais d'analyse
+// silencieusement amputée.
+const geminiPart = (a) =>
+  a.uri
+    ? { fileData: { mimeType: a.mime, fileUri: a.uri } }
+    : { inlineData: { mimeType: a.mime, data: a.data } };
+
 const geminiContents = (history, question, attachments = []) => [
   ...history.slice(-10).map((m) => ({
     role: m.role === "user" ? "user" : "model",
@@ -100,19 +108,36 @@ const geminiContents = (history, question, attachments = []) => [
   })),
   {
     role: "user",
-    parts: [
-      ...attachments.map((a) => ({ inlineData: { mimeType: a.mime, data: a.data } })),
-      { text: question },
-    ],
+    // Google recommande de placer le texte APRÈS le média pour la vidéo.
+    parts: [...attachments.map(geminiPart), { text: question }],
   },
 ];
 
+// media_resolution LOW divise par ~3 le coût d'une vidéo (~100 tokens/seconde
+// au lieu de ~300) : suffisant pour juger hook, rythme, cadrage et montage
+// d'une créative. À repasser en défaut si Gideon doit un jour lire du petit
+// texte incrusté (chiffres d'un dashboard filmé).
+const geminiGenerationConfig = (attachments = []) => ({
+  maxOutputTokens: 2048,
+  temperature: 0.7,
+  ...(attachments.some((a) => a.kind === "video") ? { mediaResolution: "MEDIA_RESOLUTION_LOW" } : {}),
+});
+
+// Note injectée à la place des médias qu'un moteur de secours ne sait pas lire.
+// `sent` = la liste EXACTE des pièces réellement transmises au moteur ; tout ce
+// qui n'y figure pas est signalé au modèle pour qu'il le dise à l'utilisateur.
+const unreadableNote = (attachments, sent) => {
+  const skipped = attachments.filter((a) => !sent.includes(a));
+  if (!skipped.length) return "";
+  const labels = skipped.map((a) => `${a.kind === "video" ? "vidéo" : a.kind === "pdf" ? "PDF" : "fichier"} "${a.name}"`).join(", ");
+  return `\n\n[Note technique : ${labels} — non lisible(s) par le moteur de secours actuellement utilisé. Dis-le clairement à l'utilisateur au lieu de deviner leur contenu, et invite-le à réessayer dans quelques minutes.]`;
+};
+
 const openaiMessages = (system, history, question, attachments = []) => {
-  const images = attachments.filter((a) => a.kind === "image");
-  const pdfs = attachments.filter((a) => a.kind === "pdf");
-  const questionText = pdfs.length
-    ? `${question}\n\n[Note : ${pdfs.length} PDF joint(s) (${pdfs.map((p) => p.name).join(", ")}) — non lisibles par le moteur de secours actuellement utilisé. Précise-le à l'utilisateur si sa question porte dessus.]`
-    : question;
+  // gpt-4o-mini ne lit que les images, et seulement en inline (une image
+  // passée par la Files API Gemini n'a pas de base64 exploitable ici).
+  const images = attachments.filter((a) => a.kind === "image" && a.data);
+  const questionText = question + unreadableNote(attachments, images);
   return [
     { role: "system", content: system },
     ...history.slice(-10).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })),
@@ -130,19 +155,31 @@ const openaiMessages = (system, history, question, attachments = []) => {
 
 const anthropicUserContent = (question, attachments = []) => {
   if (!attachments.length) return question;
+  // Claude lit images et PDF, mais pas la vidéo — et uniquement en base64
+  // (les médias passés par la Files API Gemini n'ont pas de data ici).
+  const readable = attachments.filter((a) => a.data && (a.kind === "image" || a.kind === "pdf"));
+  const text = question + unreadableNote(attachments, readable);
+  if (!readable.length) return text;
   return [
-    ...attachments.map((a) =>
+    ...readable.map((a) =>
       a.kind === "pdf"
         ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.data } }
         : { type: "image", source: { type: "base64", media_type: a.mime, data: a.data } }
     ),
-    { type: "text", text: question },
+    { type: "text", text },
   ];
 };
 
+// `mediaResolution` n'existe pas sur tous les modèles Gemini : un modèle qui
+// ne le connaît pas répond 400 "Unknown name". Plutôt que de faire basculer
+// TOUTES les requêtes vidéo sur des moteurs de secours incapables de les lire,
+// on réessaie une fois sans ce réglage (coût x3, mais l'analyse a lieu).
+const isUnknownFieldError = (err) =>
+  /unknown name|invalid json payload|mediaResolution/i.test(String(err?.message || ""));
+
 async function geminiGenerate({ system, history, question, attachments = [], tries = 4 }) {
   const key = process.env.GEMINI_API_KEY;
-  const data = await fetchWithRetry(
+  const call = (generationConfig) => fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:generateContent?key=${key}`,
     {
       method: "POST",
@@ -150,12 +187,29 @@ async function geminiGenerate({ system, history, question, attachments = [], tri
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: geminiContents(history, question, attachments),
-        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+        generationConfig,
       }),
     },
     tries
   );
+
+  let data;
+  try {
+    data = await call(geminiGenerationConfig(attachments));
+  } catch (err) {
+    if (!isUnknownFieldError(err)) throw err;
+    console.warn("⚠️ mediaResolution refusé par le modèle — nouvelle tentative sans (coût vidéo x3)");
+    data = await call(geminiGenerationConfig([]));
+  }
+
   const answer = data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+  // Une réponse vide n'est PAS un succès : blocage sécurité, quota atteint en
+  // cours de route, finishReason inattendu… La laisser passer afficherait une
+  // bulle vide et, pour une vidéo, la ferait facturer sans être décomptée.
+  if (!answer.trim()) {
+    const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || "inconnue";
+    throw new Error(`Réponse Gemini vide (raison : ${reason})`);
+  }
   return { answer, model: GEMINI_CHAT_MODEL };
 }
 
@@ -306,7 +360,7 @@ async function anthropicStream({ system, history, question, attachments = [], on
 
 async function geminiStream({ system, history, question, attachments = [], onChunk }) {
   const key = process.env.GEMINI_API_KEY;
-  const res = await fetch(
+  const open = (generationConfig) => fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_CHAT_MODEL}:streamGenerateContent?alt=sse&key=${key}`,
     {
       method: "POST",
@@ -314,15 +368,28 @@ async function geminiStream({ system, history, question, attachments = [], onChu
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: geminiContents(history, question, attachments),
-        generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+        generationConfig,
       }),
     }
   );
+
+  let res = await open(geminiGenerationConfig(attachments));
+  if (res.status === 400) {
+    // Même repli qu'en non-streamé : un modèle qui ignore mediaResolution ne
+    // doit pas envoyer la vidéo vers des moteurs incapables de la lire.
+    const body = await res.text().catch(() => "");
+    if (!isUnknownFieldError({ message: body })) throw new Error(`400 ${body.slice(0, 300)}`);
+    console.warn("⚠️ mediaResolution refusé par le modèle — nouvelle tentative sans (coût vidéo x3)");
+    res = await open(geminiGenerationConfig([]));
+  }
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
     throw new Error(`${res.status} ${body.slice(0, 300)}`);
   }
-  return readSseStream(res, "gemini", onChunk);
+  const out = await readSseStream(res, "gemini", onChunk);
+  // Flux qui se termine sans un mot : blocage sécurité ou coupure silencieuse.
+  if (!out.answer.trim()) throw new Error("Flux Gemini terminé sans contenu");
+  return out;
 }
 
 /**

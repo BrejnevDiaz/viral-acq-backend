@@ -41,7 +41,7 @@ Ton rôle est d'aider les créateurs UGC à :
 - Développer leur audience et leur engagement
 - Optimiser leur Creator Score sur la plateforme
 
-Réponds toujours en français sauf si l'utilisateur écrit dans une autre langue.
+{{LANGUE}}
 Sois direct, motivant et donne des conseils actionnables.
 Utilise les connaissances fournies comme base de tes réponses.`,
 
@@ -54,7 +54,7 @@ Ton rôle est d'aider les marques et agences à :
 - Analyser les performances de leurs créatives
 - Scaler leur acquisition client via les créateurs
 
-Réponds toujours en français sauf si l'utilisateur écrit dans une autre langue.
+{{LANGUE}}
 Sois professionnel, stratégique et orienté résultats.
 Utilise les connaissances fournies comme base de tes réponses.`,
 
@@ -68,7 +68,7 @@ Ton rôle est d'être un véritable co-pilote stratégique pour les marques Elit
 - Analyse concurrentielle et positionnement
 - Stratégies de contenu viral et tendances
 
-Réponds toujours en français sauf si l'utilisateur écrit dans une autre langue.
+{{LANGUE}}
 Sois tranchant, visionnaire et ultra-concis. Va droit au but, fais des paragraphes très courts et aérés.
 Ne fais JAMAIS de longs monologues. Donne 1 ou 2 actions immédiates, puis pose une question pour faire avancer la réflexion.
 Tu es le mentor que tout entrepreneur rêve d'avoir. Utilise les connaissances fournies comme base de tes réponses.`,
@@ -76,8 +76,34 @@ Tu es le mentor que tout entrepreneur rêve d'avoir. Utilise les connaissances f
   basic: `Tu es Gideon, l'assistant IA d'Acquisition Pro.
 Tu peux répondre à des questions générales sur la plateforme, les forfaits et les fonctionnalités.
 Tu n'as pas accès aux formations exclusives — recommande à l'utilisateur de passer au forfait supérieur pour débloquer le coaching personnalisé.
-Réponds toujours en français sauf si l'utilisateur écrit dans une autre langue.`
+{{LANGUE}}`
 };
+
+// ─── Langue de réponse ──────────────────────────────────────────────────────
+// L'ancienne consigne « réponds en français sauf si l'utilisateur écrit dans
+// une autre langue » produisait des réponses hybrides : un simple « ciao »
+// faisait basculer le modèle en italien tout en gardant des tournures
+// françaises héritées du prompt (« Come posso aiutarti a scaler ta marque »).
+// On impose désormais LA langue de l'interface, choisie explicitement par
+// l'utilisateur, et on interdit le mélange.
+const LANGUAGE_RULES = {
+  fr: `LANGUE — RÈGLE ABSOLUE : réponds EXCLUSIVEMENT en français, dans un français naturel et intégral.
+N'insère jamais de mots ou de tournures d'une autre langue, même si l'utilisateur t'écrit dans une autre langue : dans ce cas, réponds quand même en français.
+Les termes techniques du métier (scaling, ROAS, UGC, media buying) restent en anglais, c'est l'usage.`,
+  en: `LANGUAGE — ABSOLUTE RULE: reply EXCLUSIVELY in English, in full and natural English.
+Never mix in words or phrasing from another language, even if the user writes to you in another language: reply in English regardless.
+Industry terms (scaling, ROAS, UGC, media buying) stay as they are.`,
+  it: `LINGUA — REGOLA ASSOLUTA: rispondi ESCLUSIVAMENTE in italiano, in un italiano naturale e completo.
+Non inserire mai parole o costruzioni di un'altra lingua, anche se l'utente ti scrive in un'altra lingua: rispondi comunque in italiano.
+I termini tecnici del settore (scaling, ROAS, UGC, media buying) restano in inglese, come da uso comune.`,
+};
+
+const languageRule = (uiLang) => LANGUAGE_RULES[uiLang] || LANGUAGE_RULES.fr;
+
+// Les messages système (quota, accès refusé, panne) doivent suivre la même
+// langue que les réponses du modèle : un message d'erreur en français dans une
+// interface italienne, c'est exactement le mélange qu'on cherche à éliminer.
+export const pick = (uiLang, dict) => dict[uiLang] || dict.fr;
 
 // ─── Query Knowledge Base ───────────────────────────────────────────────────
 /**
@@ -91,8 +117,8 @@ Réponds toujours en français sauf si l'utilisateur écrit dans une autre langu
  * @param {Object[]} [params.attachments] - Pièces jointes [{mime, kind, name, data}] (chantier #16)
  * @returns {Object} { answer, sources, tier }
  */
-export async function queryGideon({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [] }) {
-  const prep = await prepareGideon({ question, userPlan, userRole });
+export async function queryGideon({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [], uiLang = "fr" }) {
+  const prep = await prepareGideon({ question, userPlan, userRole, uiLang });
   if (prep.early) return prep.early;
 
   try {
@@ -106,7 +132,11 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
   } catch (err) {
     console.error("❌ Gideon generation error:", err.message);
     return {
-      answer: "⚠️ Une erreur s'est produite. Réessayez dans quelques instants.",
+      answer: pick(uiLang, {
+        fr: "⚠️ Une erreur s'est produite. Réessayez dans quelques instants.",
+        en: "⚠️ Something went wrong. Please try again in a moment.",
+        it: "⚠️ Si è verificato un errore. Riprova tra qualche istante.",
+      }),
       sources: [],
       tier: prep.tier,
       restricted: false,
@@ -132,8 +162,8 @@ export async function queryGideon({ question, userPlan = "free", userRole = "use
  * @param {(sources: Object[], tier: string) => void} [params.onSources]
  * @returns {Object} { answer, sources, tier, restricted, model }
  */
-export async function queryGideonStream({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [], onChunk, onSources }) {
-  const prep = await prepareGideon({ question, userPlan, userRole });
+export async function queryGideonStream({ question, userPlan = "free", userRole = "user", conversationHistory = [], attachments = [], uiLang = "fr", onChunk, onSources }) {
+  const prep = await prepareGideon({ question, userPlan, userRole, uiLang });
   if (prep.early) return prep.early; // restricted / clé manquante → réponse directe, pas de stream
 
   onSources?.(prep.sources, prep.tier);
@@ -151,14 +181,18 @@ export async function queryGideonStream({ question, userPlan = "free", userRole 
 // ─── Pipeline partagé (gate d'accès + RAG + system prompt) ──────────────────
 // Retourne soit { early } (réponse immédiate sans génération : free restreint,
 // clé IA manquante), soit { system, sources, tier } prêt pour la génération.
-async function prepareGideon({ question, userPlan, userRole }) {
+async function prepareGideon({ question, userPlan, userRole, uiLang = "fr" }) {
   const tier = resolveKnowledgeTier(userPlan, userRole);
 
   // Free users can't use Gideon
   if (userPlan === "free" && userRole !== "admin") {
     return {
       early: {
-        answer: "🔒 L'accès à Gideon Coach IA est réservé aux abonnés. Passez au forfait Standard (Créateur) ou Plus (Marque) pour débloquer votre coach IA personnalisé !",
+        answer: pick(uiLang, {
+          fr: "🔒 L'accès à Gideon Coach IA est réservé aux abonnés. Passez au forfait Standard (Créateur) ou Plus (Marque) pour débloquer votre coach IA personnalisé !",
+          en: "🔒 Gideon AI Coach is for subscribers only. Upgrade to Standard (Creator) or Plus (Brand) to unlock your personal AI coach!",
+          it: "🔒 L'accesso a Gideon Coach IA è riservato agli abbonati. Passa al piano Standard (Creator) o Plus (Brand) per sbloccare il tuo coach IA personale!",
+        }),
         sources: [],
         tier: null,
         restricted: true,
@@ -170,7 +204,11 @@ async function prepareGideon({ question, userPlan, userRole }) {
   if (!activeProvider()) {
     return {
       early: {
-        answer: "⚠️ Gideon n'est pas encore configuré (clé IA manquante — GEMINI_API_KEY ou OPENAI_API_KEY). Contactez l'administrateur.",
+        answer: pick(uiLang, {
+          fr: "⚠️ Gideon n'est pas encore configuré (clé IA manquante — GEMINI_API_KEY ou OPENAI_API_KEY). Contactez l'administrateur.",
+          en: "⚠️ Gideon isn't configured yet (missing AI key — GEMINI_API_KEY or OPENAI_API_KEY). Please contact the administrator.",
+          it: "⚠️ Gideon non è ancora configurato (chiave IA mancante — GEMINI_API_KEY o OPENAI_API_KEY). Contatta l'amministratore.",
+        }),
         sources: [],
         tier,
         restricted: false,
@@ -223,8 +261,8 @@ async function prepareGideon({ question, userPlan, userRole }) {
     }
   }
 
-  // 3. Build the system prompt
-  const systemPrompt = SYSTEM_PROMPTS[tier] || SYSTEM_PROMPTS.basic;
+  // 3. Build the system prompt (la règle de langue remplace le marqueur)
+  const systemPrompt = (SYSTEM_PROMPTS[tier] || SYSTEM_PROMPTS.basic).replace("{{LANGUE}}", languageRule(uiLang));
   const contextBlock = knowledgeContext
     ? `\n\n═══ CONNAISSANCES EXCLUSIVES (formations du fondateur) ═══\nUtilise ces extraits pour enrichir ta réponse. Ne les cite pas mot pour mot, reformule avec ta propre voix.\n\n${knowledgeContext}\n\n═══ FIN DES CONNAISSANCES ═══`
     : "";

@@ -17,9 +17,15 @@ VALUES (
   'gideon-uploads',
   'gideon-uploads',
   false,
-  12582912, -- 12 Mo par fichier — plafond inline Gemini (~20 Mo base64 compris)
+  -- 60 Mo : plafond vidéo (Elite, ~90 s de créative). Les images et PDF
+  -- restent bornés bien en dessous par les limites de plan côté serveur.
+  62914560,
   -- Pas de GIF : accepté par le navigateur mais refusé par l'inline Gemini.
-  ARRAY['image/jpeg','image/png','image/webp','application/pdf']
+  -- Vidéos ajoutées au chantier #17 (analysées via la Files API Gemini).
+  -- Seulement des conteneurs ISO-BMFF : le serveur y lit la durée pour borner
+  -- le coût, ce qu'il ne sait pas faire sur WebM ou AVI.
+  ARRAY['image/jpeg','image/png','image/webp','application/pdf',
+        'video/mp4','video/quicktime','video/3gpp']
 )
 ON CONFLICT (id) DO UPDATE SET
   public = false,

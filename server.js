@@ -12,9 +12,9 @@ import { requireBrand, requireAnyUser, requireAuth, requireRole } from "./authMi
 import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
-import { queryGideon, queryGideonStream } from "./gideonEngine.js";
-import { fetchHistory, saveExchange, clearHistory, countToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
-import { storeGideonAttachments, loadGideonAttachments, uploadLimitsFor, removeOwnedAttachments, sanitizeAttachmentRefs, GIDEON_UPLOAD_BUCKET } from "./gideonUploads.js";
+import { queryGideon, queryGideonStream, pick } from "./gideonEngine.js";
+import { fetchHistory, saveExchange, clearHistory, countToday, countVideosToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
+import { storeGideonAttachments, loadGideonAttachments, uploadLimitsFor, removeOwnedAttachments, sanitizeAttachmentRefs, releaseGeminiFiles, GIDEON_UPLOAD_BUCKET } from "./gideonUploads.js";
 import { extractPdfText } from "./pdfText.js";
 import multer from "multer";
 
@@ -1569,8 +1569,13 @@ const GIDEON_DAILY_LIMITS = {
 const gideonDailyLimit = (plan, role) =>
   role === "admin" ? Infinity : (GIDEON_DAILY_LIMITS[plan] ?? 0);
 
-const GIDEON_QUOTA_MESSAGE =
-  "🚦 Tu as atteint ta limite quotidienne de messages avec Gideon — elle se réinitialise chaque jour. Envie de continuer sans attendre ? Passe au forfait supérieur pour débloquer plus de coaching (illimité en VIP Elite) 💎";
+// Messages système du Coach : traduits comme les réponses du modèle, sinon
+// une interface italienne recevait des avertissements en français.
+const gideonQuotaMessage = (uiLang) => pick(uiLang, {
+  fr: "🚦 Tu as atteint ta limite quotidienne de messages avec Gideon — elle se réinitialise chaque jour. Envie de continuer sans attendre ? Passe au forfait supérieur pour débloquer plus de coaching (illimité en VIP Elite) 💎",
+  en: "🚦 You've hit your daily message limit with Gideon — it resets every day. Want to keep going right now? Upgrade your plan for more coaching (unlimited on VIP Elite) 💎",
+  it: "🚦 Hai raggiunto il limite giornaliero di messaggi con Gideon — si azzera ogni giorno. Vuoi continuare subito? Passa al piano superiore per più coaching (illimitato con VIP Elite) 💎",
+});
 
 // Retourne { quota, exceeded } — quota est null si non applicable.
 async function checkGideonQuota(user) {
@@ -1583,6 +1588,49 @@ async function checkGideonQuota(user) {
     exceeded: used >= limit,
   };
 }
+
+// ─── Garde-fou vidéo (chantier #17) ──────────────────────────────────────────
+// Une vidéo coûte ~100 tokens par seconde à Gemini : 90 s ≈ 9 000 tokens, soit
+// l'équivalent de plusieurs dizaines de messages texte. Comme la vidéo est
+// réservée aux plans Elite — précisément ceux qui sont ILLIMITÉS en messages —
+// le surcoût de quota classique ne protège rien. D'où ce plafond dédié, qui
+// s'applique aussi aux admins (le compte qui teste le plus est aussi celui qui
+// consomme le plus). Une vidéo compte en outre pour 3 messages là où le quota
+// de messages s'applique (plans non illimités, si la vidéo leur est ouverte
+// un jour).
+const GIDEON_DAILY_VIDEO_LIMIT = 15;
+const GIDEON_VIDEO_QUOTA_COST = 3;
+
+const gideonVideoQuotaMessage = (uiLang) => pick(uiLang, {
+  fr: `🎬 Tu as atteint la limite de vidéos analysables aujourd'hui (${GIDEON_DAILY_VIDEO_LIMIT}). L'analyse vidéo est l'opération la plus lourde du Coach — la limite se réinitialise demain. En attendant, envoie-moi des captures d'écran de tes créatives, je les décortique sans attendre.`,
+  en: `🎬 You've reached today's video analysis limit (${GIDEON_DAILY_VIDEO_LIMIT}). Video is the heaviest operation the Coach runs — the limit resets tomorrow. In the meantime, send me screenshots of your creatives and I'll break them down right away.`,
+  it: `🎬 Hai raggiunto il limite di video analizzabili oggi (${GIDEON_DAILY_VIDEO_LIMIT}). L'analisi video è l'operazione più pesante del Coach — il limite si azzera domani. Nel frattempo mandami degli screenshot delle tue creatività, li analizzo subito.`,
+});
+
+// FAIL CLOSED : si le comptage est impossible (migration `attachments` non
+// exécutée, Supabase injoignable), on REFUSE la vidéo au lieu de l'autoriser
+// sans limite. C'est le seul garde-fou financier du produit : le laisser
+// ouvert « par défaut » exposerait à une facture Gemini illimitée, en silence.
+// Exception assumée : le bypass local (ALLOW_DEV_AUTH, pas de token) où aucune
+// persistance n'existe par design — le développement n'est jamais bloqué.
+async function checkGideonVideoQuota(user) {
+  const used = await countVideosToday(user);
+  if (used === null) {
+    if (!user?.token) return { videoQuota: null, exceeded: false }; // bypass local
+    console.error("❌ Quota vidéo non vérifiable (colonne attachments absente ?) — analyse vidéo refusée par sécurité");
+    return { videoQuota: null, exceeded: true, unavailable: true };
+  }
+  return {
+    videoQuota: { used, limit: GIDEON_DAILY_VIDEO_LIMIT, remaining: Math.max(0, GIDEON_DAILY_VIDEO_LIMIT - used) },
+    exceeded: used >= GIDEON_DAILY_VIDEO_LIMIT,
+  };
+}
+
+const gideonVideoUnavailableMessage = (uiLang) => pick(uiLang, {
+  fr: "🎬 L'analyse vidéo est momentanément indisponible (vérification du quota impossible). Envoie-moi des captures d'écran en attendant — l'équipe est prévenue.",
+  en: "🎬 Video analysis is temporarily unavailable (quota check failed). Send me screenshots in the meantime — the team has been notified.",
+  it: "🎬 L'analisi video è momentaneamente non disponibile (verifica del quota impossibile). Nel frattempo mandami degli screenshot — il team è stato avvisato.",
+});
 
 // ─── POST /api/gideon/upload — Pièces jointes du Coach (chantier #16) ────────
 // L'utilisateur téléverse ses fichiers AVANT d'envoyer le message ; la route
@@ -1599,9 +1647,21 @@ app.post("/api/gideon/upload", ...requireAnyUser, (req, res) => {
     });
   }
 
+  // Garde-fou mémoire : multer plafonne chaque FICHIER, pas le total. Sans ce
+  // contrôle, un Elite pourrait faire bufferiser 10 × 60 Mo = 600 Mo en RAM
+  // (memoryStorage) avant le contrôle de total — OOM assuré sur Railway.
+  const declared = Number(req.headers["content-length"] || 0);
+  if (declared > limits.maxTotalBytes * 1.1) {
+    return res.status(413).json({
+      error: `Poids total trop élevé (max ${Math.round(limits.maxTotalBytes / 1024 / 1024)} Mo par message).`,
+      code: "attachment",
+    });
+  }
+
   gideonUploadFor(limits).array("files", limits.maxFiles)(req, res, async (multerErr) => {
     if (multerErr) {
       const mb = Math.round(limits.maxTotalBytes / 1024 / 1024);
+      console.warn(`⚠️ Gideon upload refusé (${multerErr.code}) pour ${req.user?.email || req.user?.id}`);
       const msg = multerErr.code === "LIMIT_FILE_SIZE"
         ? `Fichier trop lourd (max ${mb} Mo avec ton forfait).`
         : multerErr.code === "LIMIT_FILE_COUNT" || multerErr.code === "LIMIT_PART_COUNT"
@@ -1640,6 +1700,8 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
   const { question, conversationHistory = [], conversationId = null } = req.body;
   // `?? []` et non un défaut de déstructuration : celui-ci ne couvre pas null.
   const attachmentRefs = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
+  // Langue d'interface, en liste blanche (elle ne sert qu'à choisir un prompt).
+  const uiLang = ["fr", "en", "it"].includes(req.body?.uiLang) ? req.body.uiLang : "fr";
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
@@ -1650,19 +1712,45 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
     const userRole = req.user?.role || "user";
     console.log(`🤖 Gideon [${userRole}/${userPlan}]: "${question.slice(0, 80)}..." (${attachmentRefs.length} PJ)`);
 
-    // Quota journalier
+    // Quota journalier — vérifié AVANT de charger quoi que ce soit : inutile de
+    // télécharger puis téléverser des médias pour un message qui sera refusé
+    // (les fichiers deviendraient des orphelins non référencés).
     const { quota, exceeded } = await checkGideonQuota(req.user);
     if (exceeded) {
-      return res.json({ answer: GIDEON_QUOTA_MESSAGE, sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
+      return res.json({ answer: gideonQuotaMessage(uiLang), sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
     }
 
-    // Pièces jointes : chargement + contrôle d'appartenance (chantier #16)
-    const loaded = await loadGideonAttachments(req.user, attachmentRefs);
-    if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment" });
+    // Pièces jointes : chargement + contrôle d'appartenance (chantier #16).
+    // Le garde-fou vidéo est évalué DANS cette étape, sur le type réel issu des
+    // magic bytes — jamais sur le `kind` déclaré par le client, qu'il suffirait
+    // de falsifier pour analyser une vidéo hors quota (chantier #17).
+    let videoQuota = null;
+    const loaded = await loadGideonAttachments(req.user, attachmentRefs, {
+      onVideoDetected: async () => {
+        const check = await checkGideonVideoQuota(req.user);
+        videoQuota = check.videoQuota;
+        if (!check.exceeded) return null;
+        return { error: check.unavailable ? gideonVideoUnavailableMessage(uiLang) : gideonVideoQuotaMessage(uiLang), status: 429 };
+      },
+    });
+    if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment", videoQuota });
 
-    const result = await queryGideon({ question, userPlan, userRole, conversationHistory, attachments: loaded.attachments });
+    const withVideo = !!loaded.hasVideo;
+    let result;
+    try {
+      result = await queryGideon({ question, userPlan, userRole, conversationHistory, attachments: loaded.attachments, uiLang });
+    } finally {
+      // Les médias poussés chez Google ne servent qu'à cette requête : les
+      // laisser vivre 48 h grignoterait le quota projet de 20 Go partagé.
+      releaseGeminiFiles(loaded.attachments).catch(() => {});
+    }
     if (quota && !result.restricted) {
-      result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
+      // Une vidéo pèse GIDEON_VIDEO_QUOTA_COST messages dans le quota classique
+      const cost = withVideo ? GIDEON_VIDEO_QUOTA_COST : 1;
+      result.quota = { ...quota, used: quota.used + cost, remaining: Math.max(0, quota.remaining - cost) };
+    }
+    if (videoQuota) {
+      result.videoQuota = { ...videoQuota, used: videoQuota.used + 1, remaining: Math.max(0, videoQuota.remaining - 1) };
     }
     // Persistance : garantit une conversation (créée au 1er message, titre =
     // début de question) puis sauvegarde fire-and-forget
@@ -1688,15 +1776,36 @@ app.post("/api/gideon", ...requireAnyUser, async (req, res) => {
 app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
   const { question, conversationHistory = [], conversationId = null } = req.body;
   const attachmentRefs = Array.isArray(req.body?.attachments) ? req.body.attachments : [];
+  const uiLang = ["fr", "en", "it"].includes(req.body?.uiLang) ? req.body.uiLang : "fr";
 
   if (!question || !question.trim()) {
     return res.status(400).json({ error: "Question requise" });
   }
 
+  // Quota de messages vérifié AVANT tout chargement : un message refusé ne doit
+  // jamais laisser derrière lui des fichiers téléversés et non référencés.
+  const preQuota = await checkGideonQuota(req.user);
+  if (preQuota.exceeded) {
+    return res.status(429).json({ error: gideonQuotaMessage(uiLang), code: "attachment", quota: preQuota.quota });
+  }
+
   // Pièces jointes chargées AVANT les headers SSE : une erreur ici doit sortir
   // en HTTP 4xx classique (le front affiche le message), pas en event SSE.
-  const loaded = await loadGideonAttachments(req.user, attachmentRefs);
-  if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment" });
+  // Pour une vidéo, cette étape inclut l'upload vers la Files API Gemini et
+  // l'attente de l'état ACTIVE — quelques secondes avant le premier octet SSE.
+  // Le garde-fou vidéo est appliqué au sein du chargement, sur le type réel
+  // (magic bytes) et avant le moindre octet envoyé à Google.
+  let videoQuota = null;
+  const loaded = await loadGideonAttachments(req.user, attachmentRefs, {
+    onVideoDetected: async () => {
+      const check = await checkGideonVideoQuota(req.user);
+      videoQuota = check.videoQuota;
+      if (!check.exceeded) return null;
+      return { error: check.unavailable ? gideonVideoUnavailableMessage(uiLang) : gideonVideoQuotaMessage(uiLang), status: 429 };
+    },
+  });
+  if (loaded.error) return res.status(loaded.status || 400).json({ error: loaded.error, code: "attachment", videoQuota });
+  const withVideo = !!loaded.hasVideo;
 
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -1720,12 +1829,9 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
     const userRole = req.user?.role || "user";
     console.log(`🤖 Gideon stream [${userRole}/${userPlan}]: "${question.slice(0, 80)}..." (${attachmentRefs.length} PJ)`);
 
-    // Quota journalier — envoyé en event done (les headers SSE sont déjà partis)
-    const { quota, exceeded } = await checkGideonQuota(req.user);
-    if (exceeded) {
-      send("done", { answer: GIDEON_QUOTA_MESSAGE, sources: [], tier: null, restricted: false, quotaExceeded: true, quota });
-      return; // le finally fait res.end()
-    }
+    // Quota déjà vérifié avant le chargement des pièces jointes (voir plus
+    // haut) ; on récupère juste les compteurs pour l'event done.
+    const { quota } = preQuota;
 
     const result = await queryGideonStream({
       question,
@@ -1733,12 +1839,17 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
       userRole,
       conversationHistory,
       attachments: loaded.attachments,
+      uiLang,
       onSources: (sources, tier) => { if (!closed) send("sources", { sources, tier }); },
       onChunk: (text) => { if (!closed) send("chunk", { text }); },
     });
 
     if (quota && !result.restricted) {
-      result.quota = { ...quota, used: quota.used + 1, remaining: Math.max(0, quota.remaining - 1) };
+      const cost = withVideo ? GIDEON_VIDEO_QUOTA_COST : 1;
+      result.quota = { ...quota, used: quota.used + cost, remaining: Math.max(0, quota.remaining - cost) };
+    }
+    if (videoQuota) {
+      result.videoQuota = { ...videoQuota, used: videoQuota.used + 1, remaining: Math.max(0, videoQuota.remaining - 1) };
     }
 
     // Persistance : conversation garantie AVANT le done (le front a besoin de
@@ -1755,8 +1866,10 @@ app.post("/api/gideon/stream", ...requireAnyUser, async (req, res) => {
     }
   } catch (err) {
     console.error("❌ Gideon stream error:", err.message);
-    if (!closed) send("error", { message: "Une erreur s'est produite pendant la génération." });
+    if (!closed) send("error", { message: "Une erreur s'est produite pendant la génération.", hasVideo: withVideo });
   } finally {
+    // Les médias poussés chez Google ne servent qu'à cette requête.
+    releaseGeminiFiles(loaded.attachments).catch(() => {});
     if (!res.writableEnded) res.end();
   }
 });
@@ -1768,9 +1881,14 @@ app.get("/api/gideon/history", ...requireAnyUser, async (req, res) => {
   try {
     const { conversationId, messages } = await fetchHistory(req.user, req.query.conversationId || null);
     const { quota } = await checkGideonQuota(req.user);
+    const limits = uploadLimitsFor(req.user?.plan, req.user?.role);
     // uploadLimits : le front s'en sert pour afficher/verrouiller le bouton
     // trombone (null = upload interdit avec ce forfait → upsell).
-    res.json({ conversationId, messages, quota, uploadLimits: uploadLimitsFor(req.user?.plan, req.user?.role) });
+    // videoQuota : seulement pour les plans qui ont accès à la vidéo.
+    const { videoQuota } = limits?.kinds?.includes("video")
+      ? await checkGideonVideoQuota(req.user)
+      : { videoQuota: null };
+    res.json({ conversationId, messages, quota, uploadLimits: limits, videoQuota });
   } catch (err) {
     console.error("❌ Gideon history error:", err.message);
     res.status(500).json({ error: err.message });
