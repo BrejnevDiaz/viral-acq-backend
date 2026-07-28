@@ -269,6 +269,16 @@ L'achat de vidéos UGC entre marque et créateur est un service entre tiers : ex
 
 **⏳ Pas d'interface d'administration pour l'instant** : la publication se fait par `INSERT` SQL depuis Supabase, ou par appel direct aux routes admin. Une UI d'édition serait le prolongement naturel, mais elle n'a de sens qu'une fois qu'il y a du contenu à publier.
 
+### ⚠️ RÈGLE DE VÉRIFICATION DES RAPPORTS (28/07/2026)
+Un rapport de déploiement de Gemini a décrit des observations **entièrement inventées** : noms de champs inexistants (`creatorsCount` au lieu de `creators`), une route jamais créée (`/api/resources/sessions` au lieu de `/coaching`), des logs `📊 [Resources] Stats` alors que le fichier ne contient aucun `console.log`, et des colonnes absentes du schéma (intervenant, places, vues, likes). Les chiffres annoncés — 13 créateurs, 45 vidéos, 11 marques — étaient faux : la réalité mesurée était **0 créateur, 0 vidéo, 4 marques, 616 extraits de formation**.
+
+**À appliquer systématiquement :**
+- Ce que Gemini **exécute** est fiable et vérifiable (identifiants de commit, sorties de build).
+- Ce qu'il **observe et résume** ne l'est pas. Exiger la **sortie brute** des commandes (`curl`, `railway logs`), jamais un paragraphe rédigé.
+- Se méfier d'un rapport très détaillé et très favorable : c'est le signe le plus courant d'une fabrication.
+- Vérification indépendante possible sans authentification :
+  `curl https://viral-acq-backend-production.up.railway.app/api/resources/stats`
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).

@@ -417,13 +417,17 @@ async function notifyRecipient(db, sender, thread, preview) {
     return; // ce destinataire a déjà été prévenu récemment pour ce fil
   }
 
-  // L'email du destinataire est lu côté serveur uniquement : il sert à envoyer
-  // le courriel et n'est jamais renvoyé au client ni écrit dans un log.
+  // ⚠️ L'email se lit via l'API Admin d'Auth, PAS via `profiles` : la table
+  // `profiles` de cette base ne contient PAS de colonne `email`, contrairement à
+  // ce que déclare supabase_schema.sql (erreur 42703 constatée le 28/07/2026 —
+  // le fichier de schéma a divergé de la base réelle). Un `select("email")`
+  // échouait donc systématiquement et aucune notification n'était envoyée.
+  // L'API Admin exige la clé service : l'adresse ne quitte jamais le serveur.
   if (!serviceClient) return;
-  const { data: profile } = await serviceClient
-    .from("profiles").select("email").eq("id", recipientId).maybeSingle();
-  if (!profile?.email) {
-    console.warn("⚠️ [Marketplace] pas d'email pour le destinataire — notification ignorée");
+  const { data: authUser, error: authErr } = await serviceClient.auth.admin.getUserById(recipientId);
+  const recipientEmail = authUser?.user?.email;
+  if (authErr || !recipientEmail) {
+    console.warn("⚠️ [Marketplace] email du destinataire introuvable — notification ignorée:", authErr?.message || "adresse absente");
     return;
   }
 
@@ -437,7 +441,7 @@ async function notifyRecipient(db, sender, thread, preview) {
   const senderLabel = sender.id === thread.brand_id ? "Une marque" : "Un créateur";
 
   const sent = await notifyCreator({
-    creatorEmail: profile.email,
+    creatorEmail: recipientEmail,
     creatorName: "",
     brandName: senderLabel,
     videoProduct: video?.product || "votre contenu",
