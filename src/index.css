@@ -201,6 +201,25 @@ h1, h2, h3, h4, h5, h6, .outfit {
 .show-mobile-flex { display: none; }
 .mobile-menu-btn { display: none; }
 
+/* ─── Bouton flottant du Coach IA ──────────────────────────────────────────
+   Sur mobile, il se superposait à la colonne d'actions du feed vidéo : le
+   bouton panier passait littéralement dessous et devenait incliquable.
+   Deux mesures complémentaires — la barre d'actions du feed remonte (voir
+   .video-action-rail dans VideoMarketplaceTab), et le bouton lui-même se
+   réduit et se rapproche du coin pour libérer de la place. */
+@media (max-width: 768px) {
+  .chatbot-fab {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: 16px !important;
+    right: 16px !important;
+    /* Sous la colonne d'actions du feed (z-index 1) mais au-dessus du contenu :
+       en cas de chevauchement résiduel, c'est le panier qui reste cliquable. */
+    z-index: 900 !important;
+  }
+  .chatbot-fab svg { width: 22px; height: 22px; }
+}
+
 /* ─── Navigation latérale défilante ────────────────────────────────────────
    La liste d'onglets peut dépasser la hauteur de l'écran (écran court, ou
    libellés plus longs en italien / anglais). Sans barre de défilement

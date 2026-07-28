@@ -629,17 +629,17 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
 
       <div className="video-feed-outer" style={{ display: "flex", justifyContent: "center" }}>
         <div ref={scrollRef} className="video-feed-scroll" style={{
-          width: "100%", maxWidth: 420, height: "78vh", borderRadius: 24, overflowY: "scroll",
+          width: "100%", maxWidth: 420, height: "var(--feed-h, 78vh)", borderRadius: "var(--feed-radius, 24px)", overflowY: "scroll",
           scrollSnapType: "y mandatory", background: "#000", border: `1px solid ${c.border}`,
           boxShadow: "0 30px 80px rgba(0,0,0,0.5)", position: "relative"
         }}>
           {filteredVideos.length === 0 && (
-            <div className="video-slide" style={{ height: "78vh", display: "flex", alignItems: "center", justifyContent: "center", color: "#A1A1AA", fontSize: 14, textAlign: "center", padding: 24 }}>
+            <div className="video-slide" style={{ height: "var(--feed-h, 78vh)", display: "flex", alignItems: "center", justifyContent: "center", color: "#A1A1AA", fontSize: 14, textAlign: "center", padding: 24 }}>
               {t.noResults}
             </div>
           )}
           {filteredVideos.map(video => (
-            <div key={video.id} className="video-slide" style={{ height: "78vh", scrollSnapAlign: "start", scrollSnapStop: "always", position: "relative", overflow: "hidden" }}>
+            <div key={video.id} className="video-slide" style={{ height: "var(--feed-h, 78vh)", scrollSnapAlign: "start", scrollSnapStop: "always", position: "relative", overflow: "hidden" }}>
               <video
                 ref={el => { videoRefs.current[video.id] = el; }}
                 src={video.src} loop muted playsInline
@@ -668,7 +668,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               </div>
 
               {/* Right-side action rail (TikTok-style) */}
-              <div style={{ position: "absolute", bottom: 24, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+              <div className="video-action-rail" style={{ position: "absolute", bottom: 24, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
                 {/* LIKE — geste public, avec compteur visible de tous. */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
                   <button
@@ -866,6 +866,30 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .video-feed-scroll::-webkit-scrollbar { display: none; }
         .video-feed-scroll { scrollbar-width: none; }
+
+        /* ─── Mobile : feed plein écran façon TikTok ────────────────────────
+           Les contrôles du haut (onglets, favoris/panier, recherche, niches)
+           restent en place et défilent normalement : on ne les superpose PAS
+           à la vidéo, ils la précèdent. Le feed occupe ensuite toute la
+           hauteur utile, avec défilement magnétique d'une vidéo à l'autre.
+           On utilise 100dvh et non 100vh : la première tient compte de la
+           barre d'adresse mobile, qui sinon rogne le bas de chaque vidéo. */
+        @media (max-width: 768px) {
+          .video-feed-outer {
+            --feed-h: calc(100dvh - 210px);
+            --feed-radius: 16px;
+            margin-left: -12px;
+            margin-right: -12px;
+          }
+          .video-feed-scroll { max-width: 100% !important; box-shadow: none !important; }
+          /* La colonne d'actions remonte : sans cela, le bouton panier passait
+             sous le bouton flottant du Coach IA, en bas à droite. */
+          .video-action-rail { bottom: 96px !important; }
+        }
+        /* Très petits écrans : on récupère la place des marges internes. */
+        @media (max-width: 400px) {
+          .video-feed-outer { --feed-h: calc(100dvh - 190px); }
+        }
 
         /* Native-app feel on phones: edge-to-edge, taller, no rounded "card" look */
         @media (max-width: 768px) {

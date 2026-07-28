@@ -29,6 +29,8 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   // que Gemini transcode le média (plusieurs secondes avant la réponse).
   const [videoQuota, setVideoQuota] = useState(null);
   const [analyzingVideo, setAnalyzingVideo] = useState(false);
+  // Tiroir des conversations, utilisé uniquement sur mobile (voir le CSS).
+  const [convDrawerOpen, setConvDrawerOpen] = useState(false);
   const fileInputRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -82,6 +84,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
   // Bascule vers une conversation du panneau
   const loadConversation = async (id) => {
     if (isTyping || id === activeConvId) return;
+    setConvDrawerOpen(false); // le tiroir mobile se referme sur la sélection
     try {
       const res = await apiFetch(`${API_URL}/api/gideon/history?conversationId=${encodeURIComponent(id)}`);
       if (!res.ok) return;
@@ -109,6 +112,7 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
 
   const handleNewConversation = () => {
     if (isTyping) return;
+    setConvDrawerOpen(false);
     setMessages(prev => { releaseMessagePreviews(prev); return []; });
     setActiveConvId(null);
     clearPending();
@@ -376,6 +380,19 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "24px 32px", borderBottom: `1px solid ${c.border}`, background: headerGradient }}>
+        {/* Accès à l'historique sur mobile, où le panneau latéral est masqué. */}
+        <button
+          onClick={() => setConvDrawerOpen(true)}
+          className="conv-drawer-toggle"
+          aria-label={uiLang === "fr" ? "Mes conversations" : uiLang === "it" ? "Le mie conversazioni" : "My conversations"}
+          style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0, cursor: "pointer",
+            border: `1px solid ${c.border}`, background: c.card, color: c.text,
+            alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>
+        </button>
         <div style={{ width: 56, height: 56, borderRadius: "50%", background: avatarGradient, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 24, flexShrink: 0, boxShadow: isElite ? "0 4px 20px rgba(234,179,8,0.4)" : "0 4px 20px rgba(139,92,246,0.3)" }}>
           {isElite ? "💎" : "AP"}
         </div>
@@ -389,8 +406,17 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       </div>
 
       {/* Corps : panneau des conversations + colonne chat */}
-      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-        <div className="conv-sidebar" style={{ width: 250, flexShrink: 0, borderRight: `1px solid ${c.border}`, background: c.surface, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
+        {/* Voile de fermeture du tiroir (mobile uniquement) */}
+        {convDrawerOpen && <div className="conv-drawer-backdrop" onClick={() => setConvDrawerOpen(false)} />}
+        {/* Sur mobile ce panneau devient un tiroir : `conv-drawer-open` le
+            fait réapparaître par-dessus le chat. Sans cela, il était purement
+            masqué et l'historique des conversations restait inaccessible au
+            téléphone — régression introduite en corrigeant le débordement. */}
+        <div
+          className={`conv-sidebar${convDrawerOpen ? " conv-drawer-open" : ""}`}
+          style={{ width: 250, flexShrink: 0, borderRight: `1px solid ${c.border}`, background: c.surface, display: "flex", flexDirection: "column" }}
+        >
           <div style={{ padding: 14 }}>
             <button onClick={handleNewConversation} className="hover-lift" style={{
               width: "100%", padding: "12px 14px", borderRadius: 12,
@@ -655,7 +681,21 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
            display:"flex", qui bat une règle CSS non marquée — sans ça la
            sidebar de 250px reste affichée sur mobile et écrase la colonne de
            chat (texte rendu une lettre par ligne). */
-        @media (max-width: 900px) { .conv-sidebar { display: none !important; } }
+        /* ─── Conversations : panneau fixe sur desktop, tiroir sur mobile ───
+           Le !important reste nécessaire : le panneau porte un style inline
+           display:"flex", qui bat une règle CSS non marquée. */
+        @media (max-width: 900px) {
+          .conv-sidebar { display: none !important; }
+          .conv-sidebar.conv-drawer-open {
+            display: flex !important;
+            position: absolute; top: 0; bottom: 0; left: 0;
+            width: 82%; max-width: 300px; z-index: 60;
+            box-shadow: 8px 0 30px rgba(0,0,0,0.25);
+          }
+          .conv-drawer-toggle { display: flex !important; }
+        }
+        .conv-drawer-toggle { display: none; }
+        .conv-drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); z-index: 55; }
         .markdown-body {
           font-family: inherit;
         }

@@ -239,7 +239,7 @@ export default function ChatbotWidget({ uiLang = "fr", userTier = "free", API_UR
       {/* Floating bubble */}
       <button
         onClick={handleToggle}
-        className="hover-lift"
+        className="hover-lift chatbot-fab"
         style={{
           position: "fixed", bottom: 24, right: 24, width: 60, height: 60, borderRadius: "50%", border: "none",
           background: bubbleGradient, color: isElite ? "#000" : "#fff", cursor: "pointer",
