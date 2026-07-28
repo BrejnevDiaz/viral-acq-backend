@@ -12,10 +12,18 @@ export const requireAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
     if (!token) {
-      // Bypass local explicite pour faciliter les tests sans se connecter
-      if (process.env.ALLOW_DEV_AUTH === "true") {
-        req.user = { id: "local-bypass", email: "admin@acquisitionpro.fr", role: "admin", plan: "elite", token: null };
+      // Bypass local pour tester sans se connecter.
+      // ⚠️ Verrouillé au développement : cette branche donne un compte admin
+      // elite SANS AUCUN jeton. Si la variable était activée par erreur en
+      // production (copier-coller d'un .env, variable Vercel oubliée), toute
+      // requête anonyme deviendrait administratrice. Le garde-fou ne doit donc
+      // pas reposer sur la seule discipline de configuration.
+      if (process.env.ALLOW_DEV_AUTH === "true" && process.env.NODE_ENV !== "production") {
+        req.user = { id: "local-bypass", email: "dev@localhost", role: "admin", plan: "elite", token: null };
         return next();
+      }
+      if (process.env.ALLOW_DEV_AUTH === "true" && process.env.NODE_ENV === "production") {
+        console.error("🚨 ALLOW_DEV_AUTH est activé en production — bypass ignoré. Retirez cette variable.");
       }
       return res.status(401).json({ error: "Authentification requise" });
     }
@@ -55,10 +63,15 @@ export const requireAuth = async (req, res, next) => {
       }
     }
 
-    if (authUser.email === "contact@brejnevdiaz.com" || authUser.email === "admin@acquisitionpro.fr" || authUser.email === "brejnevdiaz@gmail.com") {
-      role = "admin";
-      plan = "elite";
-    }
+    // ⚠️ SUPPRIMÉ le 28/07/2026 — un bloc accordait ici role=admin et
+    // plan=elite à trois adresses e-mail codées en dur. La confirmation
+    // d'e-mail étant désactivée dans Supabase, n'importe qui pouvait
+    // s'inscrire AVEC l'une de ces adresses sans jamais y avoir accès, et
+    // devenait administrateur. Une adresse e-mail non vérifiée n'est pas une
+    // preuve d'identité : les privilèges se lisent désormais uniquement dans
+    // `profiles.role`, indexé sur l'UUID Supabase et protégé en écriture par
+    // le trigger `protect_profile_privileges` (chantier #24).
+    // Pour (re)devenir admin : voir supabase/api_cache_and_admin.sql.
 
     req.user = { id: authUser.id, email: authUser.email, role, plan, token };
     next();
@@ -71,7 +84,16 @@ export const requireAuth = async (req, res, next) => {
 export const requireRole = (...roles) => (req, res, next) => {
   const role = req.user?.role;
   if (role === "admin" || roles.includes(role)) return next();
-  return res.status(403).json({ error: "Accès refusé — rôle insuffisant" });
+  // Un « Accès refusé » nu est indiagnosticable : on ne sait pas si le compte a
+  // le mauvais rôle, si le profil n'a pas pu être lu, ou si la route est mal
+  // protégée. On nomme donc le rôle constaté et celui attendu. Aucune fuite :
+  // l'appelant est authentifié et ne lit que son propre rôle.
+  console.warn(`403 ${req.method} ${req.originalUrl} — rôle « ${role} », attendu « ${roles.join(" | ")} » (user ${req.user?.id})`);
+  return res.status(403).json({
+    error: `Accès refusé — votre compte a le rôle « ${role} », cette fonctionnalité demande « ${roles.join(" ou ")} ».`,
+    role,
+    requiredRoles: roles,
+  });
 };
 
 export const requireBrand = [requireAuth, requireRole("brand")];

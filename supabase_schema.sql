@@ -21,17 +21,23 @@ ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'creator', 'admin'));
 
 -- Auto-create profile row on every new signup.
--- brejnevdiaz@gmail.com est automatiquement promu admin + elite.
+--
+-- ⚠️ CORRIGÉ le 28/07/2026 — FAILLE CRITIQUE.
+-- Cette fonction promouvait automatiquement 'brejnevdiaz@gmail.com' en
+-- admin + elite. La confirmation d'e-mail étant DÉSACTIVÉE sur ce projet,
+-- n'importe qui pouvait s'inscrire avec cette adresse sans y avoir accès et
+-- obtenir les pleins pouvoirs. Ne réintroduisez JAMAIS de promotion fondée
+-- sur une adresse e-mail non vérifiée : ce n'est pas une preuve d'identité.
+--
+-- La promotion en admin est désormais un acte manuel, ciblant l'UUID Supabase.
+-- Voir supabase/api_cache_and_admin.sql, section A3.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  IF NEW.email = 'brejnevdiaz@gmail.com' THEN
-    INSERT INTO public.profiles (id, email, role, plan)
-    VALUES (NEW.id, NEW.email, 'admin', 'elite');
-  ELSE
-    INSERT INTO public.profiles (id, email, role, plan)
-    VALUES (NEW.id, NEW.email, 'user', 'free');
-  END IF;
+  -- Tout nouveau compte démarre au niveau le moins privilégié, sans exception.
+  INSERT INTO public.profiles (id, email, role, plan)
+  VALUES (NEW.id, NEW.email, 'user', 'free')
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -134,5 +140,13 @@ CREATE POLICY "marketplace_videos_storage_insert_own" ON storage.objects FOR INS
 CREATE POLICY "marketplace_videos_storage_delete_own" ON storage.objects FOR DELETE
   USING (bucket_id = 'marketplace-videos' AND (storage.foldername(name))[1] = auth.uid()::text);
 
--- ─── Admin assignment (run after brejnevdiaz@gmail.com has signed up) ─────────
--- UPDATE public.profiles SET role = 'admin' WHERE email = 'brejnevdiaz@gmail.com';
+-- ─── Attribution du rôle admin ───────────────────────────────────────────────
+-- ⚠️ Ne ciblez PAS une adresse e-mail. La confirmation d'e-mail est désactivée
+-- sur ce projet : une adresse ne prouve rien, un imposteur peut s'inscrire
+-- avec la vôtre. Ciblez l'UUID Supabase, qui est attribué par la plateforme.
+--
+--   UPDATE public.profiles SET role = 'admin', plan = 'elite'
+--   WHERE id = 'COLLEZ-ICI-VOTRE-UUID';
+--
+-- UUID visible dans Supabase → Authentication → Users.
+-- Voir supabase/api_cache_and_admin.sql pour le script complet et vérifié.

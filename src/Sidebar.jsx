@@ -156,7 +156,7 @@ export default function Sidebar({
             {!isCollapsed && (
               <div style={{ textAlign: 'left', overflow: 'hidden' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: c.text, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: 140 }}>
-                  {userId || 'brejnevdiaz@gmail.com'}
+                  {userId || (uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account")}
                 </div>
                 <div style={{ fontSize: 11, color: c.textDim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{userTier}</div>
               </div>
@@ -172,7 +172,7 @@ export default function Sidebar({
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column'
           }}>
             <div style={{ padding: '8px 16px', borderBottom: `1px solid ${c.border}`, marginBottom: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{userId || 'brejnevdiaz@gmail.com'}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{userId || (uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account")}</div>
               <div style={{ fontSize: 11, color: c.textMuted }}>{uiLang === "fr" ? "Compte" : uiLang === "it" ? "Account" : "Account"} {userTier}</div>
             </div>
 

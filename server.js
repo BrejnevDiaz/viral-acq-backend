@@ -97,25 +97,70 @@ const EMAIL_MIN_INTERVAL_MS = 3000;
 // ─── Supabase Cache (api_cache table) ────────────────────────────────────────
 // Toutes les routes données de marché passent par ces helpers avant d'appeler
 // une API externe. TTL : AdSpy 6h, Products 24h, ShopAnalyzer 12h.
+// ⚠️ Ces deux helpers avalaient TOUTES leurs erreurs dans un `catch` muet.
+// La table `api_cache` n'existait pas du tout : le cache n'a donc jamais
+// fonctionné, sans le moindre signe, et chaque ouverture d'onglet a consommé
+// des crédits Tavily pour des résultats déjà payés. Un cache en panne doit
+// dégrader le service, pas le fausser en silence — d'où le signalement
+// ci-dessous, émis une seule fois pour ne pas noyer les journaux.
+let cacheDisabledReason = null;
+const reportCacheFailure = (operation, error) => {
+  const message = error?.message || String(error);
+  const code = error?.code || "";
+  // 42P01 = relation inexistante, 42501 = permission refusée (RLS / mauvaise clé)
+  const isFatal = code === "42P01" || code === "42501" || /does not exist|permission denied/i.test(message);
+  if (isFatal && !cacheDisabledReason) {
+    cacheDisabledReason = message;
+    console.error(
+      `🚨 CACHE HORS SERVICE (${operation}) : ${message}\n` +
+      `   → Chaque requête frappe désormais les API payantes (Tavily...).\n` +
+      `   → Si l'erreur porte sur une relation inexistante : exécutez\n` +
+      `     supabase/api_cache_and_admin.sql dans le SQL Editor.\n` +
+      `   → Si elle porte sur une permission : SUPABASE_KEY doit être la clé\n` +
+      `     service_role, pas la clé anon (la RLS bloque anon sur api_cache).`
+    );
+  } else if (!isFatal) {
+    console.warn(`⚠️  Cache ${operation} :`, message);
+  }
+};
+
 const getCached = async (key) => {
-  if (!supabase) return null;
+  if (!supabase || cacheDisabledReason) return null;
   try {
-    const { data } = await supabase
+    // `.single()` lève une erreur quand il n'y a aucune ligne — or un cache
+    // vide est le cas NORMAL, pas une anomalie. `.maybeSingle()` renvoie null
+    // sans erreur, ce qui laisse le catch aux vraies pannes.
+    const { data, error } = await supabase
       .from("api_cache")
       .select("data, expires_at")
       .eq("cache_key", key)
-      .single();
+      .maybeSingle();
+    if (error) { reportCacheFailure("lecture", error); return null; }
     if (!data || new Date(data.expires_at) < new Date()) return null;
     return data.data;
-  } catch { return null; }
+  } catch (e) { reportCacheFailure("lecture", e); return null; }
 };
+
 const setCached = async (key, payload, ttlHours = 6) => {
-  if (!supabase) return;
+  if (!supabase || cacheDisabledReason) return;
   try {
     const expires_at = new Date(Date.now() + ttlHours * 36e5).toISOString();
-    await supabase.from("api_cache")
+    const { error } = await supabase.from("api_cache")
       .upsert({ cache_key: key, data: payload, expires_at }, { onConflict: "cache_key" });
-  } catch (e) { console.warn("⚠️  Cache write:", e.message); }
+    if (error) reportCacheFailure("écriture", error);
+  } catch (e) { reportCacheFailure("écriture", e); }
+};
+
+// Sonde au démarrage : on veut savoir que le cache est cassé AVANT d'avoir
+// brûlé une journée de crédits, pas en lisant les factures.
+const probeCache = async () => {
+  if (!supabase) { console.warn("⚠️  Cache inactif : Supabase non configuré."); return; }
+  const probeKey = "__probe__";
+  await setCached(probeKey, { ok: true }, 0.01);
+  if (cacheDisabledReason) return;
+  const back = await getCached(probeKey);
+  if (back?.ok) console.log("✅ Cache api_cache opérationnel (lecture + écriture vérifiées).");
+  else console.warn("⚠️  Cache : écriture acceptée mais relecture vide — vérifiez la RLS sur api_cache.");
 };
 
 // ─── STEP 1 : Tavily Search ───────────────────────────────────────────────────
@@ -2134,5 +2179,8 @@ app.listen(PORT, () => {
   console.log(`   Anthropic   : ${anthropic ? "✅ Scoring + Email IA actif" : "⚠️  Template email (sans IA)"}`);
   console.log(`   Gmail SMTP  : ${gmail     ? "✅ Envoi email actif" : "⚠️  Configure GMAIL_APP_PASSWORD dans .env"}`);
   console.log(`   OpenAI/RAG  : ${openai    ? "✅ Gideon Coach IA actif" : "⚠️  Ajoute OPENAI_API_KEY pour Gideon"}`);
+  // Le cache est vérifié pour de vrai (écriture + relecture), pas seulement
+  // annoncé : c'est précisément une panne silencieuse qui l'a laissé mort.
+  probeCache();
 });
 // (fin du fichier)

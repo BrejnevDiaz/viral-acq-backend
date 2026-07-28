@@ -40,6 +40,9 @@ export function RoleProvider({ children }) {
   // Erreur de souscription remontée à l'utilisateur : une redirection de
   // paiement qui échoue sans message laisserait croire à un bug de l'app.
   const [upgradeError, setUpgradeError]             = useState(null);
+  // Idem pour le changement de rôle : un refus silencieux se traduisait par des
+  // 403 incompréhensibles sur tout le produit.
+  const [roleError, setRoleError]                   = useState(null);
   const [shopAnalysisCount, setShopAnalysisCount]   = useState(0);
   const [weeklyProposalCount, setWeeklyProposalCount] = useState(0);
 
@@ -281,15 +284,38 @@ export function RoleProvider({ children }) {
     return true;
   };
 
+  // ⚠️ Cet échec était avalé par un simple `if (!error)`. Conséquence : quand
+  // l'écriture échouait (contrainte de rôle, RLS, trigger), l'utilisateur
+  // restait 'user' sans le savoir — et se prenait un 403 sur les 18 routes
+  // protégées par requireBrand (AdSpy, Product Finder, Shop Analyzer, leads,
+  // envoi d'e-mails…) sans le moindre indice sur la cause.
   const switchUserRole = async (newRole) => {
     if (!userIdRef.current) {
       setUserRole(newRole);
-      return;
+      return { ok: true };
     }
     const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userIdRef.current);
-    if (!error) {
-      setUserRole(newRole);
+    if (error) {
+      console.error("Changement de rôle refusé :", error.message, error.code || "");
+      setRoleError(error.message);
+      return { ok: false, error: error.message };
     }
+    // On relit la valeur réellement enregistrée : le trigger
+    // `protect_profile_privileges` peut RÉÉCRIRE le rôle sans lever d'erreur
+    // (il neutralise toute tentative de passage à 'admin'). Un UPDATE « réussi »
+    // ne garantit donc pas que la base contienne ce qu'on a demandé.
+    const { data: confirmed } = await supabase
+      .from("profiles").select("role").eq("id", userIdRef.current).maybeSingle();
+    const effective = confirmed?.role || newRole;
+    setUserRole(effective);
+    if (effective !== newRole) {
+      const msg = `Rôle refusé : demandé « ${newRole} », appliqué « ${effective} ».`;
+      console.warn(msg);
+      setRoleError(msg);
+      return { ok: false, error: msg };
+    }
+    setRoleError(null);
+    return { ok: true };
   };
 
   return (
@@ -305,7 +331,7 @@ export function RoleProvider({ children }) {
       upgradeTier, checkAnalysisAllowance,
       hasTabAccess, requestTabAccess,
       weeklyProposalCount, checkProposalAllowance,
-      switchUserRole,
+      switchUserRole, roleError, setRoleError,
     }}>
       {children}
     </RoleContext.Provider>
