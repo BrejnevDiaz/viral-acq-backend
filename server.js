@@ -13,7 +13,7 @@ import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
 import registerMarketplaceRoutes from "./marketplaceRoutes.js";
 import registerStripeRoutes, { registerStripeWebhook } from "./stripeRoutes.js";
-import registerResourcesRoutes from "./resourcesRoutes.js";
+// import registerResourcesRoutes from "./resourcesRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
 import { queryGideon, queryGideonStream, pick } from "./gideonEngine.js";
 import { fetchHistory, saveExchange, clearHistory, countToday, countVideosToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
@@ -76,7 +76,7 @@ registerMarketplaceRoutes(app, requireAnyUser);
 registerStripeRoutes(app, requireAnyUser);
 // Ressources VIP : blog, sessions de coaching, statistiques réellement mesurées
 // (elles étaient inventées et écrites en dur dans ResourcesTab.jsx).
-registerResourcesRoutes(app, requireAnyUser, requireAdmin);
+// registerResourcesRoutes(app, requireAnyUser, requireAdmin);
 
 // ─── Platform → site domain ───────────────────────────────────────────────────
 const siteMap = {
