@@ -438,7 +438,7 @@ export default function ProspectionAgent() {
         ) : currentTab === "contractgenerator" ? (
           <ContractGeneratorTab c={c} mono={mono} API_URL={API_URL} uiLang={uiLang} />
         ) : currentTab === "resources" ? (
-          <ResourcesTab c={c} mono={mono} uiLang={uiLang} />
+          <ResourcesTab c={c} mono={mono} uiLang={uiLang} userTier={userTier} API_URL={API_URL} />
         ) : currentTab === "account" ? (
           <AccountSettings c={c} mono={mono} uiLang={uiLang} userId={userId} userEmail={userEmail} userTier={userTier} setShowUpgradeModal={() => openUpgradeModal({ tab: "", title: uiLang === "fr" ? "💎 Passez à un Forfait Supérieur" : "💎 Upgrade Your Plan", reason: "" })} />
         ) : currentTab === "videomarketplace" ? (

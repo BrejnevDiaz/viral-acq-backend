@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from './utils/apiClient';
 
 const PremiumTrophyIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#trophyGrad)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 10, verticalAlign: "bottom", filter: "drop-shadow(0px 2px 4px rgba(245,158,11,0.4))" }}>
@@ -28,7 +29,7 @@ const PremiumHandshakeIcon = () => (
   </svg>
 );
 
-export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier }) {
+export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier, API_URL }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   // Premium Access & Simulation States
@@ -86,6 +87,10 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
     fr: {
       titleSuccess: "🏆 Nos Succès & Métriques Clés",
       descSuccess: "Les statistiques en temps réel de notre plateforme d'acquisition.",
+      statCreators: "Créateurs UGC inscrits", statCreatorsDesc: "Profils actifs sur la plateforme.",
+      statVideos: "Vidéos UGC en vente", statVideosDesc: "Publiées par nos créateurs.",
+      statBrands: "Marques inscrites", statBrandsDesc: "Comptes marque actifs.",
+      statKnowledge: "Extraits de formation", statKnowledgeDesc: "Base de connaissances du Coach IA.",
       shopsAnalyzed: "Boutiques Shopify Analysées",
       shopsDesc: "Suivi quotidien du trafic et des applications.",
       creativesIndexed: "Créatifs AdSpy Indexés",
@@ -157,6 +162,10 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
     en: {
       titleSuccess: "🏆 Our Success & Key Metrics",
       descSuccess: "Real-time statistics of our acquisition platform.",
+      statCreators: "UGC creators signed up", statCreatorsDesc: "Active profiles on the platform.",
+      statVideos: "UGC videos for sale", statVideosDesc: "Published by our creators.",
+      statBrands: "Brands signed up", statBrandsDesc: "Active brand accounts.",
+      statKnowledge: "Training excerpts", statKnowledgeDesc: "AI Coach knowledge base.",
       shopsAnalyzed: "Shopify Stores Analyzed",
       shopsDesc: "Daily tracking of traffic and applications.",
       creativesIndexed: "AdSpy Creatives Indexed",
@@ -226,6 +235,10 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
     it: {
       titleSuccess: "🏆 I Nostri Successi & Metriche Chiave",
       descSuccess: "Statistiche in tempo reale della nostra piattaforma di acquisizione.",
+      statCreators: "Creator UGC iscritti", statCreatorsDesc: "Profili attivi sulla piattaforma.",
+      statVideos: "Video UGC in vendita", statVideosDesc: "Pubblicati dai nostri creator.",
+      statBrands: "Brand iscritti", statBrandsDesc: "Account brand attivi.",
+      statKnowledge: "Estratti di formazione", statKnowledgeDesc: "Base di conoscenza del Coach IA.",
       shopsAnalyzed: "Negozi Shopify Analizzati",
       shopsDesc: "Tracciamento quotidiano di traffico e applicazioni.",
       creativesIndexed: "Creativi AdSpy Indicizzati",
@@ -294,12 +307,38 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier 
     }
   }[uiLang] || t.fr;
 
-  const stats = [
-    { number: "+150k", label: t.shopsAnalyzed, desc: t.shopsDesc },
-    { number: "12M+", label: t.creativesIndexed, desc: t.creativesDesc },
-    { number: "98.8%", label: t.sourcingRate, desc: t.sourcingDesc },
-    { number: "+320%", label: t.roasAverage, desc: t.roasDesc }
-  ];
+  // ⚠️ Ces quatre chiffres étaient écrits en dur : « +150k boutiques analysées »,
+  // « 12M créatifs indexés », « 98,8 % de taux de sourcing » et surtout
+  // « +320 % de ROAS moyen DE NOS CLIENTS » — alors que la plateforme n'avait
+  // aucun client payant. Une allégation chiffrée invérifiable engage l'éditeur,
+  // a fortiori sur une page de vente. On n'affiche plus que ce qu'on sait
+  // compter réellement (voir /api/resources/stats), quitte à afficher peu.
+  const [liveStats, setLiveStats] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/resources/stats`);
+        if (!res.ok) return;
+        const { stats: s } = await res.json();
+        if (!cancelled && s) setLiveStats(s);
+      } catch {
+        // Statistiques indisponibles : la section ne s'affiche pas, plutôt que
+        // d'inventer des chiffres.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const fmt = (n) => (n == null ? "—" : n >= 1000 ? `${(n / 1000).toFixed(1).replace(".0", "")}k` : String(n));
+
+  const stats = liveStats ? [
+    { number: fmt(liveStats.creators), label: t.statCreators, desc: t.statCreatorsDesc },
+    { number: fmt(liveStats.videos), label: t.statVideos, desc: t.statVideosDesc },
+    { number: fmt(liveStats.brands), label: t.statBrands, desc: t.statBrandsDesc },
+    { number: fmt(liveStats.knowledgeChunks), label: t.statKnowledge, desc: t.statKnowledgeDesc },
+  ] : [];
 
   const partnerships = [
     { name: "Shopify Partner", logo: "https://cdn.simpleicons.org/shopify/96bf48" },
@@ -486,12 +525,44 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
   }[uiLang] || premiumArticles.fr;
 
   // Visual Webinar Training modules list
-  const coachingSessions = [
-    { id: "session_1", title: uiLang === 'fr' ? "1. ROAS 12x : Structures de Campagnes Facebook CBO" : "1. ROAS 12x: Facebook CBO Ad Structures", type: "replay", duration: "45 min" },
-    { id: "session_2", title: uiLang === 'fr' ? "2. Sourcing Asie & Europe : Maximiser vos marges" : "2. Sourcing Asia & Europe: Maximize margins", type: "replay", duration: "52 min" },
-    { id: "session_3", title: uiLang === 'fr' ? "3. En Direct : Audits Boutiques & Taux de Conversion" : "3. Live Now: Shopify Store & CR Audits", type: "live", duration: "LIVE 🔴" },
-    { id: "session_4", title: uiLang === 'fr' ? "4. Stratégie de Scaling Horizontal & Duplication" : "4. Scale Strategy & Duplication Hacks", type: "upcoming", duration: "Monday 18:00" }
-  ];
+  // ⚠️ Ces quatre sessions étaient inventées et écrites en dur : titres, durées
+  // et même un « LIVE 🔴 » permanent qui ne correspondait à aucune diffusion.
+  // Elles viennent désormais de `coaching_sessions`, publiées depuis Supabase.
+  // Le lien de visio n'est renvoyé par le serveur qu'aux abonnés du bon palier.
+  const [remoteSessions, setRemoteSessions] = useState([]);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/api/resources/coaching`);
+        if (!res.ok) return;
+        const { sessions } = await res.json();
+        if (!cancelled) setRemoteSessions(Array.isArray(sessions) ? sessions : []);
+      } catch {
+        // Serveur injoignable : la liste reste vide, avec un message explicite.
+      } finally {
+        if (!cancelled) setSessionsLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [API_URL]);
+
+  const coachingSessions = remoteSessions.map((s) => ({
+    id: s.id,
+    title: s.title,
+    // `type` alimente l'affichage existant (replay / live / upcoming).
+    type: s.kind === "replay" ? "replay" : (s.startsAt && new Date(s.startsAt) > new Date() ? "upcoming" : "live"),
+    duration: s.kind === "replay"
+      ? (s.durationMin ? `${s.durationMin} min` : "replay")
+      : (s.startsAt
+          ? new Date(s.startsAt).toLocaleString(uiLang === "fr" ? "fr-FR" : uiLang === "it" ? "it-IT" : "en-US",
+              { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+          : "LIVE 🔴"),
+    url: s.meetingUrl || s.replayUrl || null,
+    locked: s.locked,
+  }));
 
   // Handle premium click gate
   const checkVipAccess = (target) => {
