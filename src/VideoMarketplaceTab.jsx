@@ -23,7 +23,7 @@ const DEMO_VIDEOS = [
 
 const T = {
   fr: {
-    title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche.",
+    title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche.", soundOn: "Activer le son", soundOff: "Couper le son",
     browseTab: "Parcourir 🎬", sellTab: "Vendre ma Vidéo 🎥",
     sellTitle: "🎥 Vendez vos Vidéos UGC aux Marques",
     sellDesc: "Publiez le fichier brut de votre vidéo (jamais posté publiquement) et fixez votre prix. Les marques l'achètent pour l'utiliser dans leurs publicités — vous touchez le prix que vous avez fixé.",
@@ -40,7 +40,7 @@ const T = {
     inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer", like: "J'aime", comments: "Commentaires",
   },
   en: {
-    title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.",
+    title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.", soundOn: "Turn sound on", soundOff: "Mute",
     browseTab: "Browse 🎬", sellTab: "Sell my Video 🎥",
     sellTitle: "🎥 Sell your UGC Videos to Brands",
     sellDesc: "Upload the raw file of your video (never posted publicly) and set your price. Brands buy it to use in their ads — you keep the price you set.",
@@ -57,7 +57,7 @@ const T = {
     inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry", like: "Like", comments: "Comments",
   },
   it: {
-    title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.",
+    title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.", soundOn: "Attiva l'audio", soundOff: "Disattiva l'audio",
     browseTab: "Sfoglia 🎬", sellTab: "Vendi il mio Video 🎥",
     sellTitle: "🎥 Vendi i tuoi Video UGC ai Brand",
     sellDesc: "Carica il file grezzo del tuo video (mai pubblicato pubblicamente) e fissa il tuo prezzo. I brand lo acquistano per le loro pubblicità — tu incassi il prezzo che hai fissato.",
@@ -79,6 +79,9 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   const [toast, setToast] = useState(null);
   const [dmVideo, setDmVideo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  // Son du feed. Coupé au départ par obligation technique (voir le bouton dans
+  // le rendu), puis conservé pour toute la session dès que l'utilisateur l'active.
+  const [soundOn, setSoundOn] = useState(false);
   const [activeNiche, setActiveNiche] = useState("all");
   const [realVideos, setRealVideos] = useState([]);
   const [viewMode, setViewMode] = useState("browse"); // browse | sell
@@ -209,9 +212,32 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   };
 
   const VIDEOS = [...realVideos, ...DEMO_VIDEOS];
-  const niches = ["all", ...new Set(VIDEOS.map(v => v.niche))];
+  // ⚠️ Les vidéos de démonstration portent un libellé français ("Beauté",
+  // "Mode") alors que le formulaire de publication enregistre la valeur brute
+  // du <select> ("beauty", "fashion"). Sans normalisation, la barre de filtres
+  // affichait DEUX pastilles pour la même niche, chacune ne montrant que la
+  // moitié du catalogue. On ramène tout à une clé canonique.
+  const nicheKey = (raw) => {
+    const s = String(raw || "").trim().toLowerCase();
+    if (["beauty", "beauté", "beaute", "skincare", "bellezza"].includes(s)) return "beauty";
+    if (["fashion", "mode", "moda"].includes(s)) return "fashion";
+    if (["fitness", "wellness", "sport"].includes(s)) return "fitness";
+    if (["food", "nutrition", "cuisine", "cibo"].includes(s)) return "food";
+    if (["lifestyle", "life", "style di vita"].includes(s)) return "lifestyle";
+    return s || "autre";
+  };
+  const NICHE_LABELS = {
+    fr: { beauty: "Beauté", fashion: "Mode", fitness: "Fitness", food: "Food", lifestyle: "Lifestyle" },
+    en: { beauty: "Beauty", fashion: "Fashion", fitness: "Fitness", food: "Food", lifestyle: "Lifestyle" },
+    it: { beauty: "Bellezza", fashion: "Moda", fitness: "Fitness", food: "Food", lifestyle: "Lifestyle" },
+  };
+  const nicheLabel = (raw) => {
+    const k = nicheKey(raw);
+    return (NICHE_LABELS[uiLang] || NICHE_LABELS.fr)[k] || raw;
+  };
+  const niches = ["all", ...new Set(VIDEOS.map(v => nicheKey(v.niche)))];
   const filteredVideos = VIDEOS.filter(video => {
-    const matchesNiche = activeNiche === "all" || video.niche === activeNiche;
+    const matchesNiche = activeNiche === "all" || nicheKey(video.niche) === activeNiche;
     const q = searchQuery.trim().toLowerCase();
     const matchesQuery = !q || [video.username, video.product, video.niche].some(field => String(field || "").toLowerCase().includes(q));
     const matchesFavorite = !showFavoritesOnly || favorites.includes(video.id);
@@ -231,7 +257,15 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
       entries.forEach(entry => {
         const video = entry.target;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
-          video.play().catch(() => {});
+          // Si la lecture avec son est refusée (iOS en mode économie d'énergie,
+          // geste utilisateur jugé expiré…), on ne laisse PAS la vidéo figée :
+          // on repasse en silencieux, ce qui est toujours autorisé, et on
+          // reflète l'état réel dans le bouton.
+          video.play().catch(() => {
+            video.muted = true;
+            setSoundOn(false);
+            video.play().catch(() => {});
+          });
         } else {
           video.pause();
         }
@@ -272,7 +306,11 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   const handleToggleLike = async (video) => {
     if (isDemoVideo(video)) return notify(t.demoAction, "error");
     const active = likes.includes(video.id);
-    const base = likeCounts[video.id] ?? Number(video.likes) ?? 0;
+    // ⚠️ `Number(x) ?? 0` ne protège de rien : Number() renvoie NaN, pas null,
+    // et NaN traverse le ?? — le compteur affichait alors « NaN ». On teste
+    // donc explicitement que le résultat est un nombre exploitable.
+    const parsed = Number(video.likes);
+    const base = likeCounts[video.id] ?? (Number.isFinite(parsed) ? parsed : 0);
     // Mise à jour optimiste du bouton ET du compteur : le like doit répondre
     // instantanément, comme sur TikTok.
     setLikes((prev) => (active ? prev.filter((id) => id !== video.id) : [...prev, video.id]));
@@ -582,7 +620,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                     <video src={video.video_url} muted style={{ width: 48, height: 64, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{video.product}</div>
-                      <div style={{ fontSize: 11.5, color: c.textDim }}>{video.niche} · {Number(video.price).toFixed(2)} €</div>
+                      <div style={{ fontSize: 11.5, color: c.textDim }}>{nicheLabel(video.niche)} · {Number(video.price).toFixed(2)} €</div>
                     </div>
                     <button
                       onClick={() => handleDeleteVideo(video)}
@@ -621,7 +659,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                 color: activeNiche === niche ? "#fff" : c.textMuted, fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s"
               }}
             >
-              {niche === "all" ? t.allNiches : niche}
+              {niche === "all" ? t.allNiches : nicheLabel(niche)}
             </button>
           ))}
         </div>
@@ -642,17 +680,40 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             <div key={video.id} className="video-slide" style={{ height: "var(--feed-h, 78vh)", scrollSnapAlign: "start", scrollSnapStop: "always", position: "relative", overflow: "hidden" }}>
               <video
                 ref={el => { videoRefs.current[video.id] = el; }}
-                src={video.src} loop muted playsInline
+                src={video.src} loop muted={!soundOn} playsInline
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
               {/* Gradient overlay for legibility */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.9) 100%)", pointerEvents: "none" }} />
 
+              {/* ⚠️ Le son ne peut PAS être actif au chargement : tous les
+                  navigateurs bloquent la lecture automatique non muette, et la
+                  vidéo ne démarrerait tout simplement pas. Comme TikTok, on
+                  démarre en silence et l'utilisateur active le son d'un geste —
+                  ce geste vaut alors autorisation pour toute la session. */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setSoundOn(v => !v); }}
+                aria-label={soundOn ? t.soundOff : t.soundOn}
+                title={soundOn ? t.soundOff : t.soundOn}
+                style={{
+                  position: "absolute", top: 14, left: 14, width: 40, height: 40, borderRadius: "50%",
+                  border: "none", cursor: "pointer", color: "#fff",
+                  background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
+                  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3,
+                }}
+              >
+                {soundOn ? (
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
+                ) : (
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                )}
+              </button>
+
               {/* Bottom-left: creator + product info */}
               <div style={{ position: "absolute", bottom: 20, left: 16, right: 90, color: "#fff" }}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                   @{video.username}
-                  <span style={{ fontSize: 10, background: "rgba(139,92,246,0.4)", padding: "2px 8px", borderRadius: 10, fontWeight: 700, textTransform: "uppercase" }}>{video.niche}</span>
+                  <span style={{ fontSize: 10, background: "rgba(139,92,246,0.4)", padding: "2px 8px", borderRadius: 10, fontWeight: 700, textTransform: "uppercase" }}>{nicheLabel(video.niche)}</span>
                 </div>
                 <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>
                   {video.product}
@@ -875,33 +936,42 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
            On utilise 100dvh et non 100vh : la première tient compte de la
            barre d'adresse mobile, qui sinon rogne le bas de chaque vidéo. */
         @media (max-width: 768px) {
+          .video-feed-header { margin-bottom: 10px !important; }
+          .video-feed-subtitle { display: none !important; }
+
+          /* ⚠️ Bande blanche latérale : index.css impose un max-width de 100%
+             à TOUS les descendants de .main-content (filet anti-débordement).
+             ⚠️ Ne jamais mettre d'accent grave dans ce bloc : il est écrit
+             dans un template literal JS et couperait le fichier en deux.
+             Une marge négative décale bien le bloc vers la gauche, mais sa
+             largeur reste plafonnée à celle du parent — il manquait donc
+             exactement la marge à droite. On repart de la largeur du viewport
+             et on relève le plafond, sinon la correction est annulée. */
           .video-feed-outer {
-            --feed-h: calc(100dvh - 210px);
-            --feed-radius: 16px;
-            margin-left: -12px;
-            margin-right: -12px;
+            --feed-h: calc(100dvh - 130px);
+            --feed-radius: 0px;
+            width: 100vw !important;
+            max-width: 100vw !important;
+            margin-left: 50% !important;
+            margin-right: 0 !important;
+            transform: translateX(-50%);
           }
-          .video-feed-scroll { max-width: 100% !important; box-shadow: none !important; }
+          .video-feed-scroll {
+            width: 100% !important;
+            max-width: 100vw !important;
+            border-radius: 0 !important;
+            border-left: none !important;
+            border-right: none !important;
+            box-shadow: none !important;
+          }
           /* La colonne d'actions remonte : sans cela, le bouton panier passait
              sous le bouton flottant du Coach IA, en bas à droite. */
           .video-action-rail { bottom: 96px !important; }
         }
-        /* Très petits écrans : on récupère la place des marges internes. */
+        /* Très petits écrans : la barre d'onglets du navigateur prend moins de
+           place, on récupère la hauteur correspondante. */
         @media (max-width: 400px) {
-          .video-feed-outer { --feed-h: calc(100dvh - 190px); }
-        }
-
-        /* Native-app feel on phones: edge-to-edge, taller, no rounded "card" look */
-        @media (max-width: 768px) {
-          .video-feed-header { margin-bottom: 10px !important; }
-          .video-feed-subtitle { display: none !important; }
-          .video-feed-outer { margin: 0 -16px !important; }
-          .video-feed-scroll {
-            max-width: 100% !important; border-radius: 0 !important;
-            border-left: none !important; border-right: none !important;
-            height: calc(100dvh - 130px) !important; box-shadow: none !important;
-          }
-          .video-feed-scroll .video-slide { height: calc(100dvh - 130px) !important; }
+          .video-feed-outer { --feed-h: calc(100dvh - 112px); }
         }
       `}</style>
     </div>

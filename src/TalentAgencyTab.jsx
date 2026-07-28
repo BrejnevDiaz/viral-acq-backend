@@ -899,14 +899,21 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                     borderRadius: 16, padding: 20, position: "relative"
                   }}
                 >
-                  {/* Status tag */}
-                  <span style={{
-                    position: "absolute", top: 18, right: 18, fontSize: 10, fontWeight: 800, fontFamily: mono, padding: "4px 8px", borderRadius: 5,
-                    background: g.status === "open" ? c.successSoft : "rgba(128,128,128,0.1)",
-                    color: g.status === "open" ? c.success : c.textDim, border: `1px solid ${g.status === "open" ? c.success : c.border}`
-                  }}>
-                    {g.status === "open" ? "DISPONIBLE (OPEN)" : "ATTRIBUÉ (FILLED)"}
-                  </span>
+                  {/* Étiquette de statut.
+                      Elle était en `position: absolute` : hors du flux, elle ne
+                      poussait donc rien et le titre de la mission passait
+                      dessous dès qu'il était assez long pour revenir à la ligne
+                      (systématique sur mobile). Remise dans le flux, alignée à
+                      droite : le titre commence forcément en dessous. */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 800, fontFamily: mono, padding: "4px 8px", borderRadius: 5, whiteSpace: "nowrap",
+                      background: g.status === "open" ? c.successSoft : "rgba(128,128,128,0.1)",
+                      color: g.status === "open" ? c.success : c.textDim, border: `1px solid ${g.status === "open" ? c.success : c.border}`
+                    }}>
+                      {g.status === "open" ? "DISPONIBLE (OPEN)" : "ATTRIBUÉ (FILLED)"}
+                    </span>
+                  </div>
 
                   {/* Gig header with Clearbit Logo */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>

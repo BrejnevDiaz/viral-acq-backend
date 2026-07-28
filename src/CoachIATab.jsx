@@ -380,10 +380,13 @@ export default function CoachIATab({ c, mono, uiLang = "fr", userTier = "free", 
       
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "24px 32px", borderBottom: `1px solid ${c.border}`, background: headerGradient }}>
-        {/* Accès à l'historique sur mobile, où le panneau latéral est masqué. */}
+        {/* Accès à l'historique sur mobile, où le panneau latéral est masqué.
+            Bascule : le même bouton ouvre ET referme. Il n'ouvrait que dans un
+            sens, obligeant à deviner qu'il fallait toucher le voile. */}
         <button
-          onClick={() => setConvDrawerOpen(true)}
+          onClick={() => setConvDrawerOpen(v => !v)}
           className="conv-drawer-toggle"
+          aria-expanded={convDrawerOpen}
           aria-label={uiLang === "fr" ? "Mes conversations" : uiLang === "it" ? "Le mie conversazioni" : "My conversations"}
           style={{
             width: 40, height: 40, borderRadius: 10, flexShrink: 0, cursor: "pointer",
