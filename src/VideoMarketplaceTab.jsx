@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import DirectMessagePanel from "./DirectMessagePanel";
 import CommentsPanel from "./CommentsPanel";
 import { supabase } from "./supabaseClient";
@@ -23,7 +23,11 @@ const DEMO_VIDEOS = [
 
 const T = {
   fr: {
-    title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche.", soundOn: "Activer le son", soundOff: "Couper le son",
+    title: "Marketplace Vidéo", subtitle: "L'UGC de vos créateurs, en scroll infini — repérez, swipez, achetez.", buy: "Acheter", soon: "🛒 Paiement en un clic — bientôt disponible !", dm: "Message", searchPlaceholder: "Rechercher par créateur, produit, mot-clé...", allNiches: "Toutes niches", noResults: "Aucune vidéo ne correspond à votre recherche.", soundOn: "Activer le son", soundOff: "Couper le son", seek: "Naviguer dans la vidéo",
+    mediaKindLabel: "Format de la publication", kindVideo: "🎬 Vidéo", kindCarousel: "🖼️ Carrousel photo",
+    imagesFileLabel: "Photos (jusqu'à {n})", imagesHint: "{n} photos maximum, glissées dans l'ordre d'affichage.",
+    imagesSelected: "photo sélectionnée", imagesSelectedPlural: "photos sélectionnées",
+    tooManyImages: "Un carrousel accepte {n} photos au maximum.",
     browseTab: "Parcourir 🎬", sellTab: "Vendre ma Vidéo 🎥",
     sellTitle: "🎥 Vendez vos Vidéos UGC aux Marques",
     sellDesc: "Publiez le fichier brut de votre vidéo (jamais posté publiquement) et fixez votre prix. Les marques l'achètent pour l'utiliser dans leurs publicités — vous touchez le prix que vous avez fixé.",
@@ -40,7 +44,11 @@ const T = {
     inboxTab: "Messages 💬", inboxEmpty: "Aucune conversation pour l'instant.", inboxLoading: "Chargement...", inboxRetry: "Réessayer", like: "J'aime", comments: "Commentaires",
   },
   en: {
-    title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.", soundOn: "Turn sound on", soundOff: "Mute",
+    title: "Video Marketplace", subtitle: "Your creators' UGC, in infinite scroll — spot it, swipe it, buy it.", buy: "Buy", soon: "🛒 One-click checkout — coming soon!", dm: "Message", searchPlaceholder: "Search by creator, product, keyword...", allNiches: "All niches", noResults: "No videos match your search.", soundOn: "Turn sound on", soundOff: "Mute", seek: "Seek in video",
+    mediaKindLabel: "Post format", kindVideo: "🎬 Video", kindCarousel: "🖼️ Photo carousel",
+    imagesFileLabel: "Photos (up to {n})", imagesHint: "Up to {n} photos, shown in the order you pick them.",
+    imagesSelected: "photo selected", imagesSelectedPlural: "photos selected",
+    tooManyImages: "A carousel takes {n} photos at most.",
     browseTab: "Browse 🎬", sellTab: "Sell my Video 🎥",
     sellTitle: "🎥 Sell your UGC Videos to Brands",
     sellDesc: "Upload the raw file of your video (never posted publicly) and set your price. Brands buy it to use in their ads — you keep the price you set.",
@@ -57,7 +65,11 @@ const T = {
     inboxTab: "Messages 💬", inboxEmpty: "No conversation yet.", inboxLoading: "Loading...", inboxRetry: "Retry", like: "Like", comments: "Comments",
   },
   it: {
-    title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.", soundOn: "Attiva l'audio", soundOff: "Disattiva l'audio",
+    title: "Marketplace Video", subtitle: "L'UGC dei tuoi creator, a scorrimento infinito — scopri, swipa, acquista.", buy: "Acquista", soon: "🛒 Pagamento in un clic — disponibile a breve!", dm: "Messaggio", searchPlaceholder: "Cerca per creator, prodotto, parola chiave...", allNiches: "Tutte le nicchie", noResults: "Nessun video corrisponde alla tua ricerca.", soundOn: "Attiva l'audio", soundOff: "Disattiva l'audio", seek: "Scorri il video",
+    mediaKindLabel: "Formato della pubblicazione", kindVideo: "🎬 Video", kindCarousel: "🖼️ Carosello foto",
+    imagesFileLabel: "Foto (fino a {n})", imagesHint: "Massimo {n} foto, nell'ordine in cui le selezioni.",
+    imagesSelected: "foto selezionata", imagesSelectedPlural: "foto selezionate",
+    tooManyImages: "Un carosello accetta al massimo {n} foto.",
     browseTab: "Sfoglia 🎬", sellTab: "Vendi il mio Video 🎥",
     sellTitle: "🎥 Vendi i tuoi Video UGC ai Brand",
     sellDesc: "Carica il file grezzo del tuo video (mai pubblicato pubblicamente) e fissa il tuo prezzo. I brand lo acquistano per le loro pubblicità — tu incassi il prezzo che hai fissato.",
@@ -75,6 +87,245 @@ const T = {
   },
 };
 
+// ─── Lecteur vidéo du feed ──────────────────────────────────────────────────
+// Un <video> nu ne se met ni en pause ni en avance rapide : sur TikTok, toucher
+// l'image met en pause et la barre du bas permet de se déplacer dans la vidéo.
+// On reproduit ces deux gestes sans afficher les contrôles natifs, qui
+// casseraient complètement l'esthétique plein écran.
+function FeedVideo({ video, soundOn, setSoundOn, registerRef, t, isPausedByUser, setPausedByUser }) {
+  const localRef = useRef(null);
+  const barRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  // Éclair visuel au tap : sans retour immédiat, on ne sait pas si le geste a
+  // été pris en compte, et on tape une deuxième fois.
+  const [flash, setFlash] = useState(null);
+
+  const attach = (el) => { localRef.current = el; registerRef(video.id, el); };
+
+  const seekToClientX = (clientX) => {
+    const bar = barRef.current, v = localRef.current;
+    if (!bar || !v || !v.duration || !Number.isFinite(v.duration)) return;
+    const r = bar.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    v.currentTime = ratio * v.duration;
+    setProgress(ratio);
+  };
+
+  const togglePlay = () => {
+    const v = localRef.current;
+    if (!v) return;
+    if (v.paused) {
+      setPausedByUser(video.id, false);
+      v.play().catch(() => {});
+      setFlash("play");
+    } else {
+      // Mémorisé : sinon l'IntersectionObserver relancerait aussitôt la lecture
+      // et la pause serait impossible à obtenir.
+      setPausedByUser(video.id, true);
+      v.pause();
+      setFlash("pause");
+    }
+    setTimeout(() => setFlash(null), 450);
+  };
+
+  const pct = duration > 0 ? progress * 100 : 0;
+
+  return (
+    <>
+      <video
+        ref={attach}
+        src={video.src}
+        loop
+        muted={!soundOn}
+        playsInline
+        // Supprime les boutons flottants ajoutés par certains navigateurs
+        // (image dans l'image, lecture à distance) qui se superposaient au feed.
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload noplaybackrate noremoteplayback"
+        onLoadedMetadata={e => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={e => {
+          if (dragging) return; // ne pas lutter contre le doigt de l'utilisateur
+          const v = e.currentTarget;
+          if (v.duration) setProgress(v.currentTime / v.duration);
+        }}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+
+      {/* Surface de tap : couvre l'image mais s'arrête au-dessus de la barre de
+          progression et de la zone d'informations, pour ne pas voler leurs clics. */}
+      <div
+        onClick={togglePlay}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 96, cursor: "pointer" }}
+      />
+
+      {/* Indicateur de pause persistant : sans lui, une vidéo arrêtée ressemble
+          à une vidéo qui n'a pas chargé. */}
+      {(flash || isPausedByUser) && (
+        <div style={{
+          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+          width: 68, height: 68, borderRadius: "50%", background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none", opacity: flash ? 1 : 0.75,
+          transition: "opacity 0.25s", zIndex: 2,
+        }}>
+          {(flash === "play" && !isPausedByUser) ? (
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+          ) : (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          )}
+        </div>
+      )}
+
+      {/* Bouton son. Le son ne peut PAS être actif au chargement : tous les
+          navigateurs bloquent la lecture automatique non muette et la vidéo ne
+          démarrerait pas. On démarre en silence, comme TikTok, et le geste de
+          l'utilisateur vaut autorisation pour toute la session. */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setSoundOn(v => !v); }}
+        aria-label={soundOn ? t.soundOff : t.soundOn}
+        title={soundOn ? t.soundOff : t.soundOn}
+        style={{
+          position: "absolute", top: 14, left: 14, width: 40, height: 40, borderRadius: "50%",
+          border: "none", cursor: "pointer", color: "#fff", background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3,
+        }}
+      >
+        {soundOn ? (
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
+        ) : (
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        )}
+      </button>
+
+      {/* Barre de progression. La zone tactile fait 22 px de haut alors que le
+          trait n'en fait que 3 : viser un trait de 3 px au doigt est impossible. */}
+      <div
+        ref={barRef}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDragging(true);
+          seekToClientX(e.clientX);
+        }}
+        onPointerMove={(e) => { if (dragging) seekToClientX(e.clientX); }}
+        onPointerUp={(e) => {
+          setDragging(false);
+          try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* pointeur déjà relâché */ }
+        }}
+        onPointerCancel={() => setDragging(false)}
+        onClick={(e) => e.stopPropagation()}
+        role="slider"
+        aria-label={t.seek}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(pct)}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          const v = localRef.current;
+          if (!v || !v.duration) return;
+          if (e.key === "ArrowRight") { v.currentTime = Math.min(v.duration, v.currentTime + 5); e.preventDefault(); }
+          if (e.key === "ArrowLeft")  { v.currentTime = Math.max(0, v.currentTime - 5); e.preventDefault(); }
+          if (e.key === " ")          { togglePlay(); e.preventDefault(); }
+        }}
+        style={{
+          position: "absolute", left: 0, right: 0, bottom: 0, height: 22,
+          display: "flex", alignItems: "flex-end", cursor: "pointer",
+          touchAction: "none", zIndex: 4,
+        }}
+      >
+        <div style={{ position: "relative", width: "100%", height: dragging ? 6 : 3, background: "rgba(255,255,255,0.25)", transition: "height 0.15s" }}>
+          <div style={{ position: "absolute", inset: 0, width: `${pct}%`, background: "#fff", transition: dragging ? "none" : "width 0.15s linear" }} />
+          {dragging && (
+            <div style={{
+              position: "absolute", top: "50%", left: `${pct}%`, width: 13, height: 13,
+              marginLeft: -6.5, transform: "translateY(-50%)", borderRadius: "50%",
+              background: "#fff", boxShadow: "0 0 8px rgba(0,0,0,0.6)",
+            }} />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Carrousel photo ────────────────────────────────────────────────────────
+// Défilement horizontal magnétique, comme un carrousel Instagram. Volontairement
+// sans lecture automatique : c'est l'utilisateur qui avance.
+function FeedCarousel({ images, product }) {
+  const trackRef = useRef(null);
+  const [index, setIndex] = useState(0);
+
+  const onScroll = () => {
+    const el = trackRef.current;
+    if (!el || !el.clientWidth) return;
+    setIndex(Math.round(el.scrollLeft / el.clientWidth));
+  };
+
+  const goTo = (i) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+  };
+
+  return (
+    <>
+      <div
+        ref={trackRef}
+        onScroll={onScroll}
+        className="carousel-track"
+        style={{
+          width: "100%", height: "100%", display: "flex", overflowX: "auto", overflowY: "hidden",
+          scrollSnapType: "x mandatory", scrollBehavior: "smooth",
+        }}
+      >
+        {images.map((url, i) => (
+          <img
+            key={url + i}
+            src={url}
+            alt={`${product} — ${i + 1}/${images.length}`}
+            loading={i === 0 ? "eager" : "lazy"}
+            style={{ width: "100%", height: "100%", objectFit: "cover", flex: "0 0 100%", scrollSnapAlign: "start" }}
+          />
+        ))}
+      </div>
+
+      {/* Points de progression : sans eux, rien n'indique qu'il y a d'autres
+          photos à droite — le carrousel passe pour une simple image fixe. */}
+      {images.length > 1 && (
+        <div style={{
+          position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
+          display: "flex", gap: 5, zIndex: 3, padding: "5px 9px", borderRadius: 12,
+          background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)",
+        }}>
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); goTo(i); }}
+              aria-label={`Photo ${i + 1}`}
+              style={{
+                width: i === index ? 16 : 6, height: 6, borderRadius: 3, border: "none", padding: 0,
+                background: i === index ? "#fff" : "rgba(255,255,255,0.45)",
+                cursor: "pointer", transition: "width 0.2s, background 0.2s",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <div style={{
+        position: "absolute", top: 14, right: 14, zIndex: 3, padding: "4px 9px", borderRadius: 10,
+        background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff",
+        fontSize: 11, fontWeight: 700,
+      }}>
+        {index + 1}/{images.length}
+      </div>
+    </>
+  );
+}
+
 export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }) {
   const [toast, setToast] = useState(null);
   const [dmVideo, setDmVideo] = useState(null);
@@ -89,6 +340,16 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   const [loadingMyVideos, setLoadingMyVideos] = useState(false);
   const [newVideo, setNewVideo] = useState({ username: "", product: "", price: "", niche: "beauty" });
   const [videoFile, setVideoFile] = useState(null);
+  // Forme de la publication : une vidéo, ou un carrousel de photos.
+  const [mediaKind, setMediaKind] = useState("video");
+  const [imageFiles, setImageFiles] = useState([]);
+  const MAX_CAROUSEL_IMAGES = 10; // aligné sur la contrainte SQL
+  // ⚠️ Les URLs d'aperçu sont créées UNE fois par sélection, pas à chaque
+  // rendu : appeler createObjectURL pendant le rendu en fabriquerait une
+  // nouvelle à chaque passe, sans jamais libérer les précédentes — l'onglet
+  // garderait les images en mémoire jusqu'à sa fermeture.
+  const imagePreviews = useMemo(() => imageFiles.map(f => URL.createObjectURL(f)), [imageFiles]);
+  useEffect(() => () => imagePreviews.forEach(URL.revokeObjectURL), [imagePreviews]);
   const [isPublishingVideo, setIsPublishingVideo] = useState(false);
   const [sellToast, setSellToast] = useState(null);
   // Commerce (chantier #18) : favoris et panier persistés par utilisateur.
@@ -152,6 +413,11 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           username: v.username,
           niche: v.niche,
           src: v.video_url,
+          // Une publication peut être une vidéo ou un carrousel de photos.
+          // `media_type` est absent des lignes créées avant cette évolution :
+          // on retombe sur 'video', ce qui décrit exactement ces lignes.
+          mediaType: v.media_type === "carousel" ? "carousel" : "video",
+          images: Array.isArray(v.media_urls) ? v.media_urls.filter(Boolean) : [],
           product: v.product,
           price: `${Number(v.price).toFixed(2)} €`,
           likes: v.likes_count ?? 0,
@@ -166,28 +432,55 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
 
   useEffect(() => { fetchRealVideos(); }, []);
 
+  // Envoie un fichier dans le bucket et renvoie son URL publique.
+  const uploadToBucket = async (file) => {
+    // Le nom d'origine peut contenir accents, espaces ou caractères que le
+    // stockage refuse dans une clé. On le normalise plutôt que de laisser
+    // l'envoi échouer sur un nom de fichier.
+    const safeName = file.name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+    const { error } = await supabase.storage.from("marketplace-videos").upload(path, file);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from("marketplace-videos").getPublicUrl(path);
+    return publicUrl;
+  };
+
   const handlePublishVideo = async (e) => {
     e.preventDefault();
-    if (!supabase || !userId || !videoFile || !newVideo.product || !newVideo.price) return;
+    if (!supabase || !userId || !newVideo.product || !newVideo.price) return;
+    const isCarousel = mediaKind === "carousel";
+    if (isCarousel ? imageFiles.length === 0 : !videoFile) return;
+    if (isCarousel && imageFiles.length > MAX_CAROUSEL_IMAGES) {
+      showSellToast(t.tooManyImages.replace("{n}", MAX_CAROUSEL_IMAGES), "error");
+      return;
+    }
     setIsPublishingVideo(true);
     try {
       const cleanUsername = (newVideo.username || "créateur").replace("@", "").trim();
-      const path = `${userId}/${Date.now()}-${videoFile.name}`;
-      const { error: uploadError } = await supabase.storage.from("marketplace-videos").upload(path, videoFile);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("marketplace-videos").getPublicUrl(path);
-      const { error: insertError } = await supabase.from("marketplace_videos").insert({
+      const base = {
         user_id: userId,
         username: cleanUsername,
         niche: newVideo.niche,
         product: newVideo.product,
         price: parseFloat(newVideo.price),
-        video_url: publicUrl,
-      });
+      };
+
+      let payload;
+      if (isCarousel) {
+        // Envois en parallèle : à la vitesse d'une connexion mobile, dix photos
+        // à la suite feraient patienter bien trop longtemps.
+        const urls = await Promise.all(imageFiles.map(uploadToBucket));
+        payload = { ...base, media_type: "carousel", media_urls: urls };
+      } else {
+        payload = { ...base, media_type: "video", video_url: await uploadToBucket(videoFile) };
+      }
+
+      const { error: insertError } = await supabase.from("marketplace_videos").insert(payload);
       if (insertError) throw insertError;
       showSellToast(t.videoPublishedToast, "success");
       setNewVideo({ username: cleanUsername, product: "", price: "", niche: newVideo.niche });
       setVideoFile(null);
+      setImageFiles([]);
       fetchMyVideos();
       fetchRealVideos();
     } catch (err) {
@@ -249,6 +542,26 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
   // position. An IntersectionObserver plays the visible slide and pauses the rest.
   const scrollRef = useRef(null);
   const videoRefs = useRef({});
+  // Pauses volontaires. Deux représentations de la MÊME donnée, et c'est
+  // délibéré : le state sert au rendu (l'icône de pause), la ref sert à
+  // l'observateur d'intersection, dont le callback capturerait sinon la valeur
+  // initiale du state pour toujours. La ref est mise à jour de façon synchrone
+  // avant le setState, pour qu'aucun des deux ne soit jamais en retard.
+  // ⚠️ Ne PAS lire la ref pendant le rendu : React l'interdit et l'icône
+  // pourrait alors se désynchroniser de l'état réel de la vidéo.
+  const [pausedIds, setPausedIds] = useState({});
+  const pausedByUserRef = useRef({});
+  const setPausedByUser = (id, paused) => {
+    const next = { ...pausedByUserRef.current };
+    if (paused) next[id] = true;
+    else delete next[id];
+    pausedByUserRef.current = next;
+    setPausedIds(next);
+  };
+  const registerVideoRef = (id, el) => {
+    if (el) { el.dataset.videoId = id; videoRefs.current[id] = el; }
+    else delete videoRefs.current[id];
+  };
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -257,6 +570,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
       entries.forEach(entry => {
         const video = entry.target;
         if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          // ⚠️ Ne PAS relancer une vidéo que l'utilisateur vient de mettre en
+          // pause : l'observateur se déclenche aussi sur de micro-variations de
+          // défilement, et la pause redevenait alors impossible à obtenir.
+          if (pausedByUserRef.current[video.dataset.videoId]) return;
           // Si la lecture avec son est refusée (iOS en mode économie d'énergie,
           // geste utilisateur jugé expiré…), on ne laisse PAS la vidéo figée :
           // on repasse en silencieux, ce qui est toujours autorisé, et on
@@ -268,6 +585,11 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           });
         } else {
           video.pause();
+          // La pause volontaire ne vaut que pour la vidéo à l'écran : en
+          // revenant dessus plus tard, on s'attend à ce qu'elle reparte.
+          if (pausedByUserRef.current[video.dataset.videoId]) {
+            setPausedByUser(video.dataset.videoId, false);
+          }
         }
       });
     }, { root: container, threshold: [0, 0.6] });
@@ -581,15 +903,80 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                 </select>
               </div>
 
+              {/* Choix de la forme. Deux onglets plutôt qu'un menu déroulant :
+                  il faut que la possibilité de publier des photos se voie, sinon
+                  personne ne la découvre. */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.mediaKindLabel}</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { id: "video", label: t.kindVideo },
+                    { id: "carousel", label: t.kindCarousel },
+                  ].map(k => (
+                    <button
+                      key={k.id}
+                      type="button"
+                      onClick={() => setMediaKind(k.id)}
+                      style={{
+                        flex: 1, padding: "10px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700,
+                        border: `1.5px solid ${mediaKind === k.id ? "transparent" : c.border}`,
+                        background: mediaKind === k.id ? "linear-gradient(135deg, #8B5CF6, #EC4899)" : c.bg,
+                        color: mediaKind === k.id ? "#fff" : c.textMuted,
+                      }}
+                    >
+                      {k.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>{t.videoFileLabel}</label>
-                <input
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm"
-                  required
-                  onChange={e => setVideoFile(e.target.files?.[0] || null)}
-                  style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13 }}
-                />
+                <label style={{ display: "block", fontSize: 10.5, color: c.textDim, fontFamily: mono, textTransform: "uppercase", marginBottom: 6 }}>
+                  {mediaKind === "carousel" ? t.imagesFileLabel : t.videoFileLabel}
+                </label>
+                {mediaKind === "carousel" ? (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      required={imageFiles.length === 0}
+                      onChange={e => setImageFiles(Array.from(e.target.files || []).slice(0, MAX_CAROUSEL_IMAGES))}
+                      style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13 }}
+                    />
+                    <div style={{ fontSize: 11.5, color: c.textDim, marginTop: 6 }}>
+                      {t.imagesHint.replace("{n}", MAX_CAROUSEL_IMAGES)}
+                      {imageFiles.length > 0 && ` — ${imageFiles.length} ${imageFiles.length > 1 ? t.imagesSelectedPlural : t.imagesSelected}`}
+                    </div>
+                    {/* Aperçu : l'ordre des photos est celui du carrousel, il faut
+                        pouvoir le constater avant de publier. */}
+                    {imageFiles.length > 0 && (
+                      <div style={{ display: "flex", gap: 6, marginTop: 10, overflowX: "auto", paddingBottom: 4 }}>
+                        {imageFiles.map((file, i) => (
+                          <div key={`${file.name}-${i}`} style={{ position: "relative", flex: "0 0 auto" }}>
+                            <img
+                              src={imagePreviews[i]}
+                              alt={file.name}
+                              style={{ width: 56, height: 74, objectFit: "cover", borderRadius: 6, border: `1px solid ${c.border}` }}
+                            />
+                            <span style={{
+                              position: "absolute", top: 3, left: 3, fontSize: 9, fontWeight: 800, color: "#fff",
+                              background: "rgba(0,0,0,0.6)", borderRadius: 4, padding: "1px 4px",
+                            }}>{i + 1}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm"
+                    required
+                    onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                    style={{ width: "100%", padding: "11px", borderRadius: 8, border: `1.5px solid ${c.border}`, background: c.bg, color: c.text, outline: "none", fontSize: 13 }}
+                  />
+                )}
               </div>
 
               <button
@@ -617,7 +1004,25 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {myVideos.map(video => (
                   <div key={video.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: c.bg, borderRadius: 10, border: `1px solid ${c.border}` }}>
-                    <video src={video.video_url} muted style={{ width: 48, height: 64, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                    {/* Une publication photo n'a pas de video_url : un <video>
+                        n'afficherait qu'un rectangle noir sans expliquer pourquoi. */}
+                    {video.media_type === "carousel" ? (
+                      <div style={{ position: "relative", flexShrink: 0 }}>
+                        <img
+                          src={Array.isArray(video.media_urls) ? video.media_urls[0] : ""}
+                          alt=""
+                          style={{ width: 48, height: 64, objectFit: "cover", borderRadius: 6, display: "block" }}
+                        />
+                        <span style={{
+                          position: "absolute", bottom: 3, right: 3, fontSize: 9, fontWeight: 800, color: "#fff",
+                          background: "rgba(0,0,0,0.65)", borderRadius: 4, padding: "1px 4px",
+                        }}>
+                          {Array.isArray(video.media_urls) ? video.media_urls.length : 0}
+                        </span>
+                      </div>
+                    ) : (
+                      <video src={video.video_url} muted style={{ width: 48, height: 64, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                    )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{video.product}</div>
                       <div style={{ fontSize: 11.5, color: c.textDim }}>{nicheLabel(video.niche)} · {Number(video.price).toFixed(2)} €</div>
@@ -678,36 +1083,22 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           )}
           {filteredVideos.map(video => (
             <div key={video.id} className="video-slide" style={{ height: "var(--feed-h, 78vh)", scrollSnapAlign: "start", scrollSnapStop: "always", position: "relative", overflow: "hidden" }}>
-              <video
-                ref={el => { videoRefs.current[video.id] = el; }}
-                src={video.src} loop muted={!soundOn} playsInline
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-              {/* Gradient overlay for legibility */}
+              {video.mediaType === "carousel" ? (
+                <FeedCarousel images={video.images} product={video.product} />
+              ) : (
+                <FeedVideo
+                  video={video}
+                  soundOn={soundOn}
+                  setSoundOn={setSoundOn}
+                  registerRef={registerVideoRef}
+                  t={t}
+                  isPausedByUser={!!pausedIds[video.id]}
+                  setPausedByUser={setPausedByUser}
+                />
+              )}
+              {/* Dégradé de lisibilité. `pointerEvents: none` est indispensable :
+                  sinon il intercepterait le tap de pause et la barre de progression. */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.9) 100%)", pointerEvents: "none" }} />
-
-              {/* ⚠️ Le son ne peut PAS être actif au chargement : tous les
-                  navigateurs bloquent la lecture automatique non muette, et la
-                  vidéo ne démarrerait tout simplement pas. Comme TikTok, on
-                  démarre en silence et l'utilisateur active le son d'un geste —
-                  ce geste vaut alors autorisation pour toute la session. */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setSoundOn(v => !v); }}
-                aria-label={soundOn ? t.soundOff : t.soundOn}
-                title={soundOn ? t.soundOff : t.soundOn}
-                style={{
-                  position: "absolute", top: 14, left: 14, width: 40, height: 40, borderRadius: "50%",
-                  border: "none", cursor: "pointer", color: "#fff",
-                  background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
-                  display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3,
-                }}
-              >
-                {soundOn ? (
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
-                ) : (
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                )}
-              </button>
 
               {/* Bottom-left: creator + product info */}
               <div style={{ position: "absolute", bottom: 20, left: 16, right: 90, color: "#fff" }}>
@@ -927,6 +1318,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .video-feed-scroll::-webkit-scrollbar { display: none; }
         .video-feed-scroll { scrollbar-width: none; }
+        /* Idem pour le carrousel horizontal : une barre de défilement visible
+           en travers d'une photo plein écran ruine l'effet. */
+        .carousel-track::-webkit-scrollbar { display: none; }
+        .carousel-track { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 
         /* ─── Mobile : feed plein écran façon TikTok ────────────────────────
            Les contrôles du haut (onglets, favoris/panier, recherche, niches)
