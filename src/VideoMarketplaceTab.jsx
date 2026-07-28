@@ -752,10 +752,15 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         <p className="video-feed-subtitle" style={{ color: c.textMuted, margin: 0, fontSize: 14 }}>{t.subtitle}</p>
       </div>
 
+      {/* Barre d'outils. Sur bureau, `display: contents` la rend inexistante et
+          les deux rangées restent empilées comme avant. Sur mobile elles
+          fusionnent en une seule ligne : empilées, elles repoussaient la vidéo
+          de près de 50 points pour rien. */}
+      <div className="feed-toolbar">
       {/* Accès favoris + panier (chantier #18) — visibles seulement en mode
           navigation, un créateur qui vend n'a rien à y faire. */}
       {viewMode === "browse" && (
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 14 }}>
+        <div className="fav-cart-row" style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: 14 }}>
           <button
             onClick={() => setShowFavoritesOnly(v => !v)}
             className="hover-lift"
@@ -767,7 +772,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill={showFavoritesOnly ? "#fff" : "none"} stroke="currentColor" strokeWidth="2"><path d="M12 21s-6.7-4.35-9.3-8.1C.6 10 1.4 6 5 4.6 7.2 3.7 9.6 4.6 12 7.3c2.4-2.7 4.8-3.6 7-2.7 3.6 1.4 4.4 5.4 2.3 8.3C18.7 16.65 12 21 12 21z"/></svg>
-            {t.favorites}{favorites.length > 0 ? ` (${favorites.length})` : ""}
+            <span className="btn-label">{t.favorites}</span>{favorites.length > 0 ? ` (${favorites.length})` : ""}
           </button>
 
           <button
@@ -780,7 +785,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               boxShadow: "0 4px 14px rgba(16,185,129,0.35)",
             }}
           >
-            🛒 {t.cart}
+            🛒 <span className="btn-label">{t.cart}</span>
             {cart.length > 0 && (
               <span style={{
                 minWidth: 20, height: 20, borderRadius: 10, background: "#fff", color: "#059669",
@@ -792,7 +797,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
       )}
 
       {/* Browse / Sell toggle — creators sell where they (and brands) already browse */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+      <div className="mode-tabs" style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
         {["browse", "sell", "inbox"].map(mode => (
           <button
             key={mode}
@@ -800,12 +805,18 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             style={{
               padding: "9px 20px", borderRadius: 30, border: `1.5px solid ${viewMode === mode ? "transparent" : c.border}`,
               background: viewMode === mode ? "linear-gradient(135deg, #8B5CF6, #EC4899)" : "transparent",
-              color: viewMode === mode ? "#fff" : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s"
+              color: viewMode === mode ? "#fff" : c.textMuted, fontSize: 13, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s",
+              // ⚠️ index.css impose overflow-wrap:break-word à tous les
+              // descendants de .main-content. Sur un libellé d'un seul mot
+              // comme « Parcourir », cette règle coupe AU MILIEU du mot :
+              // « Parcour / ir ». Un libellé de bouton ne se césure jamais.
+              whiteSpace: "nowrap", flexShrink: 0,
             }}
           >
             {mode === "browse" ? t.browseTab : mode === "sell" ? t.sellTab : t.inboxTab}
           </button>
         ))}
+      </div>
       </div>
 
       {/* Toast global : il n'était rendu que dans l'onglet « Vendre », si bien
@@ -1107,7 +1118,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               style={{
                 padding: "6px 14px", borderRadius: 20, border: `1px solid ${activeNiche === niche ? "transparent" : c.border}`,
                 background: activeNiche === niche ? "linear-gradient(135deg, #8B5CF6, #EC4899)" : "transparent",
-                color: activeNiche === niche ? "#fff" : c.textMuted, fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s"
+                color: activeNiche === niche ? "#fff" : c.textMuted, fontSize: 12, fontWeight: 700, fontFamily: mono, cursor: "pointer", transition: "all 0.2s",
+                // « Toutes niches » se coupait en deux à cause du break-word
+                // global d'index.css.
+                whiteSpace: "nowrap", flexShrink: 0,
               }}
             >
               {niche === "all" ? t.allNiches : nicheLabel(niche)}
@@ -1385,6 +1399,10 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         .carousel-track::-webkit-scrollbar { display: none; }
         .carousel-track { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 
+        /* Sur bureau, la barre d'outils n'existe pas : ses enfants se
+           comportent comme s'ils etaient restes a leur place d'origine. */
+        .feed-toolbar { display: contents; }
+
         /* ─── Mobile : feed plein écran façon TikTok ────────────────────────
            Les contrôles du haut (onglets, favoris/panier, recherche, niches)
            restent en place et défilent normalement : on ne les superpose PAS
@@ -1445,6 +1463,51 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             -webkit-overflow-scrolling: touch;
           }
           .niche-row::-webkit-scrollbar { display: none; }
+          /* Le dernier filtre visible était tranché net en plein mot
+             (« Fitn… »), ce qui se lit comme un défaut d'affichage et non comme
+             « il y en a d'autres à droite ». Un fondu sur le bord droit le dit
+             sans couper : c'est la convention de toutes les listes défilantes. */
+          .niche-row {
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent 100%);
+          }
+
+          /* Même traitement pour les trois onglets Parcourir / Vendre /
+             Messages : libellés insécables, rangée défilante, et un cran de
+             compacité pour qu'ils tiennent sans défilement sur la plupart des
+             téléphones. */
+          .mode-tabs {
+            justify-content: flex-start !important;
+            overflow-x: auto;
+            padding: 0 4px 2px;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent 100%);
+          }
+          .mode-tabs::-webkit-scrollbar { display: none; }
+          .mode-tabs button { padding: 8px 13px !important; font-size: 12px !important; }
+
+          /* Fusion des deux rangees en une seule ligne. Favoris et Panier
+             perdent leur libelle : l'icone du coeur et celle du panier sont
+             universelles, et le texte coutait a lui seul la largeur qui
+             manquait aux onglets. */
+          .feed-toolbar {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+          }
+          .feed-toolbar .mode-tabs { margin-bottom: 0 !important; flex: 1 1 auto; min-width: 0; }
+          .feed-toolbar .fav-cart-row { margin-bottom: 0 !important; flex: 0 0 auto; gap: 6px !important; }
+          .feed-toolbar .fav-cart-row button { padding: 9px 12px !important; }
+          .feed-toolbar .btn-label { display: none; }
+
+          /* Titre reduit : la barre d'app affiche deja « Videos » juste
+             au-dessus, ce grand titre faisait doublon au prix de 60 points. */
+          .video-feed-header h2 { font-size: 17px !important; margin-bottom: 0 !important; gap: 8px !important; }
+          .video-feed-header h2 > div { width: 26px !important; height: 26px !important; border-radius: 8px !important; }
+          .video-feed-header h2 > div svg { width: 15px; height: 15px; }
 
           /* ⚠️ Le bandeau superposé recouvre exactement l'emplacement du bouton
              du son, des points de carrousel et du toast. Sans ce décalage, le
@@ -1463,9 +1526,12 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
           }
 
           .video-feed-outer {
-            /* Les contrôles ne poussent plus rien : le feed récupère leur
-               hauteur et occupe presque tout l'écran. */
-            --feed-h: calc(100dvh - 20px);
+            /* ⚠️ Ce chiffre est LE réglage à ajuster si l'affichage ne tombe
+               pas juste. Il doit valoir la hauteur de ce qui reste au-dessus
+               du feed : barre d'app (~115) + titre compacté (~40) + barre
+               d'outils (~50). Trop petit, la page défile ; trop grand, une
+               bande vide apparaît sous la vidéo. */
+            --feed-h: calc(100dvh - 215px);
             --feed-radius: 0px;
             width: 100vw !important;
             max-width: 100vw !important;
@@ -1488,7 +1554,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         /* Très petits écrans : la barre d'onglets du navigateur prend moins de
            place, on récupère la hauteur correspondante. */
         @media (max-width: 400px) {
-          .video-feed-outer { --feed-h: calc(100dvh - 12px); }
+          .video-feed-outer { --feed-h: calc(100dvh - 190px); }
         }
       `}</style>
     </div>

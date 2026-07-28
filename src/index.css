@@ -195,6 +195,22 @@ h1, h2, h3, h4, h5, h6, .outfit {
     max-width: 100%;
     overflow-wrap: break-word;
   }
+
+  /* ⚠️ Exception indispensable à la règle ci-dessus.
+     `overflow-wrap: break-word` coupe AU MILIEU d'un mot quand il ne tient
+     pas. Sur du texte courant c'est exactement ce qu'on veut ; sur un libellé
+     de commande, ça donne « Parcour / ir », « Messag / es », « Fitn… » — et
+     l'utilisateur y voit un défaut d'affichage, pas un texte adapté.
+     Un libellé de bouton ne se césure jamais : soit il tient, soit la rangée
+     qui le contient défile (voir .mode-tabs et .niche-row). Constaté en
+     production le 28/07/2026. */
+  .main-content button,
+  .main-content label,
+  .main-content option {
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
 }
 
 /* Default state for mobile-only classes on desktop */
@@ -211,7 +227,13 @@ h1, h2, h3, h4, h5, h6, .outfit {
   .chatbot-fab {
     width: 48px !important;
     height: 48px !important;
-    bottom: 16px !important;
+    /* ⚠️ À 16px du bas, ce bouton se posait sur la fin de la barre de
+       progression du feed vidéo : les 15 derniers pour cent de la durée
+       étaient inatteignables au doigt. On le remonte au-dessus de la barre,
+       en tenant compte de l'encoche. Même famille de conflit que le panier
+       masqué le 28/07 au matin — ce bouton est en position fixed et ne suit
+       donc aucun des décalages appliqués à l'intérieur du feed. */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 66px) !important;
     right: 16px !important;
     /* Sous la colonne d'actions du feed (z-index 1) mais au-dessus du contenu :
        en cas de chevauchement résiduel, c'est le panier qui reste cliquable. */
