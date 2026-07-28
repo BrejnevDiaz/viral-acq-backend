@@ -151,6 +151,30 @@ const setCached = async (key, payload, ttlHours = 6) => {
   } catch (e) { reportCacheFailure("écriture", e); }
 };
 
+// ─── Ménage des entrées périmées ────────────────────────────────────────────
+// Sans purge, la table grossit indéfiniment : chaque requête distincte laisse
+// une ligne, même longtemps expirée. On le fait ici plutôt que par une tâche
+// externe — le backend tourne déjà en continu et détient la connexion, donc
+// aucune dépendance à une machine allumée ou à un planificateur tiers.
+const PURGE_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12 h — sous le TTL le plus court (6 h) x2
+const purgeCache = async () => {
+  if (!supabase || cacheDisabledReason) return;
+  try {
+    const { data, error } = await supabase.rpc("purge_expired_api_cache");
+    if (error) {
+      // Pas de reportCacheFailure ici : un échec de purge n'invalide pas le
+      // cache lui-même, il ne doit donc pas le désactiver. On le signale sans
+      // couper la fonctionnalité.
+      console.warn("⚠️  Purge du cache impossible :", error.message,
+        error.code === "42883" ? "— fonction absente, relancez supabase/api_cache_and_admin.sql" : "");
+      return;
+    }
+    if (data > 0) console.log(`🧹 Cache : ${data} entrée(s) périmée(s) supprimée(s).`);
+  } catch (e) {
+    console.warn("⚠️  Purge du cache impossible :", e.message);
+  }
+};
+
 // Sonde au démarrage : on veut savoir que le cache est cassé AVANT d'avoir
 // brûlé une journée de crédits, pas en lisant les factures.
 const probeCache = async () => {
@@ -2181,6 +2205,12 @@ app.listen(PORT, () => {
   console.log(`   OpenAI/RAG  : ${openai    ? "✅ Gideon Coach IA actif" : "⚠️  Ajoute OPENAI_API_KEY pour Gideon"}`);
   // Le cache est vérifié pour de vrai (écriture + relecture), pas seulement
   // annoncé : c'est précisément une panne silencieuse qui l'a laissé mort.
-  probeCache();
+  probeCache().then(() => {
+    // Un premier passage au démarrage (il ramasse aussi la clé de sonde), puis
+    // toutes les 12 h. `unref()` pour que ce minuteur n'empêche jamais le
+    // processus de s'arrêter proprement lors d'un redéploiement.
+    purgeCache();
+    setInterval(purgeCache, PURGE_INTERVAL_MS).unref();
+  });
 });
 // (fin du fichier)
