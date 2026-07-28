@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useAuth } from "./AuthContext";
 import { TAB_MIN_TIER, getTierRank } from "../tierConfig";
+import { apiFetch } from "../utils/apiClient";
+
+// Même repli que dans App.jsx : sans VITE_API_URL, on parle au backend local.
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 // ─── RoleContext : droits dérivés de l'identité ──────────────────────────────
 // Rôle, palier tarifaire, compteurs d'usage et modale d'upgrade. Son provider
@@ -33,6 +37,9 @@ export function RoleProvider({ children }) {
   const [upgradeModalData, setUpgradeModalData]     = useState({ tab: "", title: "", reason: "" });
   const [isUpgradingSim, setIsUpgradingSim]         = useState(false);
   const [upgradeSimSuccess, setUpgradeSimSuccess]   = useState(false);
+  // Erreur de souscription remontée à l'utilisateur : une redirection de
+  // paiement qui échoue sans message laisserait croire à un bug de l'app.
+  const [upgradeError, setUpgradeError]             = useState(null);
   const [shopAnalysisCount, setShopAnalysisCount]   = useState(0);
   const [weeklyProposalCount, setWeeklyProposalCount] = useState(0);
 
@@ -42,11 +49,14 @@ export function RoleProvider({ children }) {
   userIdRef.current = userId;
 
   useEffect(() => {
+    // ⚠️ SUPPRIMÉ le 27/07/2026 — ce bloc accordait admin + elite à toute
+    // session « connectée sans userId », c'est-à-dire au bypass propriétaire
+    // dont le mot de passe était en clair dans le bundle front. Sans session
+    // Supabase, aucun privilège ne doit être accordé : les droits se lisent
+    // dans `profiles`, jamais d'une heuristique côté client.
     if (isLoggedIn && !userId) {
-      // Bypass propriétaire : pas de session Supabase → accès complet direct,
-      // sans requête `profiles`.
-      setUserRole("admin");
-      setUserTier("elite");
+      setUserRole("user");
+      setUserTier("free");
       return;
     }
     if (isLoggedIn && userId) {
@@ -129,25 +139,91 @@ export function RoleProvider({ children }) {
 
   const closeUpgradeModal = () => setShowUpgradeModal(false);
 
-  // Simulation d'upgrade (ex-handleUpgradeSimulate). `onComplete` optionnel :
-  // App.jsx s'en sert pour faire setCurrentTab(...) sans que RoleContext
-  // connaisse l'état de navigation.
-  const upgradeTier = (planId, onComplete) => {
+  // ─── Souscription (chantier #19) ─────────────────────────────────────────
+  // ⚠️ Ce code écrivait auparavant `profiles.plan` directement depuis le
+  // navigateur. Comme la clé anon est publique, n'importe qui pouvait rejouer
+  // cette requête dans la console pour s'offrir le plan Elite — et le rôle
+  // admin par la même occasion. Un trigger SQL bloque désormais ces colonnes ;
+  // seul le webhook Stripe (clé service) peut les écrire.
+  // Ici, on se contente d'ouvrir la page de paiement hébergée par Stripe.
+  const upgradeTier = async (planId, onComplete) => {
     setIsUpgradingSim(true);
     setUpgradeSimSuccess(false);
-    setTimeout(() => {
+    setUpgradeError(null);
+    try {
+      const res = await apiFetch(`${API_URL}/api/stripe/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planId }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Le paiement n'a pas pu être ouvert.");
+      }
+      // Redirection vers Stripe Checkout. Le retour se fait sur ?checkout=success,
+      // mais c'est le WEBHOOK qui accorde le plan — jamais cette redirection,
+      // qu'un utilisateur pourrait appeler lui-même.
+      window.location.href = data.url;
+      if (onComplete) onComplete();
+    } catch (err) {
+      console.error("❌ Souscription:", err);
+      setUpgradeError(String(err.message || err));
       setIsUpgradingSim(false);
-      setUpgradeSimSuccess(true);
-      setTimeout(async () => {
-        setUserTier(planId);
-        if (userIdRef.current) {
-          await supabase.from("profiles").update({ plan: planId }).eq("id", userIdRef.current);
-        }
-        setUpgradeSimSuccess(false);
-        setShowUpgradeModal(false);
-        if (onComplete) onComplete();
-      }, 1500);
+    }
+  };
+
+  // ─── Retour de paiement ───────────────────────────────────────────────────
+  // ⚠️ Le plan est accordé par le WEBHOOK, qui peut arriver quelques secondes
+  // après le retour du client. Sans ce sondage, l'utilisateur revenait de Stripe
+  // sur un compte encore marqué `free` : un paiement réussi ressemblait à un
+  // échec. On relit donc le profil plusieurs fois, brièvement.
+  const [checkoutNotice, setCheckoutNotice] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get("checkout");
+    if (!outcome) return;
+
+    // Nettoie l'URL pour qu'un rechargement ne rejoue pas le message.
+    window.history.replaceState({}, "", window.location.pathname);
+
+    if (outcome === "cancelled") {
+      setCheckoutNotice({ type: "cancelled" });
+      return;
+    }
+    if (outcome !== "success" || !userIdRef.current) return;
+
+    setCheckoutNotice({ type: "pending" });
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts += 1;
+      const { data } = await supabase.from("profiles").select("plan").eq("id", userIdRef.current).maybeSingle();
+      if (data?.plan && data.plan !== "free") {
+        setUserTier(data.plan);
+        setCheckoutNotice({ type: "active", plan: data.plan });
+        clearInterval(poll);
+      } else if (attempts >= 10) {
+        // 10 tentatives ≈ 20 s. Au-delà, on le dit franchement plutôt que de
+        // laisser l'utilisateur devant un compte inchangé sans explication.
+        setCheckoutNotice({ type: "slow" });
+        clearInterval(poll);
+      }
     }, 2000);
+    return () => clearInterval(poll);
+  }, [isLoggedIn, userId]);
+
+  /** Ouvre le portail Stripe (changement de formule, annulation, factures). */
+  const openBillingPortal = async () => {
+    setUpgradeError(null);
+    try {
+      const res = await apiFetch(`${API_URL}/api/stripe/portal`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) throw new Error(data?.error || "Gestion d'abonnement indisponible.");
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("❌ Portail abonnement:", err);
+      setUpgradeError(String(err.message || err));
+    }
   };
 
   // Quota d'analyses de boutiques (ex-handleAnalyzeStore).
@@ -205,6 +281,17 @@ export function RoleProvider({ children }) {
     return true;
   };
 
+  const switchUserRole = async (newRole) => {
+    if (!userIdRef.current) {
+      setUserRole(newRole);
+      return;
+    }
+    const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userIdRef.current);
+    if (!error) {
+      setUserRole(newRole);
+    }
+  };
+
   return (
     <RoleContext.Provider value={{
       userRole, userTier, userTierRank, shopAnalysisCount,
@@ -212,10 +299,13 @@ export function RoleProvider({ children }) {
       signupRole, setSignupRole,
       showUpgradeModal, upgradeModalData,
       isUpgradingSim, upgradeSimSuccess,
+      upgradeError, setUpgradeError, openBillingPortal,
+      checkoutNotice, setCheckoutNotice,
       openUpgradeModal, closeUpgradeModal,
       upgradeTier, checkAnalysisAllowance,
       hasTabAccess, requestTabAccess,
       weeklyProposalCount, checkProposalAllowance,
+      switchUserRole,
     }}>
       {children}
     </RoleContext.Provider>

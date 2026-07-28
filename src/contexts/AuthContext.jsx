@@ -40,15 +40,15 @@ export function AuthProvider({ children }) {
     setAuthError("");
     setAuthLoading(true);
     try {
-      if (emailInput === "brejnevdiaz@gmail.com" && passInput === "B1ss0u@k1") {
-        // Bypass total des sécurités Supabase pour le propriétaire
-        // (pas de session Supabase → userId reste null ; RoleContext détecte
-        // ce cas via `isLoggedIn && !userId` et assigne admin/elite)
-        setIsLoggedIn(true);
-        setUserEmail(emailInput);
-        setAuthError("");
-        return true;
-      }
+      // ⚠️ SUPPRIMÉ le 27/07/2026 — un bypass propriétaire comparait ici
+      // l'email ET LE MOT DE PASSE EN CLAIR, écrits en dur dans le code. Tout
+      // le contenu de ce fichier part dans le bundle JavaScript public : le mot
+      // de passe était donc lisible par quiconque ouvrait le site, et permettait
+      // d'obtenir un accès admin + Elite complet sans aucune authentification.
+      // Ne JAMAIS réintroduire de secret côté front, sous aucune forme : rien
+      // de ce qui est envoyé au navigateur n'est privé.
+      // L'accès administrateur du propriétaire passe désormais par une connexion
+      // Supabase normale — authMiddleware.js promeut déjà son email en admin.
 
       if (authMode === "login") {
         const { error } = await supabase.auth.signInWithPassword({

@@ -33,7 +33,7 @@ const PLANS = [
 
 export default function PaywallModal({ c, mono, uiLang = "fr" }) {
   const { paywall, closePaywall, offerDeadline, isOfferActive } = usePaywall();
-  const { upgradeTier, isUpgradingSim, upgradeSimSuccess, userRole, switchUserRole } = useRole();
+  const { upgradeTier, isUpgradingSim, upgradeSimSuccess, userRole, switchUserRole, upgradeError, setUpgradeError } = useRole();
   const [now, setNow] = useState(Date.now());
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
 
@@ -94,9 +94,29 @@ export default function PaywallModal({ c, mono, uiLang = "fr" }) {
             ) : (
               <>
                 <div style={{ width: 60, height: 60, borderRadius: "50%", border: `3px solid ${c.accent}22`, borderTopColor: c.accent, animation: "spin 1s linear infinite", marginBottom: 18 }}></div>
-                <p style={{ fontSize: 13, color: c.textDim, fontFamily: mono, margin: 0 }}>🔐 Stripe Secure Checkout Simulation</p>
+                {/* Ce n'est plus une simulation : on redirige vers la page de
+                    paiement hébergée par Stripe. */}
+                <p style={{ fontSize: 13, color: c.textDim, fontFamily: mono, margin: 0 }}>
+                  🔐 {fr ? "Ouverture du paiement sécurisé Stripe…" : it ? "Apertura del pagamento sicuro Stripe…" : "Opening secure Stripe checkout…"}
+                </p>
               </>
             )}
+          </div>
+        )}
+
+        {/* Échec de souscription : sans message, une redirection qui ne part
+            pas ressemble à un bug de l'application. */}
+        {upgradeError && (
+          <div style={{
+            position: "absolute", left: 20, right: 20, bottom: 20, zIndex: 101,
+            padding: "12px 16px", borderRadius: 12, fontSize: 13, lineHeight: 1.5,
+            background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#F87171",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          }}>
+            <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{upgradeError}</span>
+            <button onClick={() => setUpgradeError(null)} aria-label="Fermer" style={{ border: "none", background: "transparent", color: "inherit", cursor: "pointer", flexShrink: 0 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            </button>
           </div>
         )}
 

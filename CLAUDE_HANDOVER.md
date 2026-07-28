@@ -226,6 +226,49 @@ Question posée : transformer le SaaS en app téléchargeable (PWA / Capacitor /
 **⚠️ Point commercial à trancher avant développement — commission Apple.**
 L'achat de vidéos UGC entre marque et créateur est un service entre tiers : exempté d'achat intégré (comme Uber). Mais **l'abonnement SaaS à 49/99 € est du numérique consommé dans l'app** : Apple exigera l'IAP et sa commission. Parade classique (Netflix, Spotify) : l'app mobile ne vend rien, l'abonnement se souscrit sur le web. Conséquence directe : **pas de bouton « Améliorer » dans l'app iOS**, alors que tout l'entonnoir actuel est construit autour. À décider avant de coder, pas après un rejet de revue.
 
+### 14. Session du 27/07 — Chantier #19 : facturation Stripe + DEUX FAILLES CRITIQUES
+
+**🚨 FAILLE 1 — mot de passe propriétaire en clair dans le bundle front (CORRIGÉE)**
+`src/contexts/AuthContext.jsx` contenait un bypass comparant l'email ET LE MOT DE PASSE en dur. Tout ce fichier part dans le bundle JavaScript public : **le mot de passe était lisible par quiconque ouvrait viralacq.vercel.app**, et donnait un accès admin + Elite complet sans authentification. Le bloc jumeau de `RoleContext.jsx` (`isLoggedIn && !userId` → admin/elite) a été retiré aussi.
+→ **Ce mot de passe doit être considéré comme compromis et changé partout où Diaz l'utilise.** Il reste dans l'historique Git.
+→ Règle : aucun secret, sous aucune forme, dans `src/`. Rien de ce qui est envoyé au navigateur n'est privé.
+
+**🚨 FAILLE 2 — élévation de privilège par écriture directe (CORRIGÉE)**
+`RoleContext.jsx` écrivait `profiles.plan` depuis le navigateur, et la policy `users_update_own` n'restreint pas les colonnes. N'importe qui pouvait exécuter dans la console :
+`supabase.from("profiles").update({ plan: "elite", role: "admin" })` — plan à 299 €/mois et droits admin gratuits (`requireAdmin` fait autorité sur cette colonne).
+→ Trigger `protect_profile_privileges` (`supabase/stripe_billing.sql`), **BEFORE INSERT OR UPDATE** : `plan` figé, `role` ne peut jamais devenir `admin` depuis le front. Le changement creator ↔ brand reste possible (sinon la fonctionnalité serait cassée en silence). Seule la clé service écrit ces colonnes.
+
+**Facturation** — `stripeRoutes.js` (nouveau), `supabase/stripe_billing.sql` (nouveau), `stripe@^22.3.2` ajouté.
+- Checkout hébergé Stripe, portail client (changement de formule, annulation, factures), webhook signé.
+- ⚠️ **`registerStripeWebhook` DOIT rester monté AVANT `express.json()`** (server.js:65 vs 67) : la vérification de signature exige le corps brut. Monté après, toutes les signatures échouent avec un message peu explicite.
+- Les ids de prix viennent de `STRIPE_PRICE_PLUS`, `STRIPE_PRICE_VIP_PRO`, `STRIPE_PRICE_VIP_ELITE` — jamais en dur : ils diffèrent entre test et production.
+
+**Bloquants trouvés par la revue adversariale et corrigés :**
+1. **La contrainte `profiles_plan_check` n'autorisait pas les plans vendus** (`plus`, `vip_pro`, `vip_elite`) : 100 % des paiements auraient échoué en base, silencieusement pour le client. Contrainte élargie, ainsi que `role` qui ignorait `brand` — rendant `requireBrand` inatteignable.
+2. **Anti-rejeu inversé** : l'événement était journalisé AVANT traitement, donc un incident transitoire le perdait définitivement (paiement encaissé, plan jamais accordé). Le marqueur est maintenant posé APRÈS succès.
+3. **`UPDATE` touchant 0 ligne loggé en succès** : supabase-js ne renvoie pas d'erreur dans ce cas. On lève désormais une exception → Stripe rejoue.
+4. **Prix inconnu → client rétrogradé en `free` avec un log vert** : un abonnement actif dont le prix ne correspond à aucun `STRIPE_PRICE_*` lève maintenant une erreur explicite.
+5. **Double souscription** : un abonné repassant par le paywall créait un second abonnement (double prélèvement), et l'annulation du premier le rétrogradait alors que le second courait. Renvoyé vers le portail.
+6. **Retour de paiement muet** : le webhook arrive quelques secondes après le retour du client, qui voyait encore `free`. Sondage court avec message d'état.
+
+**⏳ RESTE À TRAITER — non corrigé dans cette session :**
+- ⚠️ `authMiddleware.js:58` promeut en admin quiconque présente un JWT avec l'un de trois emails en dur, alors que `supabase_schema.sql` demande de **désactiver la confirmation d'email** : une de ces adresses non encore inscrite permet à un tiers de s'inscrire avec et d'obtenir admin. À remplacer par un drapeau en base.
+- `ALLOW_DEV_AUTH=true` accorde admin/elite sans token — aucun garde-fou n'empêche son activation en production.
+- Policy `admins_read_all` (`supabase_schema.sql:48`) interroge `profiles` depuis une policy sur `profiles` : motif classique de récursion infinie (42P17), à vérifier sur la base réelle.
+- Stripe exige un statut légal d'entreprise (exigence réglementaire européenne, identique chez PayPal et Revolut). Développement en mode test possible immédiatement ; passage en production après validation.
+
+### 15. Session du 28/07 — Chantier #20 : vraies données dans Ressources & FAQ
+
+**⚠️ Statistiques inventées retirées.** La page affichait quatre chiffres écrits en dur dans `ResourcesTab.jsx` : « +150k boutiques analysées », « 12M créatifs indexés », « 98,8 % de taux de sourcing » et surtout **« +320 % de ROAS moyen DE NOS CLIENTS »** — alors que la plateforme n'avait aucun client payant. Une allégation chiffrée invérifiable engage l'éditeur, a fortiori sur une page de vente et au moment de mettre en place l'encaissement. Remplacées par quatre compteurs réellement mesurés (`/api/resources/stats`, cache mémoire 10 min) : créateurs inscrits, vidéos UGC en vente, marques inscrites, extraits de formation du Coach. Chiffres modestes au début, mais vrais et croissants. Si l'API ne répond pas, **la section ne s'affiche pas** plutôt que d'inventer.
+
+**Blog VIP et coaching** — `supabase/resources.sql` (nouveau, ⏳ À EXÉCUTER), `resourcesRoutes.js` (nouveau).
+- `resource_articles` : titre, extrait, corps, palier minimum. Le serveur ne renvoie **jamais** le corps à qui n'a pas le palier — le masquer à l'affichage laisserait le texte lisible dans la réponse réseau.
+- `coaching_sessions` : sessions live (date + lien visio) et replays. ⚠️ **Cette table n'a AUCUNE policy de lecture**, volontairement : elle contient les liens de visio. Une policy SELECT ouverte les exposerait via l'API REST avec la clé anon, rendant le coaching gratuit. Tout passe par le backend, qui retire `meetingUrl`/`replayUrl` pour les non-abonnés.
+- `coaching_signups` : inscriptions, écriture directe autorisée (aucune règle métier, « la ligne m'appartient » suffit).
+- Publication : routes admin `POST /api/resources/articles` et `/api/resources/coaching` (protégées par `requireAdmin`).
+
+**⏳ Pas d'interface d'administration pour l'instant** : la publication se fait par `INSERT` SQL depuis Supabase, ou par appel direct aux routes admin. Une UI d'édition serait le prolongement naturel, mais elle n'a de sens qu'une fois qu'il y a du contenu à publier.
+
 ### ⏳ Reste à faire
 1. Exécuter `knowledge_rls_patch.sql` (après vérif clé service_role) — voir ci-dessus.
 2. Tester la persistance avec un vrai compte connecté (2-3 messages → F5 → la conversation revient).

@@ -12,6 +12,8 @@ import { requireBrand, requireAnyUser, requireAuth, requireRole } from "./authMi
 import catalogueRoutes from "./catalogueRoutes.js";
 import chatbotRoutes from "./chatbotRoutes.js";
 import registerMarketplaceRoutes from "./marketplaceRoutes.js";
+import registerStripeRoutes, { registerStripeWebhook } from "./stripeRoutes.js";
+import registerResourcesRoutes from "./resourcesRoutes.js";
 import { ingestKnowledge } from "./knowledgeIngestion.js";
 import { queryGideon, queryGideonStream, pick } from "./gideonEngine.js";
 import { fetchHistory, saveExchange, clearHistory, countToday, countVideosToday, listConversations, createConversation, deleteConversation, ensureConversation } from "./gideonHistory.js";
@@ -57,12 +59,24 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors()); // Autorise toutes les origines
+// ⚠️ ORDRE CRITIQUE : le webhook Stripe vérifie sa signature sur le corps BRUT.
+// Monté après express.json(), le body serait déjà parsé et toutes les
+// signatures échoueraient — avec un message d'erreur qui n'aide pas à trouver
+// la cause. Cette ligne doit rester AVANT le parseur JSON.
+registerStripeWebhook(app, express);
+
 app.use(express.json({ limit: "2mb" }));
 app.use("/api/catalogue", catalogueRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 // Marketplace Vidéo : messagerie marque ↔ créateur et commandes (chantier #18).
 // Les favoris et le panier passent en direct par Supabase depuis le front.
 registerMarketplaceRoutes(app, requireAnyUser);
+// Abonnements Stripe : souscription, portail client, état de l'abonnement.
+// Le webhook, lui, est monté plus haut (avant express.json).
+registerStripeRoutes(app, requireAnyUser);
+// Ressources VIP : blog, sessions de coaching, statistiques réellement mesurées
+// (elles étaient inventées et écrites en dur dans ResourcesTab.jsx).
+registerResourcesRoutes(app, requireAnyUser, requireAdmin);
 
 // ─── Platform → site domain ───────────────────────────────────────────────────
 const siteMap = {
