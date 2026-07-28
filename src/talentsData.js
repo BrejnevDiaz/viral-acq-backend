@@ -1,8 +1,9 @@
-// ─── Shared creator pool ──────────────────────────────────────────────────────
-// Single source of truth for the platform's creator roster. Used by
-// TalentAgencyTab (roster management) and CreatorScoreTab (leaderboard).
-// Persisted in localStorage under "agency_talents_v2" — same key TalentAgencyTab
-// has always used, so existing user rosters keep working.
+// ─── Vivier de créateurs ─────────────────────────────────────────────────────
+// Utilisé par TalentAgencyTab (gestion du portefeuille) et CreatorScoreTab
+// (classement). Depuis le 28/07/2026, la source de vérité est la table
+// `agency_talents` : le tableau ci-dessous n'est plus qu'un jeu de
+// démonstration servant de repli quand l'utilisateur n'a encore aucun talent.
+import { supabase } from "./supabaseClient";
 
 // Real influencer talents scoured from https://viralacquisition.it/talents
 export const MOCK_TALENTS = [
@@ -109,7 +110,12 @@ export const MOCK_TALENTS = [
   }
 ];
 
-// Read the live roster (localStorage-backed, seeded with MOCK_TALENTS).
+// ⚠️ OBSOLÈTE depuis le 28/07/2026 — conservée pour l'affichage initial.
+// Le roster ne vit plus dans le localStorage mais dans la table
+// `agency_talents` : TalentAgencyTab n'écrit donc plus jamais sous cette clé.
+// Cette fonction ne sert désormais qu'à peupler le classement le temps que la
+// vraie requête revienne, pour éviter un tableau vide pendant une seconde.
+// Utiliser `fetchTalents()` ci-dessous pour les données réelles.
 export const loadTalents = () => {
   try {
     const saved = localStorage.getItem("agency_talents_v2");
@@ -117,6 +123,26 @@ export const loadTalents = () => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch { /* corrupted storage → fall back to mocks */ }
+  } catch { /* stockage corrompu → on retombe sur le jeu de démonstration */ }
   return MOCK_TALENTS;
+};
+
+// Roster réel. Renvoie le jeu de démonstration si l'utilisateur n'est pas
+// connecté ou n'a encore aucun talent : un classement vide n'apprendrait rien
+// et donnerait l'impression que la page est cassée.
+export const fetchTalents = async () => {
+  if (!supabase) return MOCK_TALENTS;
+  const { data, error } = await supabase
+    .from("agency_talents")
+    .select("id, username, niche, followers, engagement, platform, profile_url, avatar, status, email, region");
+  if (error) {
+    console.error("❌ Classement — lecture du roster :", error.message);
+    return MOCK_TALENTS;
+  }
+  if (!data || data.length === 0) return MOCK_TALENTS;
+  return data.map(r => ({
+    id: r.id, username: r.username, niche: r.niche, followers: r.followers,
+    engagement: r.engagement, platform: r.platform, profileUrl: r.profile_url,
+    avatar: r.avatar, status: r.status, email: r.email, region: r.region,
+  }));
 };

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { loadTalents } from "./talentsData";
+import { useMemo, useState, useEffect } from "react";
+import { loadTalents, fetchTalents } from "./talentsData";
 import { rankTalents, topMovers, estWeeklyViews, formatViews } from "./creatorScore";
 import { usePaywall } from "./contexts/PaywallContext";
 import { useRole } from "./contexts/RoleContext";
@@ -32,13 +32,23 @@ export default function CreatorScoreTab({ c, mono, uiLang = "fr", onImportLead }
   // local tick keeps row buttons in sync immediately on the same click).
   const [, setTick] = useState(0);
 
+  // Le classement lit désormais le roster réel en base. L'affichage démarre sur
+  // le jeu de démonstration le temps de la requête : un tableau vide pendant
+  // une seconde donne l'impression que la page est cassée.
+  const [pool, setPool] = useState(() => loadTalents());
+  useEffect(() => {
+    let annule = false;
+    fetchTalents().then(rows => { if (!annule) setPool(rows); });
+    return () => { annule = true; };
+  }, []);
+
   const ranked = useMemo(() => {
-    let talents = loadTalents();
+    let talents = pool;
     if (selectedRegion !== "ALL") {
       talents = talents.filter(t => (t.region || "IT") === selectedRegion);
     }
     return rankTalents(talents);
-  }, [selectedRegion]);
+  }, [selectedRegion, pool]);
   const movers = useMemo(() => topMovers(ranked, 3), [ranked]);
 
   const fr = uiLang === "fr", it = uiLang === "it";

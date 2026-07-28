@@ -5,76 +5,109 @@ import { useRole, WEEKLY_PROPOSAL_LIMIT } from "./contexts/RoleContext";
 // Creator pool moved to talentsData.js — shared with CreatorScoreTab (leaderboard).
 import { MOCK_TALENTS } from "./talentsData";
 
-const MOCK_GIGS = [
-  {
-    id: "gig_1",
-    brand: "GlowSkin Premium",
-    title: "1 Instagram Reel - Spatola ad Ultrasuoni",
-    niche: "beauty",
-    budget: "$250 + 10% commission",
-    requirements: "Micro-influencer Beauté (>30k followers)",
-    description: "Vidéo esthétique montrant l'effet nettoyant de notre spatule à ultrasons. Envoi gratuit du produit inclus.",
-    status: "open",
-    logo: "https://logo.clearbit.com/glowskinco.com"
-  },
-  {
-    id: "gig_2",
-    brand: "FitBurn active",
-    title: "2 Vidéos TikTok - Smoothie Proteico",
-    niche: "food",
-    budget: "$180 + 15% commission",
-    requirements: "Créateurs Fitness/Food (>40k followers)",
-    description: "Préparation d'un smoothie post-entraînement avec nos protéines végétales FitBurn.",
-    status: "open",
-    logo: "https://logo.clearbit.com/fitburnwear.com"
-  },
-  {
-    id: "gig_3",
-    brand: "PureMatcha Shop",
-    title: "1 Instagram Post & Story - Ritual Matcha",
-    niche: "food",
-    budget: "$120 + 12% commission",
-    requirements: "Profil Lifestyle/Food (>20k followers)",
-    description: "Partagez votre rituel matinal apaisant autour de la préparation du Matcha en poudre bio.",
-    status: "open",
-    logo: "https://logo.clearbit.com/purematcha.com"
-  }
-];
+// MOCK_GIGS a ete supprime le 28/07/2026 : les missions viennent desormais de
+// la table agency_gigs. Les garder afficherait des offres fictives au milieu
+// des vraies, sans moyen de les distinguer.
 
 export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead, userId = null }) {
   const { userTier, weeklyProposalCount, checkProposalAllowance } = useRole();
   const isRestricted = ["free", "standard"].includes(userTier);
-  const appliedGigsKey = `va_applied_gigs_${userId || "guest"}`;
-  const [appliedGigIds, setAppliedGigIds] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(appliedGigsKey) || "[]"); } catch { return []; }
-  });
   const [currentUserRole, setCurrentUserRole] = useState("admin"); // admin | brand | influencer
   const [activePlatforms, setActivePlatforms] = useState({});
-  const [talents, setTalents] = useState(() => {
-    const saved = localStorage.getItem("agency_talents_v2");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return MOCK_TALENTS;
+
+  // ─── Données persistées (chantier du 28/07/2026) ──────────────────────────
+  // Tout ce bloc vivait auparavant dans le localStorage du navigateur ou en dur
+  // dans le bundle. Conséquences constatées : une mission publiée disparaissait
+  // au rechargement, deux personnes de la même agence ne voyaient jamais le
+  // même roster, et vider le cache effaçait le portefeuille entier. Aucune
+  // agence ne paie un abonnement pour des données qu'un nettoyage de navigateur
+  // supprime.
+  const [talents, setTalents] = useState([]);
+  const [gigs, setGigs] = useState([]);
+  const [contracts, setContracts] = useState([]);
+  const [appliedGigIds, setAppliedGigIds] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState(null);
+
+  // Formes base de données ↔ interface. L'interface parle camelCase depuis le
+  // début ; plutôt que de la réécrire ligne à ligne, on traduit aux frontières.
+  const talentFromRow = (r) => ({
+    id: r.id, username: r.username, niche: r.niche, followers: r.followers,
+    engagement: r.engagement, platform: r.platform, profileUrl: r.profile_url,
+    avatar: r.avatar, status: r.status, email: r.email, region: r.region,
+  });
+  const gigFromRow = (r) => ({
+    id: r.id, brand: r.brand, title: r.title, niche: r.niche, budget: r.budget,
+    requirements: r.requirements, description: r.description, status: r.status,
+    logo: r.logo, ownerId: r.owner_id,
+  });
+  const contractFromRow = (r) => ({
+    id: r.id, talentName: r.talent_name, brandName: r.brand_name,
+    title: r.title, budget: r.budget, status: r.status,
   });
 
-  useEffect(() => {
-    localStorage.setItem("agency_talents_v2", JSON.stringify(talents));
-  }, [talents]);
-  const [gigs, setGigs] = useState(MOCK_GIGS);
-  const [contracts, setContracts] = useState([
-    {
-      id: "c_1",
-      talentName: "thatsnora",
-      brandName: "GlowSkin Premium",
-      title: "1 Instagram Reel - Spatola ad Ultrasuoni",
-      budget: "$250 + 10% commission",
-      status: "signature" // signature | produit_envoye | contenu_cree | live
+  const loadAgencyData = async () => {
+    if (!supabase || !userId) { setDataLoading(false); return; }
+    setDataLoading(true);
+    setDataError(null);
+    try {
+      const [tRes, gRes, cRes, aRes] = await Promise.all([
+        supabase.from("agency_talents").select("*").order("created_at", { ascending: false }),
+        supabase.from("agency_gigs").select("*").order("created_at", { ascending: false }),
+        supabase.from("agency_contracts").select("*").order("created_at", { ascending: false }),
+        supabase.from("gig_applications").select("gig_id").eq("applicant_id", userId),
+      ]);
+      // ⚠️ On ne masque AUCUNE de ces erreurs : un roster vide parce que la
+      // requête a échoué et un roster réellement vide se ressemblent à l'écran,
+      // et c'est exactement ce qui a fait croire pendant des semaines que le
+      // Marketplace n'avait pas d'adoption.
+      const firstError = [tRes, gRes, cRes, aRes].find(r => r.error)?.error;
+      if (firstError) throw firstError;
+
+      setTalents((tRes.data || []).map(talentFromRow));
+      setGigs((gRes.data || []).map(gigFromRow));
+      setContracts((cRes.data || []).map(contractFromRow));
+      setAppliedGigIds((aRes.data || []).map(r => r.gig_id));
+
+      // Reprise unique de l'ancien portefeuille local : sans elle, un
+      // utilisateur existant verrait son roster « disparaître » au déploiement.
+      if ((tRes.data || []).length === 0) await migrateLocalRoster();
+    } catch (err) {
+      console.error("❌ Talents & Gigs — chargement :", err.message);
+      setDataError(err.message);
+    } finally {
+      setDataLoading(false);
     }
-  ]);
+  };
+
+  // Migration du localStorage vers la base, jouée au plus une fois par compte.
+  const migrateLocalRoster = async () => {
+    if (!supabase || !userId) return;
+    const flag = `va_roster_migrated_${userId}`;
+    if (localStorage.getItem(flag)) return;
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem("agency_talents_v2") || "[]"); } catch { saved = []; }
+    // Le roster de démonstration n'a pas à être recopié en base : il ferait
+    // croire à un portefeuille qui n'existe pas.
+    const demoNames = new Set(MOCK_TALENTS.map(t => t.username));
+    const rows = (Array.isArray(saved) ? saved : [])
+      .filter(t => t?.username && !demoNames.has(t.username))
+      .map(t => ({
+        owner_id: userId, username: String(t.username).replace("@", "").trim(),
+        niche: t.niche || "beauty", followers: parseInt(t.followers) || 0,
+        engagement: t.engagement || null, platform: t.platform || "instagram",
+        profile_url: t.profileUrl || null, avatar: t.avatar || null,
+        email: t.email || null, region: t.region || null,
+        status: t.status === "active" ? "active" : "pending",
+      }));
+    localStorage.setItem(flag, "1"); // posé avant l'insert : une migration ratée ne doit pas boucler
+    if (rows.length === 0) return;
+    const { data, error } = await supabase.from("agency_talents").insert(rows).select();
+    if (error) { console.warn("⚠️ Reprise du roster local :", error.message); return; }
+    setTalents((data || []).map(talentFromRow));
+  };
+
+  useEffect(() => { loadAgencyData(); }, [userId]);
 
   // Form states
   const [newTalent, setNewTalent] = useState({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "", profileUrl: "" });
@@ -272,6 +305,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!newTalent.username) return;
+    if (!supabase || !userId) { showToast(uiLang === "fr" ? "Connectez-vous pour ajouter un créateur." : "Sign in to add a creator.", "warning"); return; }
     const cleanUsername = newTalent.username.replace("@", "").trim();
     if (userId) {
       await supabase.from("roster_applications").insert({
@@ -284,8 +318,8 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
         email: newTalent.email || null
       });
     }
-    const item = {
-      id: `t_user_${Date.now()}`,
+    const row = {
+      owner_id: userId,
       username: cleanUsername,
       niche: newTalent.niche,
       followers: parseInt(newTalent.followers) || 15000,
@@ -294,9 +328,21 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       avatar: "https://ui-avatars.com/api/?name=" + cleanUsername + "&background=8B5CF6&color=fff&size=100&rounded=false",
       status: "pending",
       email: newTalent.email || "info@" + cleanUsername + ".com",
-      profileUrl: newTalent.profileUrl || `https://${newTalent.platform}.com/${cleanUsername}`
+      profile_url: newTalent.profileUrl || `https://${newTalent.platform}.com/${cleanUsername}`
     };
-    setTalents([item, ...talents]);
+    // ⚠️ Un ajout qui échoue doit se voir. Auparavant le talent apparaissait
+    // dans la liste quoi qu'il arrive puisque rien n'était enregistré : il
+    // disparaissait au rechargement sans que personne comprenne pourquoi.
+    const { data, error } = await supabase.from("agency_talents").insert(row).select().single();
+    if (error) {
+      // 23505 = doublon sur (owner_id, username) : le message brut de Postgres
+      // ne dirait rien à un utilisateur.
+      showToast(error.code === "23505"
+        ? (uiLang === "fr" ? "Ce créateur est déjà dans votre portefeuille." : "This creator is already in your roster.")
+        : error.message, "warning");
+      return;
+    }
+    setTalents(prev => [talentFromRow(data), ...prev]);
     setNewTalent({ username: "", niche: "beauty", followers: "", engagement: "5.0", platform: "instagram", email: "", profileUrl: "" });
     
     if (currentUserRole === "admin") {
@@ -306,12 +352,16 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
     }
   };
 
-  const handlePostGig = (e) => {
+  const handlePostGig = async (e) => {
     e.preventDefault();
     if (!newGig.brand || !newGig.title) return;
+    if (!supabase || !userId) { showToast(uiLang === "fr" ? "Connectez-vous pour publier une mission." : "Sign in to post a gig.", "warning"); return; }
     const cleanDomain = String(newGig.brand || "").toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
-    const item = {
-      id: `gig_user_${Date.now()}`,
+    // ⚠️ Cette mission était auparavant ajoutée au seul état React : elle
+    // disparaissait au rechargement et AUCUN créateur ne pouvait la voir. La
+    // mise en relation, cœur du métier, n'existait donc pas.
+    const { data, error } = await supabase.from("agency_gigs").insert({
+      owner_id: userId,
       brand: newGig.brand,
       title: newGig.title,
       niche: newGig.niche,
@@ -319,9 +369,14 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       requirements: newGig.requirements || "Micro-influencer",
       description: newGig.description || "Branded integration content creation.",
       status: "open",
-      logo: `https://logo.clearbit.com/${cleanDomain}`
-    };
-    setGigs([item, ...gigs]);
+      logo: `https://logo.clearbit.com/${cleanDomain}`,
+    }).select().single();
+    if (error) {
+      showToast(uiLang === "fr" ? `Publication refusée : ${error.message}` : `Publish failed: ${error.message}`, "warning");
+      return;
+    }
+    const item = gigFromRow(data);
+    setGigs(prev => [item, ...prev]);
 
     // Trouver tous les talents dans la même niche (qu'ils soient actifs ou pending)
     const matchingTalents = talents.filter(t => t.niche === newGig.niche);
@@ -349,59 +404,106 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
 
   // Creator applies to an open gig — gated for Free tier at WEEKLY_PROPOSAL_LIMIT/week
   // (see checkProposalAllowance in RoleContext.jsx, which opens the upgrade modal itself).
-  const handleApplyToGig = (gigId) => {
+  const handleApplyToGig = async (gigId) => {
     if (appliedGigIds.includes(gigId)) return;
     if (!checkProposalAllowance(uiLang)) return;
-    const updated = [...appliedGigIds, gigId];
-    setAppliedGigIds(updated);
-    localStorage.setItem(appliedGigsKey, JSON.stringify(updated));
+    if (!supabase || !userId) { showToast(uiLang === "fr" ? "Connectez-vous pour candidater." : "Sign in to apply.", "warning"); return; }
+    // ⚠️ La candidature n'était qu'une entrée dans le localStorage du candidat :
+    // le message « envoyée à la marque » était faux, la marque ne recevait
+    // jamais rien. Elle est désormais enregistrée et lisible par la marque.
+    const { error } = await supabase.from("gig_applications").insert({
+      gig_id: gigId,
+      applicant_id: userId,
+      // ⚠️ Volontairement nul. J'avais d'abord écrit
+      // `talents.find(t => t.id === userId)?.username` : faux, car l'id d'une
+      // ligne de roster n'est pas l'identifiant du compte — la recherche
+      // n'aurait JAMAIS abouti et aurait toujours enregistré null, sans erreur.
+      // Tant qu'aucun pseudo public n'est rattaché au compte, la marque
+      // identifie le candidat par `applicant_id`. À compléter le jour où les
+      // profils porteront un pseudo.
+      handle: null,
+    });
+    if (error && error.code !== "23505") { // 23505 = déjà candidat, sans gravité
+      showToast(uiLang === "fr" ? `Candidature refusée : ${error.message}` : `Application failed: ${error.message}`, "warning");
+      return;
+    }
+    setAppliedGigIds(prev => [...prev, gigId]);
     showToast(uiLang === "fr" ? "✅ Candidature envoyée à la marque !" : uiLang === "it" ? "✅ Candidatura inviata al brand!" : "✅ Application sent to the brand!");
   };
 
   // Moteur d'attribution de Staffing IA (Agency 1-Click)
-  const runAiStaffing = () => {
+  const runAiStaffing = async () => {
+    if (!supabase || !userId) { showToast(uiLang === "fr" ? "Connectez-vous pour affecter des talents." : "Sign in to staff gigs.", "warning"); return; }
     setMatchingLoader(true);
-    setTimeout(() => {
-      const openGigs = gigs.filter(g => g.status === "open");
+    try {
+      // ⚠️ On ne peut affecter que SES propres missions : la RLS refuse de
+      // modifier celle d'une autre agence. On filtre donc en amont plutôt que
+      // de laisser l'écriture échouer silencieusement en fin de parcours.
+      const openGigs = gigs.filter(g => g.status === "open" && g.ownerId === userId);
       if (openGigs.length === 0) {
-        showToast(uiLang === "fr" ? "Toutes les offres de missions ont déjà été assignées !" : "All gigs have already been staffed!", "warning");
-        setMatchingLoader(false);
+        showToast(uiLang === "fr" ? "Toutes vos offres de missions ont déjà été assignées !" : "All your gigs have already been staffed!", "warning");
         return;
       }
-      
-      const newContracts = [];
-      const updatedGigs = gigs.map(g => {
-        if (g.status === "open") {
-          // Trouver un talent dans le roster actif qui match la niche du contrat et n'a pas déjà de contrat pour cette marque
-          const targetTalent = talents.find(t => t.status === "active" && t.niche === g.niche && !contracts.some(c => c.talentName === t.username && c.brandName === g.brand));
-          
-          if (targetTalent) {
-            newContracts.push({
-              id: `c_auto_${Date.now()}_${g.id}`,
-              talentName: targetTalent.username,
-              brandName: g.brand,
-              title: g.title,
-              budget: g.budget,
-              status: "signature"
-            });
-            return { ...g, status: "filled" };
-          }
-        }
-        return g;
-      });
 
-      if (newContracts.length > 0) {
-        setGigs(updatedGigs);
-        setContracts([...newContracts, ...contracts]);
-        setAiMatchesResult(newContracts);
-      } else {
-        showToast(t.noPending, "warning");
+      const rows = [];
+      const staffedGigIds = [];
+      const takenPairs = new Set(contracts.map(c => `${c.talentName}|${c.brandName}`));
+      for (const g of openGigs) {
+        const target = talents.find(t =>
+          t.status === "active" && t.niche === g.niche && !takenPairs.has(`${t.username}|${g.brand}`)
+        );
+        if (!target) continue;
+        takenPairs.add(`${target.username}|${g.brand}`); // évite deux contrats identiques dans le même passage
+        rows.push({
+          owner_id: userId, gig_id: g.id, talent_id: target.id,
+          talent_name: target.username, brand_name: g.brand,
+          title: g.title, budget: g.budget, status: "signature",
+        });
+        staffedGigIds.push(g.id);
       }
+
+      if (rows.length === 0) { showToast(t.noPending, "warning"); return; }
+
+      const { data: created, error: cErr } = await supabase.from("agency_contracts").insert(rows).select();
+      if (cErr) { showToast(`${uiLang === "fr" ? "Affectation refusée" : "Staffing failed"} : ${cErr.message}`, "warning"); return; }
+
+      // Les missions ne passent en « pourvue » qu'APRÈS la création réussie des
+      // contrats : l'inverse laisserait des missions fermées sans contrat en
+      // face si l'écriture échouait.
+      const { error: gErr } = await supabase.from("agency_gigs")
+        .update({ status: "filled" }).in("id", staffedGigIds);
+      if (gErr) console.warn("⚠️ Missions non basculées en « pourvue » :", gErr.message);
+
+      const newContracts = (created || []).map(contractFromRow);
+      setGigs(prev => prev.map(g => staffedGigIds.includes(g.id) ? { ...g, status: "filled" } : g));
+      setContracts(prev => [...newContracts, ...prev]);
+      setAiMatchesResult(newContracts);
+    } finally {
       setMatchingLoader(false);
-    }, 2000);
+    }
   };
 
-  const approvePending = (talentId) => {
+  // ⚠️ Les trois transitions du pipeline (signé → produit envoyé → contenu créé
+  // → live) ne modifiaient que l'état React : l'agence avançait ses contrats,
+  // rechargeait la page, et retrouvait tout au point de départ. C'est pourtant
+  // le tableau qu'elle regarde tous les jours.
+  const advanceContract = async (contractId, nextStatus) => {
+    if (!supabase || !userId) return;
+    setContracts(prev => prev.map(cr => cr.id === contractId ? { ...cr, status: nextStatus } : cr));
+    const { error } = await supabase.from("agency_contracts").update({ status: nextStatus }).eq("id", contractId);
+    if (error) {
+      // Retour arrière visible : un contrat qui semble avancé mais ne l'est pas
+      // en base est pire qu'une erreur affichée.
+      console.error("❌ Avancement du contrat :", error.message);
+      showToast(`${uiLang === "fr" ? "Étape non enregistrée" : "Step not saved"} : ${error.message}`, "warning");
+      loadAgencyData();
+    }
+  };
+
+  const approvePending = async (talentId) => {
+    if (!supabase || !userId) return;
+    const { error } = await supabase.from("agency_talents").update({ status: "active" }).eq("id", talentId);
+    if (error) { showToast(`${uiLang === "fr" ? "Validation refusée" : "Approval failed"} : ${error.message}`, "warning"); return; }
     setTalents(prev => prev.map(t => t.id === talentId ? { ...t, status: "active" } : t));
   };
 
@@ -541,6 +643,35 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
 
           {/* Roster talents grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            {/* Mêmes trois états distincts que pour les missions : un
+                portefeuille vide et un chargement en échec se ressemblent, et
+                c'est la confusion qui coûte le plus cher à diagnostiquer. */}
+            {dataLoading && currentUserRole !== "influencer" && (
+              <div style={{ gridColumn: "1 / -1", padding: 28, textAlign: "center", color: c.textDim, fontSize: 13 }}>
+                {uiLang === "fr" ? "Chargement du portefeuille…" : uiLang === "it" ? "Caricamento del portafoglio…" : "Loading roster…"}
+              </div>
+            )}
+            {!dataLoading && dataError && currentUserRole !== "influencer" && (
+              <div style={{ gridColumn: "1 / -1", padding: 20, borderRadius: 12, border: `1px solid ${c.error}55`, background: `${c.error}11`, color: c.error, fontSize: 13 }}>
+                {uiLang === "fr" ? "Le portefeuille n'a pas pu être chargé" : "Roster could not be loaded"} — {dataError}
+                <button onClick={loadAgencyData} style={{ marginLeft: 10, padding: "5px 12px", borderRadius: 8, border: `1px solid ${c.error}`, background: "transparent", color: c.error, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                  {uiLang === "fr" ? "Réessayer" : "Retry"}
+                </button>
+              </div>
+            )}
+            {!dataLoading && !dataError && currentUserRole !== "influencer" && talents.length === 0 && (
+              <div style={{ gridColumn: "1 / -1", padding: 40, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 14 }}>
+                <div style={{ fontSize: 34, marginBottom: 10 }}>🎯</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: c.text, marginBottom: 6 }}>
+                  {uiLang === "fr" ? "Votre portefeuille est vide" : uiLang === "it" ? "Il tuo portafoglio è vuoto" : "Your roster is empty"}
+                </div>
+                <div style={{ fontSize: 13, color: c.textDim, lineHeight: 1.5, maxWidth: 420, margin: "0 auto" }}>
+                  {uiLang === "fr" ? "Ajoutez un créateur avec le formulaire ci-dessus, ou importez-le depuis son profil Instagram. Votre portefeuille est privé : aucune autre agence n'y a accès."
+                    : uiLang === "it" ? "Aggiungi un creator dal modulo qui sopra, o importalo dal suo profilo Instagram. Il tuo portafoglio è privato: nessun'altra agenzia vi accede."
+                    : "Add a creator with the form above, or import one from their Instagram profile. Your roster is private: no other agency can access it."}
+                </div>
+              </div>
+            )}
             {currentUserRole === "influencer" ? (
               <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px", color: c.textMuted, background: c.card, borderRadius: 14, border: `1px dashed ${c.border}` }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
@@ -881,6 +1012,36 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                   <div style={{ fontSize: 11, fontWeight: 800, color: c.warning, fontFamily: mono }}>
                     {t.weeklyRemaining(Math.max(0, WEEKLY_PROPOSAL_LIMIT - weeklyProposalCount))}
                   </div>
+                </div>
+              </div>
+            )}
+            {/* ⚠️ Trois états bien distincts. Confondre « en cours de
+                chargement », « en panne » et « réellement vide » est ce qui a
+                fait croire pendant des semaines que le Marketplace n'avait
+                aucune adoption, alors qu'une requête échouait en silence. */}
+            {dataLoading && (
+              <div style={{ padding: 28, textAlign: "center", color: c.textDim, fontSize: 13 }}>
+                {uiLang === "fr" ? "Chargement des missions…" : uiLang === "it" ? "Caricamento delle missioni…" : "Loading gigs…"}
+              </div>
+            )}
+            {!dataLoading && dataError && (
+              <div style={{ padding: 20, borderRadius: 12, border: `1px solid ${c.error}55`, background: `${c.error}11`, color: c.error, fontSize: 13 }}>
+                {uiLang === "fr" ? "Les missions n'ont pas pu être chargées" : "Gigs could not be loaded"} — {dataError}
+                <button onClick={loadAgencyData} style={{ marginLeft: 10, padding: "5px 12px", borderRadius: 8, border: `1px solid ${c.error}`, background: "transparent", color: c.error, fontWeight: 700, cursor: "pointer", fontSize: 12 }}>
+                  {uiLang === "fr" ? "Réessayer" : "Retry"}
+                </button>
+              </div>
+            )}
+            {!dataLoading && !dataError && gigs.length === 0 && (
+              <div style={{ padding: 32, textAlign: "center", border: `1px dashed ${c.border}`, borderRadius: 14 }}>
+                <div style={{ fontSize: 30, marginBottom: 8 }}>📋</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: c.text, marginBottom: 6 }}>
+                  {uiLang === "fr" ? "Aucune mission ouverte pour l'instant" : uiLang === "it" ? "Nessuna missione aperta per ora" : "No open gigs yet"}
+                </div>
+                <div style={{ fontSize: 12.5, color: c.textDim, lineHeight: 1.5 }}>
+                  {uiLang === "fr" ? "Publiez une mission depuis l'onglet Marque : les créateurs de la niche la verront et pourront candidater."
+                    : uiLang === "it" ? "Pubblica una missione dalla scheda Brand: i creator della nicchia la vedranno e potranno candidarsi."
+                    : "Post a gig from the Brand tab: creators in that niche will see it and can apply."}
                 </div>
               </div>
             )}
@@ -1298,7 +1459,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                       {contract.status === "signature" ? (
                         <button 
                           onClick={() => {
-                            setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "produit_envoye" } : cr));
+                            advanceContract(contract.id, "produit_envoye");
                             setActiveModal(null);
                             showToast(uiLang === 'fr' ? '✅ Contrat signé numériquement. Expédition du produit déverrouillée !' : '✅ Contract digitally signed. Product shipping unlocked!');
                           }}
@@ -1383,7 +1544,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                   <div style={{ display: "flex", gap: 10 }}>
                     <button
                       onClick={() => {
-                        setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "contenu_cree" } : cr));
+                        advanceContract(contract.id, "contenu_cree");
                         setActiveModal(prev => ({ ...prev, contract: { ...prev.contract, status: "contenu_cree" }, type: 'review' }));
                         showToast(uiLang === "fr"
                           ? "📦 Colis livré ! Transition vers la Revue UGC 🎥"
@@ -1491,7 +1652,7 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                   <div style={{ display: "flex", gap: 10 }}>
                     <button
                       onClick={() => {
-                        setContracts(prev => prev.map(cr => cr.id === contract.id ? { ...cr, status: "live" } : cr));
+                        advanceContract(contract.id, "live");
                         setActiveModal(prev => ({ ...prev, contract: { ...prev.contract, status: "live" }, type: 'roi' }));
                         showToast(uiLang === "fr"
                           ? "✅ UGC Approuvé ! Campagne LIVE — Suivi ROI activé 🚀"
