@@ -87,6 +87,12 @@ const T = {
   },
 };
 
+const formatTime = (s) => {
+  if (!Number.isFinite(s) || s < 0) return "0:00";
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+};
+
 // ─── Lecteur vidéo du feed ──────────────────────────────────────────────────
 // Un <video> nu ne se met ni en pause ni en avance rapide : sur TikTok, toucher
 // l'image met en pause et la barre du bas permet de se déplacer dans la vidéo.
@@ -187,6 +193,7 @@ function FeedVideo({ video, soundOn, setSoundOn, registerRef, t, isPausedByUser,
         onClick={(e) => { e.stopPropagation(); setSoundOn(v => !v); }}
         aria-label={soundOn ? t.soundOff : t.soundOn}
         title={soundOn ? t.soundOff : t.soundOn}
+        className="feed-top-control"
         style={{
           position: "absolute", top: 14, left: 14, width: 40, height: 40, borderRadius: "50%",
           border: "none", cursor: "pointer", color: "#fff", background: "rgba(0,0,0,0.45)",
@@ -231,21 +238,55 @@ function FeedVideo({ video, soundOn, setSoundOn, registerRef, t, isPausedByUser,
           if (e.key === " ")          { togglePlay(); e.preventDefault(); }
         }}
         style={{
-          position: "absolute", left: 0, right: 0, bottom: 0, height: 22,
+          position: "absolute",
+          // ⚠️ Marges latérales volontaires : les bords de l'écran sont réservés
+          // aux gestes du système (retour Android, changement d'app iOS). Une
+          // barre collée au bord se faisait voler le doigt avant l'application.
+          left: 12, right: 12,
+          // Idem en bas : la zone du trait d'accueil intercepte le glissement.
+          // On remonte au-dessus, en tenant compte de l'encoche via env().
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
+          // Cible tactile de 44 px, la taille minimale utilisable au doigt,
+          // alors que le trait n'en fait que 4 : c'est ce décalage qui rendait
+          // la barre « à peine attrapable ».
+          height: 44,
           display: "flex", alignItems: "flex-end", cursor: "pointer",
-          touchAction: "none", zIndex: 4,
+          touchAction: "none", zIndex: 6,
         }}
       >
-        <div style={{ position: "relative", width: "100%", height: dragging ? 6 : 3, background: "rgba(255,255,255,0.25)", transition: "height 0.15s" }}>
-          <div style={{ position: "absolute", inset: 0, width: `${pct}%`, background: "#fff", transition: dragging ? "none" : "width 0.15s linear" }} />
-          {dragging && (
-            <div style={{
-              position: "absolute", top: "50%", left: `${pct}%`, width: 13, height: 13,
-              marginLeft: -6.5, transform: "translateY(-50%)", borderRadius: "50%",
-              background: "#fff", boxShadow: "0 0 8px rgba(0,0,0,0.6)",
-            }} />
-          )}
+        <div style={{
+          position: "relative", width: "100%", height: dragging ? 8 : 4, borderRadius: 4,
+          background: "rgba(255,255,255,0.3)", transition: "height 0.15s",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.5)", // détache le trait des images claires
+        }}>
+          <div style={{
+            position: "absolute", top: 0, bottom: 0, left: 0, width: `${pct}%`, borderRadius: 4,
+            background: "#fff", transition: dragging ? "none" : "width 0.15s linear",
+          }} />
+          {/* Poignée toujours visible : sans repère, rien n'indique que la barre
+              se saisit — elle passait pour une simple jauge décorative. */}
+          <div style={{
+            position: "absolute", top: "50%", left: `${pct}%`,
+            width: dragging ? 18 : 12, height: dragging ? 18 : 12,
+            marginLeft: dragging ? -9 : -6, transform: "translateY(-50%)",
+            borderRadius: "50%", background: "#fff",
+            boxShadow: "0 1px 6px rgba(0,0,0,0.7)",
+            transition: "width 0.15s, height 0.15s, margin-left 0.15s",
+          }} />
         </div>
+
+        {/* Position chiffrée pendant le déplacement : sans elle, on navigue à
+            l'aveugle dans une vidéo dont on ne voit pas l'image sous le doigt. */}
+        {dragging && duration > 0 && (
+          <div style={{
+            position: "absolute", bottom: 22, left: "50%", transform: "translateX(-50%)",
+            padding: "4px 10px", borderRadius: 10, background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(6px)", color: "#fff", fontSize: 12, fontWeight: 700,
+            whiteSpace: "nowrap", pointerEvents: "none",
+          }}>
+            {formatTime(progress * duration)} / {formatTime(duration)}
+          </div>
+        )}
       </div>
     </>
   );
@@ -295,7 +336,7 @@ function FeedCarousel({ images, product }) {
       {/* Points de progression : sans eux, rien n'indique qu'il y a d'autres
           photos à droite — le carrousel passe pour une simple image fixe. */}
       {images.length > 1 && (
-        <div style={{
+        <div className="feed-top-control" style={{
           position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
           display: "flex", gap: 5, zIndex: 3, padding: "5px 9px", borderRadius: 12,
           background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)",
@@ -315,7 +356,7 @@ function FeedCarousel({ images, product }) {
         </div>
       )}
 
-      <div style={{
+      <div className="feed-top-control" style={{
         position: "absolute", top: 14, right: 14, zIndex: 3, padding: "4px 9px", borderRadius: 10,
         background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)", color: "#fff",
         fontSize: 11, fontWeight: 700,
@@ -1041,8 +1082,12 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         </div>
       ) : (
       <>
+      {/* Pile contrôles + feed. Sur mobile, les contrôles se superposent à la
+          vidéo au lieu de l'écraser vers le bas : empilés, ils mangeaient près
+          d'un cinquième de la hauteur d'écran. */}
+      <div className="feed-stack">
       {/* Search & niche filters — lets brands find specific creator UGC by keyword */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 20 }}>
+      <div className="feed-controls" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginBottom: 20 }}>
         <div style={{ position: "relative", width: "100%", maxWidth: 420 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.textDim} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input
@@ -1053,11 +1098,12 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
             style={{ width: "100%", padding: "11px 14px 11px 40px", borderRadius: 12, border: `1px solid ${c.border}`, background: c.card, color: c.text, fontSize: 13.5, outline: "none" }}
           />
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
+        <div className="niche-row" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
           {niches.map(niche => (
             <button
               key={niche}
               onClick={() => setActiveNiche(niche)}
+              className={`niche-pill${activeNiche === niche ? " is-active" : ""}`}
               style={{
                 padding: "6px 14px", borderRadius: 20, border: `1px solid ${activeNiche === niche ? "transparent" : c.border}`,
                 background: activeNiche === niche ? "linear-gradient(135deg, #8B5CF6, #EC4899)" : "transparent",
@@ -1074,7 +1120,11 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         <div ref={scrollRef} className="video-feed-scroll" style={{
           width: "100%", maxWidth: 420, height: "var(--feed-h, 78vh)", borderRadius: "var(--feed-radius, 24px)", overflowY: "scroll",
           scrollSnapType: "y mandatory", background: "#000", border: `1px solid ${c.border}`,
-          boxShadow: "0 30px 80px rgba(0,0,0,0.5)", position: "relative"
+          boxShadow: "0 30px 80px rgba(0,0,0,0.5)", position: "relative",
+          // ⚠️ Sans cela, arriver en haut ou en bas du feed transmet le
+          // défilement à la page entière : l'écran « bougeait » sous le doigt
+          // au lieu de rester stable sur la vidéo.
+          overscrollBehavior: "contain",
         }}>
           {filteredVideos.length === 0 && (
             <div className="video-slide" style={{ height: "var(--feed-h, 78vh)", display: "flex", alignItems: "center", justifyContent: "center", color: "#A1A1AA", fontSize: 14, textAlign: "center", padding: 24 }}>
@@ -1100,8 +1150,17 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
                   sinon il intercepterait le tap de pause et la barre de progression. */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 30%, transparent 55%, rgba(0,0,0,0.9) 100%)", pointerEvents: "none" }} />
 
-              {/* Bottom-left: creator + product info */}
-              <div style={{ position: "absolute", bottom: 20, left: 16, right: 90, color: "#fff" }}>
+              {/* Informations créateur + produit.
+                  `pointerEvents: none` : ce bloc n'est que du texte, et il
+                  couvrait toute la largeur au-dessus de la barre de progression.
+                  Il absorbait donc les glissements destinés à celle-ci, ce qui
+                  faisait défiler le feed au lieu de naviguer dans la vidéo.
+                  Le bas est calé sur l'encoche pour ne jamais chevaucher la
+                  barre, quelle que soit la hauteur du trait d'accueil. */}
+              <div style={{
+                position: "absolute", bottom: "calc(env(safe-area-inset-bottom, 0px) + 62px)",
+                left: 16, right: 90, color: "#fff", pointerEvents: "none",
+              }}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
                   @{video.username}
                   <span style={{ fontSize: 10, background: "rgba(139,92,246,0.4)", padding: "2px 8px", borderRadius: 10, fontWeight: 700, textTransform: "uppercase" }}>{nicheLabel(video.niche)}</span>
@@ -1120,7 +1179,9 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               </div>
 
               {/* Right-side action rail (TikTok-style) */}
-              <div className="video-action-rail" style={{ position: "absolute", bottom: 24, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+              {/* Remonté de 24 à 64 px : à 24, le dernier bouton tombait dans la
+                  zone tactile de la barre de progression. */}
+              <div className="video-action-rail" style={{ position: "absolute", bottom: 64, right: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
                 {/* LIKE — geste public, avec compteur visible de tous. */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: "#fff" }}>
                   <button
@@ -1207,13 +1268,14 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
               </div>
 
               {toast === video.id && (
-                <div style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(0,0,0,0.85)", color: "#fff", padding: "10px 20px", borderRadius: 30, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", animation: "fadeIn 0.2s ease-out" }}>
+                <div className="feed-top-control" style={{ position: "absolute", top: 20, left: "50%", transform: "translateX(-50%)", zIndex: 30, background: "rgba(0,0,0,0.85)", color: "#fff", padding: "10px 20px", borderRadius: 30, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", animation: "fadeIn 0.2s ease-out" }}>
                   {t.soon}
                 </div>
               )}
             </div>
           ))}
         </div>
+      </div>
       </div>
       </>
       )}
@@ -1342,8 +1404,68 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
              largeur reste plafonnée à celle du parent — il manquait donc
              exactement la marge à droite. On repart de la largeur du viewport
              et on relève le plafond, sinon la correction est annulée. */
+          /* ─── Contrôles superposés à la vidéo ────────────────────────────
+             Empilés au-dessus du feed, la recherche et les niches occupaient
+             près d'un cinquième de la hauteur d'écran, et les niches passaient
+             sur deux lignes. On les superpose comme TikTok, sur un dégradé qui
+             garde le texte lisible quelle que soit l'image dessous.
+             ⚠️ Pour revenir en arrière : supprimer ce bloc .feed-controls et
+             remettre --feed-h a calc(100dvh - 130px). Rien d'autre a defaire. */
+          .feed-stack { position: relative; }
+          .feed-controls {
+            position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+            margin-bottom: 0 !important;
+            padding: 10px 12px 30px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 55%, transparent 100%);
+            /* Le dégradé couvre le haut de la vidéo : sans cela il volerait le
+               tap de pause et le bouton du son sur toute cette bande. */
+            pointer-events: none;
+          }
+          .feed-controls input, .feed-controls button { pointer-events: auto; }
+
+          /* Les champs étaient stylés pour un fond de page clair ; sur une
+             vidéo ils devenaient illisibles. */
+          .feed-controls .input-premium {
+            background: rgba(0,0,0,0.45) !important;
+            border-color: rgba(255,255,255,0.28) !important;
+            color: #fff !important;
+            backdrop-filter: blur(10px);
+          }
+          .feed-controls .input-premium::placeholder { color: rgba(255,255,255,0.65); }
+          .feed-controls svg { stroke: rgba(255,255,255,0.75); }
+
+          /* Une seule ligne défilante au lieu de deux lignes qui se replient :
+             c'est ce repli qui doublait la hauteur du bandeau. */
+          .niche-row {
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            overflow-x: auto;
+            width: 100%;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+          .niche-row::-webkit-scrollbar { display: none; }
+
+          /* ⚠️ Le bandeau superposé recouvre exactement l'emplacement du bouton
+             du son, des points de carrousel et du toast. Sans ce décalage, le
+             champ de recherche se posait dessus et les rendait incliquables. */
+          .feed-top-control { top: 138px !important; }
+          .niche-pill { flex: 0 0 auto; }
+          .feed-controls .niche-pill {
+            background: rgba(0,0,0,0.45) !important;
+            border-color: rgba(255,255,255,0.28) !important;
+            color: #fff !important;
+            backdrop-filter: blur(10px);
+          }
+          .feed-controls .niche-pill.is-active {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899) !important;
+            border-color: transparent !important;
+          }
+
           .video-feed-outer {
-            --feed-h: calc(100dvh - 130px);
+            /* Les contrôles ne poussent plus rien : le feed récupère leur
+               hauteur et occupe presque tout l'écran. */
+            --feed-h: calc(100dvh - 20px);
             --feed-radius: 0px;
             width: 100vw !important;
             max-width: 100vw !important;
@@ -1366,7 +1488,7 @@ export default function VideoMarketplaceTab({ c, mono, uiLang, userId, API_URL }
         /* Très petits écrans : la barre d'onglets du navigateur prend moins de
            place, on récupère la hauteur correspondante. */
         @media (max-width: 400px) {
-          .video-feed-outer { --feed-h: calc(100dvh - 112px); }
+          .video-feed-outer { --feed-h: calc(100dvh - 12px); }
         }
       `}</style>
     </div>
