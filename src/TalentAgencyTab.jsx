@@ -857,47 +857,68 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
                     </div>
 
                   {/* Status switches */}
-                  <div style={{ display: "flex", gap: 4 }}>
+                  {/* ⚠️ Ces quatre etapes etaient ecrasees dans la largeur
+                      disponible : le break-word global d'index.css cesurait
+                      alors les libelles en plein mot (« Produ / it expéd / ié »,
+                      « Vérifica / tion »). Une rangee defilante conserve les
+                      mots entiers. */}
+                  <div className="contract-steps" style={{ display: "flex", gap: 4 }}>
                     <span style={{
                       fontSize: 10.5, padding: "4px 10px", borderRadius: 6, fontWeight: 600, fontFamily: mono,
+                      whiteSpace: "nowrap", flexShrink: 0,
                       background: contract.status === "signature" ? "rgba(167, 139, 250, 0.15)" : "transparent",
                       border: `1px solid ${contract.status === "signature" ? c.accent2 : "rgba(255,255,255,0.05)"}`,
                       color: contract.status === "signature" ? c.accent2 : c.textDim,
                       cursor: "pointer", display: "flex", alignItems: "center", gap: 4
-                    }} onClick={() => {
+                    }}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
+                    onClick={() => {
                       setActiveModal({ type: 'contract', contract });
                     }}>
                       📜 {uiLang === 'fr' ? 'Contrat' : (uiLang === 'it' ? 'Contratto' : 'Contract')}
                     </span>
                     <span style={{
                       fontSize: 10.5, padding: "4px 10px", borderRadius: 6, fontWeight: 600, fontFamily: mono,
+                      whiteSpace: "nowrap", flexShrink: 0,
                       background: contract.status === "produit_envoye" ? c.warningBg : "transparent",
                       border: `1px solid ${contract.status === "produit_envoye" ? c.warning : "rgba(255,255,255,0.05)"}`,
                       color: contract.status === "produit_envoye" ? c.warning : c.textDim,
                       cursor: contract.status === "signature" ? "not-allowed" : "pointer"
-                    }} onClick={() => {
+                    }}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
+                    onClick={() => {
                       if (contract.status !== "signature") setActiveModal({ type: 'shipping', contract });
                     }}>
                       {t.prodShipped}
                     </span>
                     <span style={{
                       fontSize: 10.5, padding: "4px 10px", borderRadius: 6, fontWeight: 600, fontFamily: mono,
+                      whiteSpace: "nowrap", flexShrink: 0,
                       background: contract.status === "contenu_cree" ? c.accentSoft : "transparent",
                       border: `1px solid ${contract.status === "contenu_cree" ? c.accent : "rgba(255,255,255,0.05)"}`,
                       color: contract.status === "contenu_cree" ? c.accent : c.textDim,
                       cursor: "pointer"
-                    }} onClick={() => {
+                    }}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
+                    onClick={() => {
                       setActiveModal({ type: 'review', contract });
                     }}>
                       {t.contentCreated}
                     </span>
                     <span style={{
                       fontSize: 10.5, padding: "4px 10px", borderRadius: 6, fontWeight: 600, fontFamily: mono,
+                      whiteSpace: "nowrap", flexShrink: 0,
                       background: contract.status === "live" ? c.successSoft : "transparent",
                       border: `1px solid ${contract.status === "live" ? c.success : "rgba(255,255,255,0.05)"}`,
                       color: contract.status === "live" ? c.success : c.textDim,
                       cursor: "pointer"
-                    }} onClick={() => {
+                    }}
+                    role="button" tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.currentTarget.click(); } }}
+                    onClick={() => {
                       setActiveModal({ type: 'roi', contract });
                     }}>
                       {t.liveCampaign}
@@ -1797,6 +1818,27 @@ export default function TalentAgencyTab({ c, mono, API_URL, uiLang, onImportLead
       <style>{`
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
+
+        /* Les quatre etapes du contrat defilent plutot que de s'ecraser :
+           ecrasees, leurs libelles se coupaient en plein mot. */
+        .contract-steps {
+          overflow-x: auto;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+        }
+        .contract-steps::-webkit-scrollbar { display: none; }
+        @media (max-width: 768px) {
+          .contract-steps {
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
+          }
+        }
+        /* Etape active atteignable au clavier : ce sont des <span> cliquables,
+           donc invisibles a la navigation par tabulation sans cela. */
+        .contract-steps [role="button"]:focus-visible {
+          outline: 2px solid #8B5CF6;
+          outline-offset: 2px;
+        }
       `}</style>
 
       {/* Agency toast notification */}

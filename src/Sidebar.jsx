@@ -11,13 +11,20 @@ export default function Sidebar({
   researchMenuOpen, setResearchMenuOpen,
   userTier, setShowUpgradeModal,
   profileMenuOpen, setProfileMenuOpen,
-  userId, uiLang, setUiLang, theme, setTheme,
+  userEmail, uiLang, setUiLang, theme, setTheme,
   mobileMenuOpen, setMobileMenuOpen,
   collapsed = false, setCollapsed,
 }) {
   const { hasTabAccess, userRole } = useRole();
   // Les onglets adminOnly (ex. Connaissances IA) n'apparaissent que pour l'admin.
   const visibleTabs = TABS.filter(tab => !tab.adminOnly || userRole === "admin");
+
+  // ⚠️ On affichait `userId`, c'est-à-dire l'UUID Supabase brut :
+  // « d74dee3e-d000-4966-a72f-b65029cf23e8 » en guise de nom de compte.
+  // L'adresse e-mail est déjà disponible et parle à l'utilisateur ; l'UUID ne
+  // sert qu'au débogage et n'a rien à faire dans l'interface.
+  const accountLabel = userEmail
+    || (uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account");
   const researchTabs = visibleTabs.filter(tab => tab.group === "research");
   const toolTabs = visibleTabs.filter(tab => tab.group === "tools");
   const lockedLabel = uiLang === "fr" ? "Réservé aux forfaits Plus, Pro & Elite" : uiLang === "it" ? "Riservato ai piani Plus, Pro e Elite" : "Reserved for Plus, Pro & Elite plans";
@@ -146,17 +153,17 @@ export default function Sidebar({
 
       {/* 👤 Profile Settings (Minea style) */}
       <div style={{ position: 'relative', marginTop: 'auto' }}>
-        <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} title={isCollapsed ? (userId || 'Account') : undefined} style={{
+        <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} title={isCollapsed ? accountLabel : undefined} style={{
           width: '100%', background: c.card, border: `1.5px solid ${c.border}`, borderRadius: 12, padding: isCollapsed ? '8px 0' : '12px 14px',
           display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', cursor: 'pointer',
           transition: 'all 0.2s'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : 10 }}>
-            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userId || 'VA')}&background=8B5CF6&color=fff&size=100&rounded=true`} style={{ width: 32, height: 32, borderRadius: '50%' }} alt='User' />
+            <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(accountLabel)}&background=8B5CF6&color=fff&size=100&rounded=true`} style={{ width: 32, height: 32, borderRadius: '50%' }} alt='User' />
             {!isCollapsed && (
               <div style={{ textAlign: 'left', overflow: 'hidden' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: c.text, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: 140 }}>
-                  {userId || (uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account")}
+                  {accountLabel}
                 </div>
                 <div style={{ fontSize: 11, color: c.textDim, textTransform: 'uppercase', letterSpacing: 0.5 }}>{userTier}</div>
               </div>
@@ -172,7 +179,7 @@ export default function Sidebar({
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)', zIndex: 100, display: 'flex', flexDirection: 'column'
           }}>
             <div style={{ padding: '8px 16px', borderBottom: `1px solid ${c.border}`, marginBottom: 4 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{userId || (uiLang === "fr" ? "Mon compte" : uiLang === "it" ? "Il mio account" : "My account")}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.text }}>{accountLabel}</div>
               <div style={{ fontSize: 11, color: c.textMuted }}>{uiLang === "fr" ? "Compte" : uiLang === "it" ? "Account" : "Account"} {userTier}</div>
             </div>
 

@@ -56,32 +56,26 @@ export default function ResourcesTab({ c, mono, uiLang, userTier, onUpgradeTier,
   const [upgradeMessage, setUpgradeMessage] = useState("");
   
   // Interactive Enhancements States
-  const [liveViewers, setLiveViewers] = useState(142);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [activeReminder, setActiveReminder] = useState(null); // id of session with reminder active
   const [watchedSessions, setWatchedSessions] = useState(new Set(["session_1"])); // Track watched training sessions
 
   // Live Webinar Chat Message State
-  const [chatMessages, setChatMessages] = useState([
-    { user: "Sarah_K", text: uiLang === 'fr' ? "Le calcul du Chiffre d'Affaires avec le taux de conversion de 1.8% est vraiment précis pour ma boutique !" : (uiLang === 'it' ? "La stima del fatturato con tasso del 1.8% è incredibilmente accurata per il mio negozio!" : "The revenue estimation with the 1.8% CR is super accurate for my shop!"), time: "09:42" },
-    { user: "Antonio_M", text: uiLang === 'fr' ? "Brejnev, tu conseilles quel agent logistique pour expédier en Italie ?" : (uiLang === 'it' ? "Brejnev, quale agente consigli per spedire e sdoganare in Italia?" : "Brejnev, which shipping agent do you recommend for Italy?"), time: "09:44" },
-    { user: "Brejnev Diaz 👑", text: uiLang === 'fr' ? "Ciao Antonio, je vais répondre en direct dans 2 minutes et te donner nos contacts d'agents privés à Florence." : (uiLang === 'it' ? "Ciao Antonio, rispondo in diretta tra 2 minuti e ti passo i contatti dei nostri agenti a Firenze." : "Ciao Antonio, I will answer live in 2 minutes and give you our private agents contacts in Florence."), time: "09:45" }
-  ]);
+  // ⚠️ VIDÉ le 28/07/2026 — ce fil démarrait avec trois messages inventés
+  // (« Sarah_K », « Antonio_M ») dont un attribué à Brejnev Diaz promettant de
+  // répondre « en direct dans 2 minutes ». C'est de la preuve sociale
+  // fabriquée : elle simule une communauté active qui n'existe pas, et met dans
+  // la bouche du dirigeant un engagement qu'il n'a jamais pris.
+  // Le fil démarre désormais vide. Les messages saisis restent locaux à la
+  // session — il n'y a pas encore de salon de discussion côté serveur.
+  const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
 
-  // Live Viewers dynamic count oscillation
-  useEffect(() => {
-    if (activeVipTab === "coaching") {
-      const interval = setInterval(() => {
-        setLiveViewers(prev => {
-          const delta = Math.random() > 0.55 ? 1 : -1;
-          const newVal = prev + delta;
-          return newVal > 130 && newVal < 160 ? newVal : prev;
-        });
-      }, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [activeVipTab]);
+  // ⚠️ SUPPRIMÉ le 28/07/2026 — un minuteur faisait osciller un faux compteur
+  // de spectateurs entre 130 et 160 toutes les 3 secondes, pour donner
+  // l'illusion d'une audience en direct. Nous ne mesurons aucune fréquentation :
+  // il n'y a donc aucun chiffre honnête à afficher, et un chiffre inventé sur
+  // une page vendue 299 €/mois est une allégation commerciale trompeuse.
 
   const t = {
     fr: {
@@ -627,7 +621,15 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
   return (
     <div style={{ animation: "fadeIn 0.4s ease-out", display: "flex", flexDirection: "column", gap: 32 }}>
       
-      {/* ── SIMULATION SELECTOR FOR TESTING TIER ACCESS ── */}
+      {/* ── Sélecteur de palier — OUTIL DE DÉVELOPPEMENT ──────────────────────
+          ⚠️ Réservé au développement depuis le 28/07/2026.
+          Il était visible par TOUS les visiteurs, en production, sur la page où
+          l'on vend : elle affichait donc les tarifs 99 € et 299 € à côté du mot
+          « Test », avec des boutons qui ne faisaient rien — `onUpgradeTier`
+          n'est jamais passé par App.jsx. Un prospect en conclut que le produit
+          est cassé.
+          La souscription réelle passe par le PaywallModal et Stripe. */}
+      {import.meta.env.DEV && (
       <div style={{
         background: `linear-gradient(135deg, ${c.card}, rgba(139, 92, 246, 0.05))`,
         border: `1.5px solid ${c.border}`,
@@ -687,6 +689,7 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
           ))}
         </div>
       </div>
+      )}
 
       {/* ── PREMIUM TIER COMPARISON PAYWALL OVERLAY ── */}
       {lockedTarget && (
@@ -811,27 +814,75 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
             {/* Live Streaming Video & Training List */}
             <div style={{ flex: "2 1 360px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
               
-              {/* Active Webinar box with live viewer count oscillation */}
-              <div style={{ position: "relative", width: "100%", height: 320, borderRadius: 14, overflow: "hidden", background: "#000", border: `1.5px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <video 
-                  autoPlay 
-                  loop 
-                  muted 
-                  playsInline 
-                  src="https://assets.mixkit.co/videos/preview/mixkit-man-working-on-his-laptop-in-a-coffee-shop-41865-large.mp4" 
-                  style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.75 }}
-                />
-                <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(220, 38, 38, 0.9)", color: "#fff", padding: "4px 10px", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 10.5, fontFamily: mono, boxShadow: "0 0 10px rgba(220, 38, 38, 0.4)" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "pulse 1.2s infinite" }}></span>
-                  LIVE 🔴
-                </div>
-                <div style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.65)", color: "#fff", padding: "4px 8px", borderRadius: 6, fontSize: 10.5, fontFamily: mono }}>
-                  👥 {liveViewers} {uiLang === 'fr' ? 'membres connectés' : (uiLang === 'it' ? 'membri connessi' : 'members online')}
-                </div>
-                <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.7)", color: "#fff", padding: "6px 12px", borderRadius: 8, fontSize: 12 }}>
-                  🎤 {uiLang === 'fr' ? 'Présentateur : Brejnev Diaz (CEO)' : (uiLang === 'it' ? 'Presentatore: Brejnev Diaz (CEO)' : 'Presenter: Brejnev Diaz (CEO)')}
-                </div>
-              </div>
+              {/* ⚠️ CORRIGÉ le 28/07/2026 — ce bloc affirmait un mensonge.
+                  Il affichait un badge « LIVE 🔴 » PERMANENT, un compteur de
+                  « membres connectés » initialisé en dur à 142, et une vidéo de
+                  stock Mixkit présentée comme la diffusion en cours. Sur une
+                  page vendue 299 €/mois, affirmer qu'un direct est en cours
+                  avec 143 personnes est une allégation commerciale qui n'est
+                  adossée à rien, et qui se retourne contre le produit dès qu'un
+                  client s'en aperçoit.
+                  On n'annonce désormais un direct QUE si une session en cours
+                  existe réellement dans `coaching_sessions`. Sinon on annonce
+                  la prochaine, ou on le dit franchement. Aucun chiffre de
+                  fréquentation n'est affiché : nous n'en mesurons aucun. */}
+              {(() => {
+                const liveNow = coachingSessions.find(s => s.type === "live");
+                const next = coachingSessions.find(s => s.type === "upcoming");
+                return (
+                  <div style={{ position: "relative", width: "100%", height: 320, borderRadius: 14, overflow: "hidden", background: "#0b0b12", border: `1.5px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <video
+                      autoPlay loop muted playsInline
+                      src="https://assets.mixkit.co/videos/preview/mixkit-man-working-on-his-laptop-in-a-coffee-shop-41865-large.mp4"
+                      style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.35 }}
+                    />
+                    {/* Image d'illustration, et rien d'autre : elle est
+                        volontairement très atténuée et légendée comme telle. */}
+                    <div style={{ position: "absolute", bottom: 10, right: 12, color: "rgba(255,255,255,0.5)", fontSize: 9.5, fontFamily: mono }}>
+                      {uiLang === 'fr' ? 'Image d\'illustration' : (uiLang === 'it' ? 'Immagine illustrativa' : 'Illustrative image')}
+                    </div>
+
+                    {liveNow && (
+                      <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(220, 38, 38, 0.9)", color: "#fff", padding: "4px 10px", borderRadius: 6, display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 10.5, fontFamily: mono, boxShadow: "0 0 10px rgba(220, 38, 38, 0.4)" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff", display: "inline-block", animation: "pulse 1.2s infinite" }}></span>
+                        LIVE 🔴
+                      </div>
+                    )}
+
+                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: 24, color: "#fff" }}>
+                      {liveNow ? (
+                        <>
+                          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 8 }}>{liveNow.title}</div>
+                          <div style={{ fontSize: 12.5, opacity: 0.85 }}>
+                            🎤 {uiLang === 'fr' ? 'Présentateur : Brejnev Diaz' : (uiLang === 'it' ? 'Presentatore: Brejnev Diaz' : 'Presenter: Brejnev Diaz')}
+                          </div>
+                        </>
+                      ) : next ? (
+                        <>
+                          <div style={{ fontSize: 12, fontFamily: mono, opacity: 0.7, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
+                            {uiLang === 'fr' ? 'Prochaine session' : (uiLang === 'it' ? 'Prossima sessione' : 'Next session')}
+                          </div>
+                          <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 6 }}>{next.title}</div>
+                          <div style={{ fontSize: 13, fontFamily: mono, opacity: 0.85 }}>{next.duration}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 30, marginBottom: 10 }}>🎬</div>
+                          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+                            {uiLang === 'fr' ? 'Aucune session en direct pour le moment'
+                              : (uiLang === 'it' ? 'Nessuna sessione in diretta al momento' : 'No live session right now')}
+                          </div>
+                          <div style={{ fontSize: 12.5, opacity: 0.8, maxWidth: 360 }}>
+                            {uiLang === 'fr' ? 'Les replays des sessions passées restent accessibles ci-dessous.'
+                              : (uiLang === 'it' ? 'I replay delle sessioni passate restano disponibili qui sotto.'
+                              : 'Replays of past sessions remain available below.')}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Training Modules list with access locks */}
               <div>
@@ -931,6 +982,13 @@ Regola d'oro: Non aumentare mai il budget di campagne attive di oltre il 20% al 
 
               {/* Chat list */}
               <div style={{ flex: 1, padding: 12, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                {chatMessages.length === 0 && (
+                  <div style={{ fontSize: 12, color: c.textDim, fontStyle: "italic", padding: "6px 0" }}>
+                    {uiLang === 'fr' ? "Le salon s'anime pendant les sessions en direct."
+                      : (uiLang === 'it' ? "La chat si anima durante le sessioni dal vivo."
+                      : "The room comes alive during live sessions.")}
+                  </div>
+                )}
                 {chatMessages.map((msg, idx) => (
                   <div key={idx} style={{ fontSize: 12, lineHeight: 1.4 }}>
                     <span style={{ fontWeight: 800, color: msg.user.includes("Brejnev") ? c.accent : (msg.user.includes("Vous") ? c.accent2 : c.textDim), fontFamily: mono, marginRight: 6 }}>

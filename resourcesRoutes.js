@@ -58,14 +58,43 @@ export default function registerResourcesRoutes(app, requireAnyUser, requireAdmi
         return count ?? 0;
       };
 
+      // ⚠️ Le compte de créateurs se faisait sur `profiles.role = 'creator'`.
+      // Depuis la fermeture de la faille d'élévation de privilèges (28/07/2026),
+      // le trigger `handle_new_user` attribue 'user' à TOUT nouveau compte :
+      // ce compteur était donc figé à zéro pour toujours, et affichait
+      // « 0 créateur inscrit » à côté de « 7 vidéos en vente » — une
+      // contradiction visible de tous sur la page publique.
+      // On compte désormais ce qui se constate : les personnes qui ont
+      // réellement publié. Un créateur est quelqu'un qui a mis une vidéo en
+      // vente, pas quelqu'un qui porte une étiquette.
+      const countDistinctPublishers = async () => {
+        const { data, error } = await serviceClient
+          .from("marketplace_videos").select("user_id").eq("status", "active");
+        if (error) {
+          console.warn("⚠️ [Ressources] comptage des créateurs impossible:", error.message);
+          return null;
+        }
+        return new Set((data || []).map(r => r.user_id).filter(Boolean)).size;
+      };
+
       const [creators, videos, brands, knowledge] = await Promise.all([
-        countOf("profiles", (q) => q.eq("role", "creator")),
+        countDistinctPublishers(),
         countOf("marketplace_videos", (q) => q.eq("status", "active")),
-        countOf("profiles", (q) => q.in("role", ["user", "brand"])),
+        // Les marques sont les comptes qui n'ont jamais rien publié : on les
+        // déduit plus bas, une fois le nombre de publiants connu.
+        countOf("profiles"),
         countOf("knowledge_chunks"),
       ]);
 
-      const stats = { creators, videos, brands, knowledgeChunks: knowledge };
+      const stats = {
+        creators,
+        videos,
+        // Soustraction plutôt que filtre sur un rôle qui n'est plus renseigné.
+        // `Math.max(0, …)` par prudence : si l'un des deux comptes échoue et
+        // revient à null, on n'affiche pas un nombre négatif.
+        brands: brands === null || creators === null ? brands : Math.max(0, brands - creators),
+        knowledgeChunks: knowledge,
+      };
       statsCache = { at: Date.now(), data: stats };
       res.json({ stats });
     } catch (err) {
